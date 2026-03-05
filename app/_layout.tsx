@@ -1,4 +1,3 @@
-// template
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -14,14 +13,30 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
+import { BookmarksProvider } from "@/contexts/BookmarksContext";
+import { Colors } from "@/constants/colors";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: Colors.bgDark },
+        headerTintColor: Colors.textPrimary,
+        headerBackTitle: "Retour",
+        contentStyle: { backgroundColor: Colors.bgDark },
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="surah/[id]"
+        options={{
+          headerShown: true,
+          headerTransparent: false,
+          headerBackTitle: "Coran",
+        }}
+      />
     </Stack>
   );
 }
@@ -47,7 +62,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView>
           <KeyboardProvider>
-            <RootLayoutNav />
+            <BookmarksProvider>
+              <RootLayoutNav />
+            </BookmarksProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
