@@ -86,7 +86,10 @@ function SurahSection({
             <Text style={styles.surahNumText}>{group.surahNumber}</Text>
           </View>
           <View>
-            <Text style={styles.surahArabicName}>{group.surahNameArabic}</Text>
+            <View style={styles.surahNameRow}>
+              <Text style={styles.surahArabicName}>{group.surahNameArabic}</Text>
+              <Text style={styles.surahNumberInline}>({group.surahNumber})</Text>
+            </View>
             <Text style={styles.surahTranslitName}>{group.surahNameTranslit}</Text>
           </View>
         </View>
@@ -250,9 +253,19 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
   },
+  surahNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   surahArabicName: {
     color: Colors.textPrimary,
     fontSize: 17,
+  },
+  surahNumberInline: {
+    color: Colors.textMuted,
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
   },
   surahTranslitName: {
     color: Colors.textMuted,

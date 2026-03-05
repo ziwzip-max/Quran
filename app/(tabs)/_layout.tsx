@@ -20,7 +20,7 @@ function NativeTabLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="practice">
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
-        <Label>التسميع</Label>
+        <Label>آيات الصلاة</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -86,7 +86,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="practice"
         options={{
-          title: "التسميع",
+          title: "آيات الصلاة",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shuffle-outline" size={size} color={color} />
           ),

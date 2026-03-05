@@ -50,7 +50,10 @@ function BlockCard({ block, index }: { block: VerseBlock; index: number }) {
           <Text style={styles.indexText}>{index + 1}</Text>
         </View>
         <View style={styles.refInfo}>
-          <Text style={styles.refSurahArabic}>{block.surahNameArabic}</Text>
+          <View style={styles.refSurahRow}>
+            <Text style={styles.refSurahArabic}>{block.surahNameArabic}</Text>
+            <Text style={styles.refSurahNumber}>({block.surahNumber})</Text>
+          </View>
           <Text style={styles.refRange}>{rangeLabel}</Text>
         </View>
         <Text style={styles.refTranslit}>{block.surahNameTranslit}</Text>
@@ -101,8 +104,8 @@ export default function PracticeScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>التسميع</Text>
-        <Text style={styles.subtitle}>آيات للصلاة</Text>
+        <Text style={styles.title}>آيات الصلاة</Text>
+        <Text style={styles.subtitle}>اختيار عشوائي للتلاوة في الصلاة</Text>
       </View>
 
       <ScrollView
@@ -293,10 +296,22 @@ const styles = StyleSheet.create({
   refInfo: {
     flex: 1,
   },
+  refSurahRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
   refSurahArabic: {
     color: Colors.textPrimary,
     fontSize: 16,
     textAlign: "right",
+  },
+  refSurahNumber: {
+    color: Colors.textMuted,
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
   },
   refRange: {
     color: Colors.textMuted,
