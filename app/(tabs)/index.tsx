@@ -25,8 +25,7 @@ function SurahCard({ surah, onPress }: { surah: Surah; onPress: () => void }) {
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.translitName}>{surah.nameTranslit}</Text>
-        <Text style={styles.frName}>{surah.nameFr}</Text>
-        <Text style={styles.verseCount}>{surah.versesCount} versets</Text>
+        <Text style={styles.verseCount}>{surah.versesCount} آية</Text>
       </View>
       <Text style={styles.arabicName}>{surah.nameArabic}</Text>
     </Pressable>
@@ -40,7 +39,6 @@ export default function QuranScreen() {
   const filtered = SURAHS.filter(
     (s) =>
       s.nameTranslit.toLowerCase().includes(search.toLowerCase()) ||
-      s.nameFr.toLowerCase().includes(search.toLowerCase()) ||
       s.nameArabic.includes(search) ||
       String(s.number).includes(search)
   );
@@ -52,23 +50,19 @@ export default function QuranScreen() {
     <View style={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.header}>
         <Text style={styles.title}>القرآن الكريم</Text>
-        <Text style={styles.subtitle}>Al-Quran Al-Karim</Text>
+        <Text style={styles.subtitle}>١١٤ سورة • ٦٢٣٦ آية</Text>
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons
-          name="search"
-          size={16}
-          color={Colors.textMuted}
-          style={styles.searchIcon}
-        />
+        <Ionicons name="search" size={16} color={Colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Chercher une sourate..."
+          placeholder="ابحث عن سورة..."
           placeholderTextColor={Colors.textMuted}
           value={search}
           onChangeText={setSearch}
           returnKeyType="search"
+          textAlign="right"
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch("")}>
@@ -98,7 +92,7 @@ export default function QuranScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="search" size={40} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>Aucune sourate trouvée</Text>
+            <Text style={styles.emptyText}>لا توجد نتائج</Text>
           </View>
         }
       />
@@ -127,9 +121,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
-    marginTop: 2,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+    marginTop: 4,
   },
   searchContainer: {
     flexDirection: "row",
@@ -144,7 +136,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     gap: 8,
   },
-  searchIcon: {},
   searchInput: {
     flex: 1,
     color: Colors.textPrimary,
@@ -188,24 +179,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   translitName: {
-    color: Colors.textPrimary,
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
-  },
-  frName: {
     color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 13,
   },
   verseCount: {
     color: Colors.textMuted,
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    marginTop: 3,
+    marginTop: 2,
   },
   arabicName: {
-    color: Colors.gold,
+    color: Colors.textPrimary,
     fontSize: 20,
     textAlign: "right",
   },

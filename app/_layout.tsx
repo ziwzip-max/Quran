@@ -24,7 +24,7 @@ function RootLayoutNav() {
       screenOptions={{
         headerStyle: { backgroundColor: Colors.bgDark },
         headerTintColor: Colors.textPrimary,
-        headerBackTitle: "Retour",
+        headerBackTitle: "القرآن",
         contentStyle: { backgroundColor: Colors.bgDark },
       }}
     >

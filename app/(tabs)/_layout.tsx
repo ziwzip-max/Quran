@@ -12,15 +12,15 @@ function NativeTabLayout() {
     <NativeTabs>
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: "book", selected: "book.fill" }} />
-        <Label>Coran</Label>
+        <Label>القرآن</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="bookmarks">
         <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
-        <Label>Mémorisation</Label>
+        <Label>الحفظ</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="practice">
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
-        <Label>Tirage</Label>
+        <Label>التسميع</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -68,7 +68,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Coran",
+          title: "القرآن",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
@@ -77,7 +77,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="bookmarks"
         options={{
-          title: "Mémorisation",
+          title: "الحفظ",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bookmark-outline" size={size} color={color} />
           ),
@@ -86,7 +86,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="practice"
         options={{
-          title: "Tirage",
+          title: "التسميع",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shuffle-outline" size={size} color={color} />
           ),
