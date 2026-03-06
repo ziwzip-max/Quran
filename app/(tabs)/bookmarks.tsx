@@ -86,10 +86,7 @@ function SurahSection({
             <Text style={styles.surahNumText}>{group.surahNumber}</Text>
           </View>
           <View>
-            <View style={styles.surahNameRow}>
-              <Text style={styles.surahArabicName}>{group.surahNameArabic}</Text>
-              <Text style={styles.surahNumberInline}>({group.surahNumber})</Text>
-            </View>
+            <Text style={styles.surahArabicName}>{group.surahNameArabic}</Text>
             <Text style={styles.surahTranslitName}>{group.surahNameTranslit}</Text>
           </View>
         </View>

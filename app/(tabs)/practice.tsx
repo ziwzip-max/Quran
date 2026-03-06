@@ -145,7 +145,7 @@ export default function PracticeScreen() {
             {!hasDrawn && (
               <View style={styles.promptArea}>
                 <Text style={styles.promptArabic}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
-                <Text style={styles.promptHint}>اضغط على "تسميع" للبدء</Text>
+                <Text style={styles.promptHint}>اضغط على "اقترح" للبدء</Text>
               </View>
             )}
 
@@ -183,7 +183,7 @@ export default function PracticeScreen() {
             >
               <Ionicons name="shuffle" size={20} color={Colors.bgDark} />
               <Text style={styles.drawButtonText}>
-                {hasDrawn ? "تسميع جديد" : "تسميع"}
+                {hasDrawn ? "اقترح جديد" : "اقترح"}
               </Text>
             </Pressable>
           </Animated.View>
