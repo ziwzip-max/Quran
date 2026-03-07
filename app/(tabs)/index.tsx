@@ -73,14 +73,13 @@ function SurahCard({ surah, onPress }: { surah: Surah; onPress: () => void }) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={styles.numberBadge}>
-        <Text style={styles.numberText}>{surah.number}</Text>
-      </View>
       <View style={styles.cardInfo}>
-        <Text style={styles.translitName}>{surah.nameTranslit}</Text>
         <Text style={styles.verseCount}>{surah.versesCount} آية</Text>
       </View>
       <Text style={styles.arabicName}>{surah.nameArabic}</Text>
+      <View style={styles.numberBadge}>
+        <Text style={styles.numberText}>{surah.number}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -141,7 +140,11 @@ export default function QuranScreen() {
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={16} color={Colors.textMuted} />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch("")}>
+            <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
+          </Pressable>
+        )}
         <TextInput
           style={styles.searchInput}
           placeholder="البحث..."
@@ -153,11 +156,7 @@ export default function QuranScreen() {
           autoCorrect={false}
           autoCapitalize="none"
         />
-        {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")}>
-            <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
-          </Pressable>
-        )}
+        <Ionicons name="search" size={16} color={Colors.textMuted} />
       </View>
 
       {hintText && (
@@ -302,20 +301,13 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    alignItems: "flex-end",
-  },
-  translitName: {
-    color: Colors.textSecondary,
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    textAlign: "right",
+    alignItems: "flex-start",
   },
   verseCount: {
     color: Colors.textMuted,
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    marginTop: 2,
-    textAlign: "right",
+    textAlign: "left",
   },
   arabicName: {
     color: Colors.textPrimary,
