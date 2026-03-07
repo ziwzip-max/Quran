@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,12 @@ import {
   Pressable,
   ScrollView,
   Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { Colors } from "@/constants/colors";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, VerseBlock } from "@/contexts/BookmarksContext";
 
 function pickTwoBlocks(blocks: VerseBlock[]): VerseBlock[] {
@@ -37,34 +32,49 @@ function pickTwoBlocks(blocks: VerseBlock[]): VerseBlock[] {
   return picked;
 }
 
-function BlockCard({ block, index }: { block: VerseBlock; index: number }) {
+function BlockCard({
+  block,
+  index,
+  colors,
+  arabicFont,
+}: {
+  block: VerseBlock;
+  index: number;
+  colors: ReturnType<typeof useSettings>["colors"];
+  arabicFont: string | undefined;
+}) {
   const rangeLabel =
     block.startVerse === block.endVerse
       ? `الآية ${block.startVerse}`
       : `الآيات ${block.startVerse} – ${block.endVerse}`;
 
   return (
-    <View style={styles.blockCard}>
-      <View style={styles.blockCardHeader}>
-        <View style={styles.indexBadge}>
-          <Text style={styles.indexText}>{index + 1}</Text>
+    <View style={[styles.blockCard, { backgroundColor: colors.bgCard, borderColor: colors.gold + "30" }]}>
+      <View style={[styles.blockCardHeader, { borderBottomColor: colors.border }]}>
+        <View style={[styles.indexBadge, { backgroundColor: colors.gold }]}>
+          <Text style={[styles.indexText, { color: colors.bgDark }]}>{index + 1}</Text>
         </View>
         <View style={styles.refInfo}>
           <View style={styles.refSurahRow}>
-            <Text style={styles.refSurahArabic}>{block.surahNameArabic}</Text>
-            <Text style={styles.refSurahNumber}>({block.surahNumber})</Text>
+            <Text style={[styles.refSurahArabic, { color: colors.textPrimary }]}>{block.surahNameArabic}</Text>
+            <Text style={[styles.refSurahNumber, { color: colors.textMuted }]}>({block.surahNumber})</Text>
           </View>
-          <Text style={styles.refRange}>{rangeLabel}</Text>
+          <Text style={[styles.refRange, { color: colors.textMuted }]}>{rangeLabel}</Text>
         </View>
-        <Text style={styles.refTranslit}>{block.surahNameTranslit}</Text>
       </View>
 
       <View style={styles.versesContainer}>
         {block.verses.map((verse) => (
           <View key={verse.number} style={styles.verseRow}>
-            <Text style={styles.verseArabic}>{verse.text}</Text>
-            <View style={styles.verseNumDot}>
-              <Text style={styles.verseNumText}>{verse.number}</Text>
+            <Text style={[
+              styles.verseArabic,
+              { color: colors.textPrimary },
+              arabicFont ? { fontFamily: arabicFont } : {},
+            ]}>
+              {verse.text}
+            </Text>
+            <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface }]}>
+              <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
             </View>
           </View>
         ))}
@@ -76,19 +86,17 @@ function BlockCard({ block, index }: { block: VerseBlock; index: number }) {
 export default function PracticeScreen() {
   const insets = useSafeAreaInsets();
   const { blocks } = useBookmarks();
+  const { colors, arabicFontFamily } = useSettings();
   const [selected, setSelected] = useState<VerseBlock[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
 
-  const buttonScale = useSharedValue(1);
-  const buttonAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   const draw = useCallback(() => {
-    buttonScale.value = withSequence(
-      withSpring(0.92, { duration: 100 }),
-      withSpring(1, { duration: 150 })
-    );
+    Animated.sequence([
+      Animated.timing(buttonScale, { toValue: 0.92, duration: 80, useNativeDriver: true }),
+      Animated.timing(buttonScale, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelected(pickTwoBlocks(blocks));
     setHasDrawn(true);
@@ -102,10 +110,10 @@ export default function PracticeScreen() {
   const isEmpty = blocks.length === 0;
 
   return (
-    <View style={[styles.container, { paddingTop: topPadding }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>آيات الصلاة</Text>
-        <Text style={styles.subtitle}>اختيار عشوائي للتلاوة في الصلاة</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>آيات الصلاة</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>اختيار عشوائي للتلاوة في الصلاة</Text>
       </View>
 
       <ScrollView
@@ -117,43 +125,41 @@ export default function PracticeScreen() {
       >
         {isEmpty ? (
           <View style={styles.emptyState}>
-            <Ionicons
-              name="bookmark-outline"
-              size={52}
-              color={Colors.textMuted}
-            />
-            <Text style={styles.emptyTitle}>لا توجد آيات محفوظة</Text>
-            <Text style={styles.emptyDesc}>
+            <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
               أضف آيات للحفظ من صفحة "الحفظ" لتتمكن من التسميع.
             </Text>
           </View>
         ) : (
           <>
-            <View style={styles.infoBox}>
-              <Ionicons
-                name="information-circle"
-                size={16}
-                color={Colors.tealLight}
-              />
-              <Text style={styles.infoText}>
+            <View style={[styles.infoBox, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
+              <Ionicons name="information-circle" size={16} color={colors.tealLight} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
                 {blocks.length === 1
                   ? "مجموعة واحدة متاحة للتسميع"
-                  : `${blocks.length} مجموعة متاحة • سيتم اقتراح مجموعتين عشوائيتين مرتبتين حسب ترتيب المصحف`}
+                  : `${blocks.length} مجموعة متاحة • سيتم اقتراح مجموعتين عشوائيتين`}
               </Text>
             </View>
 
             {!hasDrawn && (
               <View style={styles.promptArea}>
-                <Text style={styles.promptArabic}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
-                <Text style={styles.promptHint}>اضغط على "اقترح" للبدء</Text>
+                <Text style={[styles.promptArabic, { color: colors.gold }]}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
+                <Text style={[styles.promptHint, { color: colors.textMuted }]}>اضغط على "اقترح" للبدء</Text>
               </View>
             )}
 
             {hasDrawn && selected.length > 0 && (
               <View style={styles.cardsContainer}>
-                <Text style={styles.sectionLabel}>المجموعات المقترحة للصلاة</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>المجموعات المقترحة للصلاة</Text>
                 {selected.map((block, i) => (
-                  <BlockCard key={block.id} block={block} index={i} />
+                  <BlockCard
+                    key={block.id}
+                    block={block}
+                    index={i}
+                    colors={colors}
+                    arabicFont={arabicFontFamily}
+                  />
                 ))}
               </View>
             )}
@@ -166,23 +172,21 @@ export default function PracticeScreen() {
           style={[
             styles.drawButtonContainer,
             {
-              bottom:
-                Platform.OS === "web"
-                  ? 34 + 16
-                  : insets.bottom + 90 + 16,
+              bottom: Platform.OS === "web" ? 34 + 16 : insets.bottom + 90 + 16,
             },
           ]}
         >
-          <Animated.View style={buttonAnimStyle}>
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
             <Pressable
               onPress={draw}
               style={({ pressed }) => [
                 styles.drawButton,
+                { backgroundColor: colors.gold },
                 pressed && styles.drawButtonPressed,
               ]}
             >
-              <Ionicons name="shuffle" size={20} color={Colors.bgDark} />
-              <Text style={styles.drawButtonText}>
+              <Ionicons name="shuffle" size={20} color={colors.bgDark} />
+              <Text style={[styles.drawButtonText, { color: colors.bgDark }]}>
                 {hasDrawn ? "اقترح جديد" : "اقترح"}
               </Text>
             </Pressable>
@@ -196,7 +200,6 @@ export default function PracticeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgDark,
   },
   header: {
     paddingHorizontal: 20,
@@ -205,12 +208,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    color: Colors.textPrimary,
     fontFamily: "Inter_700Bold",
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     marginTop: 4,
   },
@@ -220,18 +221,15 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: "row",
-    backgroundColor: Colors.teal + "20",
     borderRadius: 12,
     padding: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: Colors.teal + "40",
     marginBottom: 20,
     alignItems: "flex-start",
   },
   infoText: {
     flex: 1,
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     fontSize: 13,
     lineHeight: 20,
@@ -244,12 +242,10 @@ const styles = StyleSheet.create({
   },
   promptArabic: {
     fontSize: 22,
-    color: Colors.gold,
     textAlign: "center",
     lineHeight: 36,
   },
   promptHint: {
-    color: Colors.textMuted,
     fontFamily: "Inter_400Regular",
     fontSize: 14,
   },
@@ -257,18 +253,15 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   sectionLabel: {
-    color: Colors.textMuted,
     fontFamily: "Inter_500Medium",
     fontSize: 12,
     textAlign: "right",
     marginBottom: 4,
   },
   blockCard: {
-    backgroundColor: Colors.bgCard,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.gold + "30",
   },
   blockCardHeader: {
     flexDirection: "row",
@@ -277,19 +270,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   indexBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.gold,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   indexText: {
-    color: Colors.bgDark,
     fontFamily: "Inter_700Bold",
     fontSize: 13,
   },
@@ -304,26 +294,18 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   refSurahArabic: {
-    color: Colors.textPrimary,
     fontSize: 16,
     textAlign: "right",
   },
   refSurahNumber: {
-    color: Colors.textMuted,
     fontFamily: "Inter_500Medium",
     fontSize: 13,
   },
   refRange: {
-    color: Colors.textMuted,
     fontFamily: "Inter_400Regular",
     fontSize: 11,
     textAlign: "right",
     marginTop: 2,
-  },
-  refTranslit: {
-    color: Colors.textMuted,
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
   },
   versesContainer: {
     gap: 12,
@@ -335,7 +317,6 @@ const styles = StyleSheet.create({
   },
   verseArabic: {
     flex: 1,
-    color: Colors.textPrimary,
     fontSize: 22,
     textAlign: "right",
     lineHeight: 42,
@@ -344,14 +325,12 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Colors.bgSurface,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 6,
     flexShrink: 0,
   },
   verseNumText: {
-    color: Colors.textMuted,
     fontFamily: "Inter_500Medium",
     fontSize: 9,
   },
@@ -362,13 +341,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     textAlign: "center",
   },
   emptyDesc: {
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     fontSize: 14,
     textAlign: "center",
@@ -383,22 +360,15 @@ const styles = StyleSheet.create({
   drawButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.gold,
     borderRadius: 50,
     paddingVertical: 16,
     paddingHorizontal: 36,
     gap: 10,
-    shadowColor: Colors.gold,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
   },
   drawButtonPressed: {
     opacity: 0.85,
   },
   drawButtonText: {
-    color: Colors.bgDark,
     fontFamily: "Inter_700Bold",
     fontSize: 16,
   },

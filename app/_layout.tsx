@@ -5,6 +5,8 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic";
+import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -14,18 +16,19 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { BookmarksProvider } from "@/contexts/BookmarksContext";
-import { Colors } from "@/constants/colors";
+import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
+  const { colors } = useSettings();
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.bgDark },
-        headerTintColor: Colors.textPrimary,
+        headerStyle: { backgroundColor: colors.bgDark },
+        headerTintColor: colors.textPrimary,
         headerBackTitle: "القرآن",
-        contentStyle: { backgroundColor: Colors.bgDark },
+        contentStyle: { backgroundColor: colors.bgDark },
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -34,7 +37,7 @@ function RootLayoutNav() {
         options={{
           headerShown: true,
           headerTransparent: false,
-          headerBackTitle: "Coran",
+          headerBackTitle: "القرآن",
         }}
       />
     </Stack>
@@ -47,6 +50,8 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    NotoNaskhArabic_400Regular,
+    Amiri_400Regular,
   });
 
   useEffect(() => {
@@ -62,9 +67,11 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView>
           <KeyboardProvider>
-            <BookmarksProvider>
-              <RootLayoutNav />
-            </BookmarksProvider>
+            <SettingsProvider>
+              <BookmarksProvider>
+                <RootLayoutNav />
+              </BookmarksProvider>
+            </SettingsProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

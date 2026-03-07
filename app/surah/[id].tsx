@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,21 +12,28 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Colors } from "@/constants/colors";
+import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 
+const MIN_FONT = 16;
+const MAX_FONT = 36;
+const FONT_STEP = 2;
+
 function VerseItem({
   verse,
-  surahNumber,
   isBookmarked,
   onToggle,
+  fontSize,
+  arabicFont,
 }: {
   verse: Verse;
-  surahNumber: number;
   isBookmarked: boolean;
   onToggle: () => void;
+  fontSize: number;
+  arabicFont: string | undefined;
 }) {
+  const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
@@ -39,10 +46,22 @@ function VerseItem({
   };
 
   return (
-    <View style={[styles.verseContainer, isBookmarked && styles.verseContainerBookmarked]}>
+    <View style={[
+      styles.verseContainer,
+      {
+        backgroundColor: isBookmarked ? colors.gold + "0D" : colors.bgCard,
+        borderColor: isBookmarked ? colors.gold + "50" : colors.border,
+      }
+    ]}>
       <View style={styles.verseHeader}>
-        <View style={[styles.verseNumberBadge, isBookmarked && styles.verseNumberBadgeBookmarked]}>
-          <Text style={[styles.verseNumberText, isBookmarked && styles.verseNumberTextBookmarked]}>
+        <View style={[
+          styles.verseNumberBadge,
+          {
+            backgroundColor: isBookmarked ? colors.gold + "20" : colors.bgSurface,
+            borderColor: isBookmarked ? colors.gold + "60" : colors.border,
+          }
+        ]}>
+          <Text style={[styles.verseNumberText, { color: isBookmarked ? colors.gold : colors.textMuted }]}>
             {verse.number}
           </Text>
         </View>
@@ -51,68 +70,115 @@ function VerseItem({
             <Ionicons
               name={isBookmarked ? "bookmark" : "bookmark-outline"}
               size={22}
-              color={isBookmarked ? Colors.gold : Colors.textMuted}
+              color={isBookmarked ? colors.gold : colors.textMuted}
             />
           </Pressable>
         </Animated.View>
       </View>
-      <Text style={styles.verseText}>{verse.text}</Text>
+      <Text style={[
+        styles.verseText,
+        { fontSize, lineHeight: fontSize * 1.9, color: colors.textPrimary },
+        arabicFont ? { fontFamily: arabicFont } : {},
+      ]}>
+        {verse.text}
+      </Text>
     </View>
   );
 }
 
 export default function SurahScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, verse: verseParam } = useLocalSearchParams<{ id: string; verse?: string }>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { colors, arabicFontFamily } = useSettings();
 
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
+
+  const [fontSize, setFontSize] = useState(22);
+  const flatListRef = useRef<FlatList<Verse>>(null);
+  const hasScrolled = useRef(false);
+
+  const increaseFont = useCallback(() => setFontSize((f) => Math.min(f + FONT_STEP, MAX_FONT)), []);
+  const decreaseFont = useCallback(() => setFontSize((f) => Math.max(f - FONT_STEP, MIN_FONT)), []);
 
   useEffect(() => {
     if (surah) {
       navigation.setOptions({
         title: surah.nameArabic,
-        headerStyle: { backgroundColor: Colors.bgDark },
-        headerTintColor: Colors.textPrimary,
+        headerStyle: { backgroundColor: colors.bgDark },
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontFamily: "Inter_600SemiBold",
           fontSize: 18,
-          color: Colors.textPrimary,
+          color: colors.textPrimary,
         },
         headerBackTitle: "القرآن",
+        headerRight: () => (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 8 }}>
+            <Pressable
+              onPress={decreaseFont}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: "Inter_700Bold" }}>ا-</Text>
+            </Pressable>
+            <Pressable
+              onPress={increaseFont}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: "Inter_700Bold" }}>ا+</Text>
+            </Pressable>
+          </View>
+        ),
       });
     }
-  }, [surah, navigation]);
+  }, [surah, navigation, colors, decreaseFont, increaseFont]);
+
+  useEffect(() => {
+    if (!surah || !verseParam || hasScrolled.current) return;
+    const targetVerse = parseInt(verseParam, 10);
+    if (isNaN(targetVerse)) return;
+    const index = surah.verses.findIndex((v) => v.number === targetVerse);
+    if (index < 0) return;
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+      hasScrolled.current = true;
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [surah, verseParam]);
 
   if (!surah) {
     return (
-      <View style={styles.notFound}>
-        <Ionicons name="alert-circle-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.notFoundText}>السورة غير موجودة</Text>
+      <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
+        <Ionicons name="alert-circle-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>السورة غير موجودة</Text>
       </View>
     );
   }
 
-  const availableCount = surah.verses.length;
-  const totalCount = surah.versesCount;
-
   const headerComponent = (
-    <View style={styles.surahHeader}>
-      <Text style={styles.surahArabicName}>{surah.nameArabic}</Text>
-      <Text style={styles.surahTranslit}>{surah.nameTranslit}</Text>
+    <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+      <Text style={[styles.surahArabicName, { color: colors.gold }, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
+        {surah.nameArabic}
+      </Text>
       <View style={styles.surahMeta}>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaText}>{surah.versesCount} آية</Text>
+        <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
         </View>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaText}>سورة {surah.number}</Text>
+        <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>سورة {surah.number}</Text>
         </View>
       </View>
-      {surah.number !== 9 && (
-        <View style={styles.bismillahContainer}>
-          <Text style={styles.bismillah}>
+      {surah.number !== 1 && surah.number !== 9 && (
+        <View style={[styles.bismillahContainer, { borderTopColor: colors.border }]}>
+          <Text style={[
+            styles.bismillah,
+            { color: colors.textSecondary },
+            arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
+          ]}>
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </Text>
         </View>
@@ -120,42 +186,31 @@ export default function SurahScreen() {
     </View>
   );
 
-  const footerComponent =
-    availableCount < totalCount ? (
-      <View style={styles.partialNotice}>
-        <Ionicons
-          name="information-circle-outline"
-          size={14}
-          color={Colors.textMuted}
-        />
-        <Text style={styles.partialText}>
-          {availableCount} آية متاحة من أصل {totalCount}
-        </Text>
-      </View>
-    ) : null;
-
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bgDark }}>
+    <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
       <FlatList
+        ref={flatListRef}
         data={surah.verses}
         keyExtractor={(v) => String(v.number)}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.listContent,
-          {
-            paddingBottom:
-              Platform.OS === "web" ? 34 : insets.bottom + 24,
-          },
+          { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24 },
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={headerComponent}
-        ListFooterComponent={footerComponent}
+        onScrollToIndexFailed={({ index }) => {
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+          }, 300);
+        }}
         renderItem={({ item }) => (
           <VerseItem
             verse={item}
-            surahNumber={surah.number}
             isBookmarked={isBookmarked(surah.number, item.number)}
             onToggle={() => toggleBookmark(surah.number, item.number)}
+            fontSize={fontSize}
+            arabicFont={arabicFontFamily}
           />
         )}
         ItemSeparatorComponent={() => <View style={styles.verseSeparator} />}
@@ -164,33 +219,30 @@ export default function SurahScreen() {
   );
 }
 
+const fontBtnStyle: object = {
+  borderRadius: 8,
+  borderWidth: 1,
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+};
+
 const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
-    backgroundColor: Colors.bgDark,
   },
   surahHeader: {
     alignItems: "center",
     paddingVertical: 28,
     paddingHorizontal: 16,
-    backgroundColor: Colors.bgCard,
     borderRadius: 20,
     marginTop: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   surahArabicName: {
     fontSize: 36,
-    color: Colors.gold,
     textAlign: "center",
     marginBottom: 6,
-  },
-  surahTranslit: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    fontFamily: "Inter_500Medium",
-    textAlign: "center",
   },
   surahMeta: {
     flexDirection: "row",
@@ -198,13 +250,11 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   metaPill: {
-    backgroundColor: Colors.bgSurface,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
   metaText: {
-    color: Colors.textMuted,
     fontFamily: "Inter_500Medium",
     fontSize: 12,
   },
@@ -212,26 +262,18 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 18,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     width: "100%",
     alignItems: "center",
   },
   bismillah: {
     fontSize: 21,
-    color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 36,
   },
   verseContainer: {
-    backgroundColor: Colors.bgCard,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  verseContainerBookmarked: {
-    borderColor: Colors.gold + "50",
-    backgroundColor: Colors.bgCard,
   },
   verseHeader: {
     flexDirection: "row",
@@ -243,58 +285,27 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: Colors.bgSurface,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  verseNumberBadgeBookmarked: {
-    borderColor: Colors.gold + "60",
-    backgroundColor: Colors.gold + "15",
-  },
   verseNumberText: {
-    color: Colors.textMuted,
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
   },
-  verseNumberTextBookmarked: {
-    color: Colors.gold,
-  },
   verseText: {
-    color: Colors.textPrimary,
-    fontSize: 22,
     textAlign: "right",
-    lineHeight: 42,
   },
   verseSeparator: {
     height: 10,
   },
-  partialNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  partialText: {
-    color: Colors.textMuted,
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-  },
   notFound: {
     flex: 1,
-    backgroundColor: Colors.bgDark,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
   },
   notFoundText: {
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     fontSize: 16,
   },

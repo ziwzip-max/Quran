@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,24 +6,24 @@ import {
   StyleSheet,
   Pressable,
   Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
-import { Colors } from "@/constants/colors";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
 
 function BlockItem({
   block,
   onRemoveVerse,
+  colors,
+  arabicFont,
 }: {
   block: VerseBlock;
   onRemoveVerse: (verseNumber: number) => void;
+  colors: ReturnType<typeof useSettings>["colors"];
+  arabicFont: string | undefined;
 }) {
   const rangeLabel =
     block.startVerse === block.endVerse
@@ -31,9 +31,9 @@ function BlockItem({
       : `الآيات ${block.startVerse} – ${block.endVerse}`;
 
   return (
-    <View style={styles.blockItem}>
+    <View style={[styles.blockItem, { backgroundColor: colors.bgSurface }]}>
       <View style={styles.blockHeader}>
-        <Text style={styles.blockRange}>{rangeLabel}</Text>
+        <Text style={[styles.blockRange, { color: colors.gold }]}>{rangeLabel}</Text>
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -43,15 +43,21 @@ function BlockItem({
           }}
           hitSlop={8}
         >
-          <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
+          <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
         </Pressable>
       </View>
       {block.verses.map((verse) => (
         <View key={verse.number} style={styles.verseRow}>
-          <View style={styles.verseNumBadge}>
-            <Text style={styles.verseNumText}>{verse.number}</Text>
+          <View style={[styles.verseNumBadge, { backgroundColor: colors.bgCard }]}>
+            <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
           </View>
-          <Text style={styles.verseText}>{verse.text}</Text>
+          <Text style={[
+            styles.verseText,
+            { color: colors.textPrimary },
+            arabicFont ? { fontFamily: arabicFont } : {},
+          ]}>
+            {verse.text}
+          </Text>
         </View>
       ))}
     </View>
@@ -61,52 +67,60 @@ function BlockItem({
 function SurahSection({
   group,
   onRemoveVerse,
+  colors,
+  arabicFont,
 }: {
   group: SurahGroup;
   onRemoveVerse: (surahNumber: number, verseNumber: number) => void;
+  colors: ReturnType<typeof useSettings>["colors"];
+  arabicFont: string | undefined;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const rotation = useSharedValue(0);
-
-  const arrowStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
+  const rotation = useRef(new Animated.Value(0)).current;
 
   const toggle = () => {
-    rotation.value = withTiming(expanded ? 0 : 90, { duration: 200 });
+    Animated.timing(rotation, {
+      toValue: expanded ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
     setExpanded(!expanded);
     Haptics.selectionAsync();
   };
 
+  const rotateInterpolate = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "90deg"],
+  });
+
   return (
-    <View style={styles.surahSection}>
+    <View style={[styles.surahSection, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <Pressable onPress={toggle} style={styles.surahHeader}>
         <View style={styles.surahHeaderLeft}>
-          <View style={styles.surahNumBadge}>
-            <Text style={styles.surahNumText}>{group.surahNumber}</Text>
+          <View style={[styles.surahNumBadge, { backgroundColor: colors.bgSurface, borderColor: colors.gold + "40" }]}>
+            <Text style={[styles.surahNumText, { color: colors.gold }]}>{group.surahNumber}</Text>
           </View>
-          <View>
-            <Text style={styles.surahArabicName}>{group.surahNameArabic}</Text>
-            <Text style={styles.surahTranslitName}>{group.surahNameTranslit}</Text>
-          </View>
+          <Text style={[styles.surahArabicName, { color: colors.textPrimary }]}>{group.surahNameArabic}</Text>
         </View>
         <View style={styles.surahHeaderRight}>
-          <View style={styles.countBadge}>
-            <Text style={styles.countText}>{group.totalVerses} آية</Text>
+          <View style={[styles.countBadge, { backgroundColor: colors.gold + "20", borderColor: colors.gold + "30" }]}>
+            <Text style={[styles.countText, { color: colors.gold }]}>{group.totalVerses} آية</Text>
           </View>
-          <Animated.View style={arrowStyle}>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Animated.View>
         </View>
       </Pressable>
 
       {expanded && (
-        <View style={styles.blocksContainer}>
+        <View style={[styles.blocksContainer, { borderTopColor: colors.border }]}>
           {group.blocks.map((block) => (
             <BlockItem
               key={block.id}
               block={block}
               onRemoveVerse={(vn) => onRemoveVerse(group.surahNumber, vn)}
+              colors={colors}
+              arabicFont={arabicFont}
             />
           ))}
         </View>
@@ -118,6 +132,7 @@ function SurahSection({
 export default function BookmarksScreen() {
   const insets = useSafeAreaInsets();
   const { surahGroups, toggleBookmark, isLoaded, blocks } = useBookmarks();
+  const { colors, arabicFontFamily } = useSettings();
 
   const topPadding =
     Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
@@ -126,17 +141,17 @@ export default function BookmarksScreen() {
 
   if (!isLoaded) {
     return (
-      <View style={[styles.container, { paddingTop: topPadding, justifyContent: "center" }]}>
-        <Text style={styles.loadingText}>جاري التحميل...</Text>
+      <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding, justifyContent: "center" }]}>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>جاري التحميل...</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: topPadding }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>الحفظ</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>الحفظ</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {totalVerses > 0
             ? `${totalVerses} آية في ${surahGroups.length} سورة`
             : "لا توجد آيات محفوظة"}
@@ -158,21 +173,17 @@ export default function BookmarksScreen() {
             onRemoveVerse={(surahNumber, verseNumber) =>
               toggleBookmark(surahNumber, verseNumber)
             }
+            colors={colors}
+            arabicFont={arabicFontFamily}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="bookmark-outline" size={52} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>لا توجد آيات محفوظة</Text>
-            <Text style={styles.emptyDesc}>
-              اضغط على{" "}
-              <Ionicons
-                name="bookmark-outline"
-                size={13}
-                color={Colors.textSecondary}
-              />{" "}
-              عند قراءة أي سورة لإضافة الآيات للحفظ.
+            <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+              اضغط على الإشارة المرجعية عند قراءة أي سورة لإضافة الآيات للحفظ.
             </Text>
           </View>
         }
@@ -184,7 +195,6 @@ export default function BookmarksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgDark,
   },
   header: {
     paddingHorizontal: 20,
@@ -193,17 +203,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    color: Colors.textPrimary,
     fontFamily: "Inter_700Bold",
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     marginTop: 4,
   },
   loadingText: {
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
   },
@@ -211,11 +218,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   surahSection: {
-    backgroundColor: Colors.bgCard,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   surahHeader: {
     flexDirection: "row",
@@ -239,59 +244,34 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.bgSurface,
     borderWidth: 1,
-    borderColor: Colors.gold + "40",
     alignItems: "center",
     justifyContent: "center",
   },
   surahNumText: {
-    color: Colors.gold,
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
   },
-  surahNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
   surahArabicName: {
-    color: Colors.textPrimary,
     fontSize: 17,
   },
-  surahNumberInline: {
-    color: Colors.textMuted,
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-  },
-  surahTranslitName: {
-    color: Colors.textMuted,
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    marginTop: 1,
-  },
   countBadge: {
-    backgroundColor: Colors.gold + "20",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: Colors.gold + "30",
   },
   countText: {
-    color: Colors.gold,
     fontFamily: "Inter_500Medium",
     fontSize: 11,
   },
   blocksContainer: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     paddingVertical: 10,
     paddingHorizontal: 14,
     gap: 12,
   },
   blockItem: {
-    backgroundColor: Colors.bgSurface,
     borderRadius: 12,
     padding: 12,
     gap: 10,
@@ -302,7 +282,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   blockRange: {
-    color: Colors.gold,
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
   },
@@ -315,20 +294,17 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.bgCard,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
     flexShrink: 0,
   },
   verseNumText: {
-    color: Colors.textMuted,
     fontFamily: "Inter_500Medium",
     fontSize: 10,
   },
   verseText: {
     flex: 1,
-    color: Colors.textPrimary,
     fontSize: 20,
     textAlign: "right",
     lineHeight: 38,
@@ -340,13 +316,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     textAlign: "center",
   },
   emptyDesc: {
-    color: Colors.textSecondary,
     fontFamily: "Inter_400Regular",
     fontSize: 14,
     textAlign: "center",

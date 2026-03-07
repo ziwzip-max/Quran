@@ -5,7 +5,8 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Colors } from "@/constants/colors";
+import { useSettings } from "@/contexts/SettingsContext";
+import { useBookmarks } from "@/contexts/BookmarksContext";
 
 function NativeTabLayout() {
   return (
@@ -29,18 +30,22 @@ function NativeTabLayout() {
 function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const { colors } = useSettings();
+  const { blocks } = useBookmarks();
+
+  const bookmarkCount = blocks.reduce((sum, b) => sum + b.verses.length, 0);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.gold,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : Colors.bgCard,
+          backgroundColor: isIOS ? "transparent" : colors.bgCard,
           borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: Colors.border,
+          borderTopColor: colors.border,
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
@@ -61,7 +66,7 @@ function ClassicTabLayout() {
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: Colors.bgCard },
+                { backgroundColor: colors.bgCard },
               ]}
             />
           ) : null,
@@ -80,6 +85,7 @@ function ClassicTabLayout() {
         name="bookmarks"
         options={{
           title: "الحفظ",
+          tabBarBadge: bookmarkCount > 0 ? bookmarkCount : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bookmark-outline" size={size} color={color} />
           ),
