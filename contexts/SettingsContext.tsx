@@ -2,8 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useMemo, ReactNo
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ThemeColors, ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
-  ReciterName, PlaybackRate, RepeatMode,
+  PlaybackRate, RepeatMode,
   THEMES, ARABIC_FONTS, ACCENT_COLORS, LINE_SPACING,
+  DEFAULT_RECITER_ID,
 } from "@/constants/themes";
 
 const SETTINGS_KEY = "al_hifz_settings";
@@ -16,11 +17,12 @@ interface SettingsContextValue {
   hideVerseNumbers: boolean;
   showVerseOfDay: boolean;
   highlightActiveVerse: boolean;
-  reciter: ReciterName;
+  reciterId: string;
   playbackRate: PlaybackRate;
   repeatMode: RepeatMode;
   showTajweed: boolean;
   continuousPlay: boolean;
+  qiraa: "hafs" | "qaloon";
   setTheme: (t: ThemeName) => void;
   setArabicFont: (f: ArabicFontName) => void;
   setAccentColor: (a: AccentColorName) => void;
@@ -28,11 +30,12 @@ interface SettingsContextValue {
   setHideVerseNumbers: (v: boolean) => void;
   setShowVerseOfDay: (v: boolean) => void;
   setHighlightActiveVerse: (v: boolean) => void;
-  setReciter: (r: ReciterName) => void;
+  setReciterId: (id: string) => void;
   setPlaybackRate: (r: PlaybackRate) => void;
   setRepeatMode: (m: RepeatMode) => void;
   setShowTajweed: (v: boolean) => void;
   setContinuousPlay: (v: boolean) => void;
+  setQiraa: (q: "hafs" | "qaloon") => void;
   colors: ThemeColors;
   arabicFontFamily: string | undefined;
   lineSpacingValue: number;
@@ -56,6 +59,8 @@ async function saveSettings(patch: object) {
   } catch {}
 }
 
+const INVALID_FONTS: string[] = ["cairo", "tajawal"];
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>("dark");
   const [arabicFont, setArabicFontState] = useState<ArabicFontName>("system");
@@ -64,26 +69,32 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [hideVerseNumbers, setHideVerseNumbersState] = useState(false);
   const [showVerseOfDay, setShowVerseOfDayState] = useState(true);
   const [highlightActiveVerse, setHighlightActiveVerseState] = useState(false);
-  const [reciter, setReciterState] = useState<ReciterName>("alafasy");
+  const [reciterId, setReciterIdState] = useState<string>(DEFAULT_RECITER_ID);
   const [playbackRate, setPlaybackRateState] = useState<PlaybackRate>(1.0);
   const [repeatMode, setRepeatModeState] = useState<RepeatMode>(0);
   const [showTajweed, setShowTajweedState] = useState(false);
   const [continuousPlay, setContinuousPlayState] = useState(false);
+  const [qiraa, setQiraaState] = useState<"hafs" | "qaloon">("hafs");
 
   useEffect(() => {
     loadSettings().then((p) => {
       if (p.theme) setThemeState(p.theme);
-      if (p.arabicFont) setArabicFontState(p.arabicFont);
+      if (p.arabicFont) {
+        const font = INVALID_FONTS.includes(p.arabicFont) ? "system" : p.arabicFont;
+        setArabicFontState(font as ArabicFontName);
+      }
       if (p.accentColor) setAccentColorState(p.accentColor);
       if (p.lineSpacing) setLineSpacingState(p.lineSpacing);
       if (p.hideVerseNumbers !== undefined) setHideVerseNumbersState(p.hideVerseNumbers);
       if (p.showVerseOfDay !== undefined) setShowVerseOfDayState(p.showVerseOfDay);
       if (p.highlightActiveVerse !== undefined) setHighlightActiveVerseState(p.highlightActiveVerse);
-      if (p.reciter) setReciterState(p.reciter);
+      if (p.reciterId) setReciterIdState(p.reciterId);
+      else if (p.reciter) setReciterIdState(p.reciter === "alafasy" ? "alafasy" : DEFAULT_RECITER_ID);
       if (p.playbackRate !== undefined) setPlaybackRateState(p.playbackRate);
       if (p.repeatMode !== undefined) setRepeatModeState(p.repeatMode);
       if (p.showTajweed !== undefined) setShowTajweedState(p.showTajweed);
       if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
+      if (p.qiraa) setQiraaState(p.qiraa);
     });
   }, []);
 
@@ -94,11 +105,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setHideVerseNumbers = (v: boolean) => { setHideVerseNumbersState(v); saveSettings({ hideVerseNumbers: v }); };
   const setShowVerseOfDay = (v: boolean) => { setShowVerseOfDayState(v); saveSettings({ showVerseOfDay: v }); };
   const setHighlightActiveVerse = (v: boolean) => { setHighlightActiveVerseState(v); saveSettings({ highlightActiveVerse: v }); };
-  const setReciter = (r: ReciterName) => { setReciterState(r); saveSettings({ reciter: r }); };
+  const setReciterId = (id: string) => { setReciterIdState(id); saveSettings({ reciterId: id }); };
   const setPlaybackRate = (r: PlaybackRate) => { setPlaybackRateState(r); saveSettings({ playbackRate: r }); };
   const setRepeatMode = (m: RepeatMode) => { setRepeatModeState(m); saveSettings({ repeatMode: m }); };
   const setShowTajweed = (v: boolean) => { setShowTajweedState(v); saveSettings({ showTajweed: v }); };
   const setContinuousPlay = (v: boolean) => { setContinuousPlayState(v); saveSettings({ continuousPlay: v }); };
+  const setQiraa = (q: "hafs" | "qaloon") => { setQiraaState(q); saveSettings({ qiraa: q }); };
 
   const colors = useMemo<ThemeColors>(() => {
     const base = THEMES[theme] ?? THEMES.dark;
@@ -113,16 +125,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciter, playbackRate, repeatMode, showTajweed, continuousPlay,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
-      setReciter, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay,
+      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
       colors, arabicFontFamily, lineSpacingValue,
     }),
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciter, playbackRate, repeatMode, showTajweed, continuousPlay,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
       colors, arabicFontFamily, lineSpacingValue,
     ]
   );

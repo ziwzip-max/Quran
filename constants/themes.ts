@@ -79,10 +79,9 @@ export const violetTheme: ThemeColors = {
 };
 
 export type ThemeName = "dark" | "light" | "sepia" | "violet";
-export type ArabicFontName = "system" | "naskh" | "amiri" | "cairo" | "tajawal";
+export type ArabicFontName = "system" | "naskh" | "amiri" | "scheherazade";
 export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
-export type ReciterName = "alafasy" | "sudais" | "kurdi" | "sobhi";
 export type PlaybackRate = 0.75 | 1.0 | 1.25;
 export type RepeatMode = 0 | 1 | 3 | 5 | 10;
 
@@ -97,16 +96,26 @@ export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",
   amiri: "Amiri_400Regular",
-  cairo: "Cairo_400Regular",
-  tajawal: "Tajawal_400Regular",
+  scheherazade: "ScheherazadeNew_400Regular",
 };
 
-export const RECITERS: Record<ReciterName, { label: string; cdnId: string }> = {
-  alafasy: { label: "مشاري راشد العفاسي", cdnId: "ar.alafasy" },
-  sudais: { label: "عبد الرحمن السديس", cdnId: "ar.abdurrahmaansudais" },
-  kurdi: { label: "محمد رعد الكردي", cdnId: "ar.muhammadraadalkurdi" },
-  sobhi: { label: "إسلام صبحي", cdnId: "ar.islamsobhi" },
-};
+export interface ReciterEntry {
+  id: string;
+  labelAr: string;
+  folder: string;
+}
+
+export const RECITERS_LIST: ReciterEntry[] = [
+  { id: "alafasy",  labelAr: "مشاري راشد العفاسي",       folder: "Alafasy_128kbps" },
+  { id: "sudais",   labelAr: "عبد الرحمن السديس",         folder: "Abdurrahmaan_As-Sudais_192kbps" },
+  { id: "shaatree", labelAr: "أبو بكر الشاطري",           folder: "Abu_Bakr_Ash-Shaatree_128kbps" },
+  { id: "dussary",  labelAr: "ياسر الدوسري",              folder: "Yasser_Ad-Dussary_128kbps" },
+  { id: "ayyoub",   labelAr: "محمد أيوب",                 folder: "Muhammad_Ayyoub_128kbps" },
+  { id: "husary",   labelAr: "محمود خليل الحصري",         folder: "Husary_128kbps" },
+  { id: "jibreel",  labelAr: "محمد جبريل",                folder: "Muhammad_Jibreel_128kbps" },
+];
+
+export const DEFAULT_RECITER_ID = "alafasy";
 
 export const ACCENT_COLORS: Record<AccentColorName, { primary: string; light: string }> = {
   or:       { primary: "#C9A227", light: "#E8C547" },

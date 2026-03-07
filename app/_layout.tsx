@@ -7,8 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic";
 import { Amiri_400Regular } from "@expo-google-fonts/amiri";
-import { Cairo_400Regular } from "@expo-google-fonts/cairo";
-import { Tajawal_400Regular } from "@expo-google-fonts/tajawal";
+import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -56,8 +55,7 @@ export default function RootLayout() {
     Inter_700Bold,
     NotoNaskhArabic_400Regular,
     Amiri_400Regular,
-    Cairo_400Regular,
-    Tajawal_400Regular,
+    ScheherazadeNew_400Regular,
   });
 
   useEffect(() => {

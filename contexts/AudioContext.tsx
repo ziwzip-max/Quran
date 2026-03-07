@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 import { Audio } from "expo-av";
-import { getGlobalVerseNumber } from "@/constants/quranMeta";
 import { useSettings } from "@/contexts/SettingsContext";
-import { RECITERS } from "@/constants/themes";
+import { RECITERS_LIST, DEFAULT_RECITER_ID } from "@/constants/themes";
 import { SURAHS } from "@/constants/quranData";
 
 interface AudioContextValue {
@@ -18,8 +17,12 @@ interface AudioContextValue {
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
 
+function padNum(n: number, len: number): string {
+  return n.toString().padStart(len, "0");
+}
+
 export function AudioProvider({ children }: { children: ReactNode }) {
-  const { reciter, playbackRate, repeatMode, continuousPlay } = useSettings();
+  const { reciterId, playbackRate, repeatMode, continuousPlay } = useSettings();
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
@@ -28,7 +31,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const reciterRef = useRef(reciter);
+  const reciterIdRef = useRef(reciterId);
   const playbackRateRef = useRef(playbackRate);
   const repeatModeRef = useRef(repeatMode);
   const continuousPlayRef = useRef(continuousPlay);
@@ -36,7 +39,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const currentSurahNumRef = useRef<number | null>(null);
   const currentVerseNumRef = useRef<number | null>(null);
 
-  useEffect(() => { reciterRef.current = reciter; }, [reciter]);
+  useEffect(() => { reciterIdRef.current = reciterId; }, [reciterId]);
   useEffect(() => { playbackRateRef.current = playbackRate; }, [playbackRate]);
   useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
   useEffect(() => { continuousPlayRef.current = continuousPlay; }, [continuousPlay]);
@@ -80,9 +83,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const globalNum = getGlobalVerseNumber(surahNum, verseNum);
-      const cdnId = RECITERS[reciterRef.current]?.cdnId ?? "ar.alafasy";
-      const url = `https://cdn.islamic.network/quran/audio/128/${cdnId}/${globalNum}.mp3`;
+
+      const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
+      const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+      const folder = reciterEntry?.folder ?? "Alafasy_128kbps";
+      const url = `https://everyayah.com/data/${folder}/${padNum(surahNum, 3)}${padNum(verseNum, 3)}.mp3`;
 
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },

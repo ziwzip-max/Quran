@@ -21,8 +21,9 @@ import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { parseTajweed, TAJWEED_COLORS, TajweedRule, TajweedSegment } from "@/utils/tajweed";
+import { parseTajweed, TAJWEED_COLORS, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
+import { fetchQaloonSurah } from "@/utils/quranApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
@@ -99,6 +100,7 @@ function VerseItem({
   showTajweed,
   isLandscape,
   onRuleTap,
+  overrideText,
 }: {
   verse: Verse;
   surahNum: number;
@@ -116,6 +118,7 @@ function VerseItem({
   showTajweed: boolean;
   isLandscape: boolean;
   onRuleTap: (rule: TajweedRule, word: string) => void;
+  overrideText?: string;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -129,10 +132,11 @@ function VerseItem({
     onToggle();
   };
 
+  const rawText = overrideText ?? verse.text;
   const displayText =
-    stripBismillah && verse.text.startsWith(BISMILLAH)
-      ? verse.text.slice(BISMILLAH.length).trimStart()
-      : verse.text;
+    stripBismillah && rawText.startsWith(BISMILLAH)
+      ? rawText.slice(BISMILLAH.length).trimStart()
+      : rawText;
 
   const isKaraoke = isCurrentAudio && !isAudioLoading;
 
@@ -244,7 +248,7 @@ export default function SurahScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const {
     colors, arabicFontFamily, hideVerseNumbers,
-    highlightActiveVerse, lineSpacingValue, showTajweed,
+    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa,
   } = useSettings();
   const { play, currentKey, currentSurahNum: audioSurahNum, isLoading: audioLoading } = useAudio();
 
@@ -256,6 +260,8 @@ export default function SurahScreen() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
+  const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
+  const [qaloonLoading, setQaloonLoading] = useState(false);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
 
@@ -281,6 +287,18 @@ export default function SurahScreen() {
       AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     });
   }, [surahNumber]);
+
+  useEffect(() => {
+    if (qiraa !== "qaloon") {
+      setQaloonVerses([]);
+      return;
+    }
+    setQaloonLoading(true);
+    fetchQaloonSurah(surahNumber).then((verses) => {
+      setQaloonVerses(verses);
+      setQaloonLoading(false);
+    });
+  }, [surahNumber, qiraa]);
 
   useEffect(() => {
     if (!surah || !currentKey) return;
@@ -432,12 +450,19 @@ export default function SurahScreen() {
   const headerComponent = (
     <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <View style={styles.surahHeaderTop}>
-        <Text style={[
-          styles.surahArabicName, { color: colors.gold },
-          arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
-        ]}>
-          {surah.nameArabic}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
+          <Text style={[
+            styles.surahArabicName, { color: colors.gold },
+            arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
+          ]}>
+            {surah.nameArabic}
+          </Text>
+          {qiraa === "qaloon" && (
+            <View style={[styles.qiraaBadge, { backgroundColor: colors.gold + "25", borderColor: colors.gold + "50" }]}>
+              <Text style={[styles.qiraaBadgeText, { color: colors.gold }]}>رواية قالون</Text>
+            </View>
+          )}
+        </View>
         <Pressable
           onPress={() => setInfoExpanded((e) => !e)}
           hitSlop={10}
@@ -536,6 +561,13 @@ export default function SurahScreen() {
         },
       ]} />
 
+      {qaloonLoading && (
+        <View style={[styles.qaloonLoadingOverlay, { backgroundColor: colors.bgDark + "CC" }]}>
+          <ActivityIndicator size="large" color={colors.gold} />
+          <Text style={[styles.qaloonLoadingText, { color: colors.textSecondary }]}>جارٍ تحميل رواية قالون…</Text>
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
         key={isLandscape ? "landscape" : "portrait"}
@@ -575,6 +607,9 @@ export default function SurahScreen() {
           const verseKey = `${surahNumber}:${item.number}`;
           const isCurrentAudio = currentKey === verseKey;
           const stripBismillah = item.number === 1 && surahNumber !== 1 && surahNumber !== 9;
+          const overrideText = qiraa === "qaloon" && qaloonVerses[item.number - 1]
+            ? qaloonVerses[item.number - 1]
+            : undefined;
           return (
             <VerseItem
               verse={item}
@@ -593,47 +628,12 @@ export default function SurahScreen() {
               showTajweed={showTajweed}
               isLandscape={isLandscape}
               onRuleTap={handleRuleTap}
+              overrideText={overrideText}
             />
           );
         }}
         ItemSeparatorComponent={() => <View style={isLandscape ? { height: 0 } : styles.verseSeparator} />}
       />
-
-      {surahNumber > 1 && (
-        <Pressable
-          onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber - 1) } })}
-          style={[
-            styles.navArrow,
-            styles.navArrowRight,
-            {
-              backgroundColor: colors.bgCard + "E0",
-              borderColor: colors.border,
-              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
-            },
-          ]}
-          hitSlop={10}
-        >
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </Pressable>
-      )}
-
-      {surahNumber < 114 && (
-        <Pressable
-          onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber + 1) } })}
-          style={[
-            styles.navArrow,
-            styles.navArrowLeft,
-            {
-              backgroundColor: colors.bgCard + "E0",
-              borderColor: colors.border,
-              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
-            },
-          ]}
-          hitSlop={10}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
-        </Pressable>
-      )}
 
       {isImmersive && (
         <TouchableOpacity
@@ -869,19 +869,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  navArrow: {
-    position: "absolute",
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  qiraaBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderWidth: 1,
+  },
+  qiraaBadgeText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+  },
+  qaloonLoadingOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 20,
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
   },
-  navArrowRight: {
-    right: 16,
-  },
-  navArrowLeft: {
-    left: 16,
+  qaloonLoadingText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
   },
 });
