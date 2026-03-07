@@ -101,6 +101,8 @@ const statsStyles = StyleSheet.create({
   barItem: { flex: 1 },
 });
 
+const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#27AE60"] as const;
+
 function BlockItem({
   block, onRemoveVerse, colors, arabicFont,
 }: {
@@ -109,7 +111,7 @@ function BlockItem({
   colors: ReturnType<typeof useSettings>["colors"];
   arabicFont: string | undefined;
 }) {
-  const { getMastery } = useMastery();
+  const { getMastery, cycleMastery } = useMastery();
   const rangeLabel = block.startVerse === block.endVerse
     ? `الآية ${block.startVerse}`
     : `الآيات ${block.startVerse} – ${block.endVerse}`;
@@ -132,12 +134,25 @@ function BlockItem({
       </View>
       {block.verses.map((verse) => {
         const mastery = getMastery(block.surahNumber, verse.number);
+        const dotColor = MASTERY_DOT_COLORS[mastery];
         return (
           <View key={verse.number} style={styles.verseRow}>
-            <View style={[
-              styles.masteryDot,
-              { backgroundColor: mastery === 2 ? "#27AE60" : mastery === 1 ? "#E67E22" : colors.border }
-            ]} />
+            <Pressable
+              onPress={() => {
+                cycleMastery(block.surahNumber, verse.number);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              hitSlop={10}
+              style={[
+                styles.masteryDotBtn,
+                {
+                  borderColor: dotColor,
+                  backgroundColor: dotColor + "25",
+                }
+              ]}
+            >
+              <View style={[styles.masteryDot, { backgroundColor: dotColor }]} />
+            </Pressable>
             <View style={[styles.verseNumBadge, { backgroundColor: colors.bgCard }]}>
               <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
             </View>
@@ -313,7 +328,12 @@ const styles = StyleSheet.create({
   blockHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   blockRange: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
   verseRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  masteryDot: { width: 8, height: 8, borderRadius: 4, marginTop: 10, flexShrink: 0 },
+  masteryDotBtn: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 1.5,
+    alignItems: "center", justifyContent: "center",
+    marginTop: 7, flexShrink: 0,
+  },
+  masteryDot: { width: 8, height: 8, borderRadius: 4 },
   verseNumBadge: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 4, flexShrink: 0 },
   verseNumText: { fontFamily: "Inter_500Medium", fontSize: 10 },
   verseText: { flex: 1, fontSize: 20, textAlign: "right", lineHeight: 38 },

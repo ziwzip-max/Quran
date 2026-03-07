@@ -17,7 +17,6 @@ import * as Haptics from "expo-haptics";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
-import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { useAudio } from "@/contexts/AudioContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -28,11 +27,7 @@ const MIN_FONT = 16;
 const MAX_FONT = 36;
 const FONT_STEP = 2;
 
-const MASTERY_COLORS: Record<MasteryLevel, string> = {
-  0: "transparent",
-  1: "#E67E22",
-  2: "#27AE60",
-};
+const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
 function VerseItem({
   verse,
@@ -44,11 +39,10 @@ function VerseItem({
   lineSpacingValue,
   isActive,
   hideNumbers,
-  mastery,
-  onCycleMastery,
   isCurrentAudio,
   isAudioLoading,
   onPlayAudio,
+  stripBismillah,
 }: {
   verse: Verse;
   surahNum: number;
@@ -59,11 +53,10 @@ function VerseItem({
   lineSpacingValue: number;
   isActive: boolean;
   hideNumbers: boolean;
-  mastery: MasteryLevel;
-  onCycleMastery: () => void;
   isCurrentAudio: boolean;
   isAudioLoading: boolean;
   onPlayAudio: () => void;
+  stripBismillah: boolean;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -77,8 +70,10 @@ function VerseItem({
     onToggle();
   };
 
-  const masteryColor = mastery === 0 ? colors.border : MASTERY_COLORS[mastery];
-  const masteryBg = mastery === 0 ? "transparent" : MASTERY_COLORS[mastery] + "20";
+  const displayText =
+    stripBismillah && verse.text.startsWith(BISMILLAH)
+      ? verse.text.slice(BISMILLAH.length).trimStart()
+      : verse.text;
 
   return (
     <View style={[
@@ -113,16 +108,6 @@ function VerseItem({
               </Text>
             </View>
           )}
-          <Pressable
-            onPress={onCycleMastery}
-            hitSlop={8}
-            style={[styles.masteryPill, { backgroundColor: masteryBg, borderColor: masteryColor, borderWidth: mastery === 0 ? 1 : 0 }]}
-          >
-            {mastery === 0
-              ? <View style={[styles.masteryDot, { backgroundColor: colors.border }]} />
-              : <View style={[styles.masteryDot, { backgroundColor: MASTERY_COLORS[mastery] }]} />
-            }
-          </Pressable>
         </View>
         <View style={styles.verseHeaderRight}>
           <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
@@ -151,7 +136,7 @@ function VerseItem({
         { fontSize, lineHeight: fontSize * lineSpacingValue, color: colors.textPrimary },
         arabicFont ? { fontFamily: arabicFont } : {},
       ]}>
-        {verse.text}
+        {displayText}
       </Text>
     </View>
   );
@@ -163,7 +148,6 @@ export default function SurahScreen() {
   const insets = useSafeAreaInsets();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { colors, arabicFontFamily, hideVerseNumbers, highlightActiveVerse, lineSpacingValue } = useSettings();
-  const { getMastery, cycleMastery } = useMastery();
   const { play, currentKey, isLoading: audioLoading } = useAudio();
 
   const surahNumber = parseInt(id ?? "1", 10);
@@ -250,12 +234,28 @@ export default function SurahScreen() {
     );
   }
 
+  const showBismillahHeader = surahNumber !== 1 && surahNumber !== 9;
+
   const headerComponent = (
     <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <Text style={[styles.surahArabicName, { color: colors.gold }, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
         {surah.nameArabic}
       </Text>
-      <View style={styles.surahMeta}>
+
+      {showBismillahHeader && (
+        <>
+          <View style={[styles.bismillahSeparator, { borderBottomColor: colors.border }]} />
+          <Text style={[
+            styles.bismillahText,
+            { color: colors.textSecondary },
+            arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
+          ]}>
+            {BISMILLAH}
+          </Text>
+        </>
+      )}
+
+      <View style={[styles.surahMeta, showBismillahHeader ? { marginTop: 16 } : {}]}>
         <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
         </View>
@@ -292,6 +292,7 @@ export default function SurahScreen() {
         renderItem={({ item, index }) => {
           const verseKey = `${surahNumber}:${item.number}`;
           const isCurrentAudio = currentKey === verseKey;
+          const stripBismillah = item.number === 1 && surahNumber !== 1 && surahNumber !== 9;
           return (
             <VerseItem
               verse={item}
@@ -303,11 +304,10 @@ export default function SurahScreen() {
               lineSpacingValue={lineSpacingValue}
               isActive={highlightActiveVerse && activeIndex === index}
               hideNumbers={hideVerseNumbers}
-              mastery={getMastery(surahNumber, item.number)}
-              onCycleMastery={() => cycleMastery(surahNumber, item.number)}
               isCurrentAudio={isCurrentAudio}
               isAudioLoading={isCurrentAudio && audioLoading}
               onPlayAudio={() => play(surahNumber, item.number)}
+              stripBismillah={stripBismillah}
             />
           );
         }}
@@ -358,6 +358,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 6,
   },
+  bismillahSeparator: {
+    width: "60%",
+    borderBottomWidth: 1,
+    marginVertical: 14,
+  },
+  bismillahText: {
+    fontSize: 18,
+    textAlign: "center",
+    lineHeight: 32,
+  },
   surahMeta: {
     flexDirection: "row",
     gap: 10,
@@ -404,18 +414,6 @@ const styles = StyleSheet.create({
   verseNumberText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
-  },
-  masteryPill: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  masteryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   audioBtn: {
     width: 28,
