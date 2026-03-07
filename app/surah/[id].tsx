@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,11 @@ import {
   StyleSheet,
   Pressable,
   Platform,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Colors } from "@/constants/colors";
 import { SURAHS, Verse } from "@/constants/quranData";
@@ -31,15 +27,13 @@ function VerseItem({
   isBookmarked: boolean;
   onToggle: () => void;
 }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
-    scale.value = withSpring(0.8, { duration: 100 }, () => {
-      scale.value = withSpring(1, { duration: 150 });
-    });
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.8, duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggle();
   };
@@ -52,7 +46,7 @@ function VerseItem({
             {verse.number}
           </Text>
         </View>
-        <Animated.View style={animStyle}>
+        <Animated.View style={{ transform: [{ scale }] }}>
           <Pressable onPress={handleToggle} hitSlop={12}>
             <Ionicons
               name={isBookmarked ? "bookmark" : "bookmark-outline"}
