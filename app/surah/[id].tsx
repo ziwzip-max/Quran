@@ -21,7 +21,8 @@ import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { parseTajweed, TAJWEED_COLORS } from "@/utils/tajweed";
+import { parseTajweed, TAJWEED_COLORS, TajweedRule, TajweedSegment } from "@/utils/tajweed";
+import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
@@ -36,21 +37,48 @@ function TajweedText({
   style,
   arabicFont,
   colors,
+  onRuleTap,
 }: {
   text: string;
   style: object;
   arabicFont?: string;
   colors: ReturnType<typeof useSettings>["colors"];
+  onRuleTap: (rule: TajweedRule, word: string) => void;
 }) {
   const segments = useMemo(() => parseTajweed(text), [text]);
+
   return (
-    <Text style={[style, arabicFont ? { fontFamily: arabicFont } : {}]}>
-      {segments.map((seg, i) => (
-        <Text key={i} style={{ color: seg.rule ? TAJWEED_COLORS[seg.rule] : colors.textPrimary }}>
-          {seg.text}
-        </Text>
-      ))}
-    </Text>
+    <View style={styles.tajweedWrap}>
+      <TajweedLegend segments={segments} />
+      <Text style={[style, arabicFont ? { fontFamily: arabicFont } : {}, styles.tajweedTextBlock]}>
+        {segments.map((seg, i) => {
+          if (!seg.rule) {
+            return (
+              <Text key={i} style={{ color: colors.textPrimary }}>
+                {seg.text}
+              </Text>
+            );
+          }
+          return (
+            <Text
+              key={i}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onRuleTap(seg.rule!, seg.text);
+              }}
+              style={{
+                color: TAJWEED_COLORS[seg.rule],
+                textDecorationLine: "underline",
+                textDecorationColor: TAJWEED_COLORS[seg.rule] + "80",
+                textDecorationStyle: "dotted",
+              }}
+            >
+              {seg.text}
+            </Text>
+          );
+        })}
+      </Text>
+    </View>
   );
 }
 
@@ -70,6 +98,7 @@ function VerseItem({
   stripBismillah,
   showTajweed,
   isLandscape,
+  onRuleTap,
 }: {
   verse: Verse;
   surahNum: number;
@@ -86,6 +115,7 @@ function VerseItem({
   stripBismillah: boolean;
   showTajweed: boolean;
   isLandscape: boolean;
+  onRuleTap: (rule: TajweedRule, word: string) => void;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -156,6 +186,11 @@ function VerseItem({
           )}
         </View>
         <View style={styles.verseHeaderRight}>
+          {showTajweed && (
+            <View style={[styles.tajweedHintBadge, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
+              <Text style={[styles.tajweedHintText, { color: colors.tealLight }]}>اضغط الكلمة الملونة</Text>
+            </View>
+          )}
           <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
             {isAudioLoading
               ? <ActivityIndicator size="small" color={colors.gold} />
@@ -184,6 +219,7 @@ function VerseItem({
           style={textStyle}
           arabicFont={arabicFont}
           colors={colors}
+          onRuleTap={onRuleTap}
         />
       ) : (
         <Text style={[
@@ -219,8 +255,13 @@ export default function SurahScreen() {
   const [isImmersive, setIsImmersive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoExpanded, setInfoExpanded] = useState(false);
+  const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
+
+  const handleRuleTap = useCallback((rule: TajweedRule, word: string) => {
+    setTajweedPopup({ rule, word });
+  }, []);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const containerWidthRef = useRef(winWidth);
@@ -551,6 +592,7 @@ export default function SurahScreen() {
               stripBismillah={stripBismillah}
               showTajweed={showTajweed}
               isLandscape={isLandscape}
+              onRuleTap={handleRuleTap}
             />
           );
         }}
@@ -608,6 +650,13 @@ export default function SurahScreen() {
           <Ionicons name="contract-outline" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
+
+      <TajweedPopup
+        rule={tajweedPopup?.rule ?? null}
+        word={tajweedPopup?.word ?? ""}
+        visible={tajweedPopup !== null}
+        onClose={() => setTajweedPopup(null)}
+      />
     </View>
   );
 }
@@ -777,6 +826,22 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+  tajweedWrap: {
+    gap: 8,
+  },
+  tajweedTextBlock: {
+    textAlign: "right",
+  },
+  tajweedHintBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  tajweedHintText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
   },
   verseText: {
     textAlign: "right",
