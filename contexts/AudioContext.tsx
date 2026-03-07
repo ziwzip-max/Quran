@@ -1,24 +1,47 @@
-import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 import { Audio } from "expo-av";
 import { getGlobalVerseNumber } from "@/constants/quranMeta";
-
-const BASE_URL = "https://cdn.islamic.network/quran/audio/128/ar.alafasy/";
+import { useSettings } from "@/contexts/SettingsContext";
+import { RECITERS } from "@/constants/themes";
+import { SURAHS } from "@/constants/quranData";
 
 interface AudioContextValue {
   currentKey: string | null;
+  currentSurahNum: number | null;
+  currentVerseNum: number | null;
   isLoading: boolean;
   isPlaying: boolean;
   play: (surahNum: number, verseNum: number) => Promise<void>;
   stop: () => Promise<void>;
+  playNext: (surahNum: number, verseNum: number) => Promise<void>;
 }
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
+  const { reciter, playbackRate, repeatMode, continuousPlay } = useSettings();
+
   const soundRef = useRef<Audio.Sound | null>(null);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const [currentSurahNum, setCurrentSurahNum] = useState<number | null>(null);
+  const [currentVerseNum, setCurrentVerseNum] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const reciterRef = useRef(reciter);
+  const playbackRateRef = useRef(playbackRate);
+  const repeatModeRef = useRef(repeatMode);
+  const continuousPlayRef = useRef(continuousPlay);
+  const repeatCounterRef = useRef(0);
+  const currentSurahNumRef = useRef<number | null>(null);
+  const currentVerseNumRef = useRef<number | null>(null);
+
+  useEffect(() => { reciterRef.current = reciter; }, [reciter]);
+  useEffect(() => { playbackRateRef.current = playbackRate; }, [playbackRate]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
+  useEffect(() => { continuousPlayRef.current = continuousPlay; }, [continuousPlay]);
+
+  const playInternalRef = useRef<((surahNum: number, verseNum: number) => Promise<void>) | null>(null);
 
   const stop = useCallback(async () => {
     if (soundRef.current) {
@@ -29,36 +52,88 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       soundRef.current = null;
     }
     setCurrentKey(null);
+    setCurrentSurahNum(null);
+    setCurrentVerseNum(null);
+    currentSurahNumRef.current = null;
+    currentVerseNumRef.current = null;
     setIsPlaying(false);
     setIsLoading(false);
+    repeatCounterRef.current = 0;
   }, []);
 
-  const play = useCallback(async (surahNum: number, verseNum: number) => {
-    const key = `${surahNum}:${verseNum}`;
-    if (currentKey === key && isPlaying) {
-      await stop();
-      return;
+  const playInternal = useCallback(async (surahNum: number, verseNum: number) => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch {}
+      soundRef.current = null;
     }
-    await stop();
+
+    const key = `${surahNum}:${verseNum}`;
     setCurrentKey(key);
+    setCurrentSurahNum(surahNum);
+    setCurrentVerseNum(verseNum);
+    currentSurahNumRef.current = surahNum;
+    currentVerseNumRef.current = verseNum;
     setIsLoading(true);
+
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
       const globalNum = getGlobalVerseNumber(surahNum, verseNum);
-      const url = `${BASE_URL}${globalNum}.mp3`;
+      const cdnId = RECITERS[reciterRef.current]?.cdnId ?? "ar.alafasy";
+      const url = `https://cdn.islamic.network/quran/audio/128/${cdnId}/${globalNum}.mp3`;
+
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },
         { shouldPlay: true }
       );
+
+      if (playbackRateRef.current !== 1.0) {
+        try { await sound.setRateAsync(playbackRateRef.current, true); } catch {}
+      }
+
       soundRef.current = sound;
       setIsLoading(false);
       setIsPlaying(true);
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsPlaying(false);
-          setCurrentKey(null);
-          sound.unloadAsync();
-          soundRef.current = null;
+
+      sound.setOnPlaybackStatusUpdate(async (status) => {
+        if (!status.isLoaded) return;
+        if (status.didJustFinish) {
+          const rMode = repeatModeRef.current;
+          const sNum = currentSurahNumRef.current;
+          const vNum = currentVerseNumRef.current;
+
+          if (rMode > 0 && repeatCounterRef.current < rMode - 1) {
+            repeatCounterRef.current += 1;
+            try { await sound.replayAsync(); } catch {}
+          } else if (continuousPlayRef.current && sNum !== null && vNum !== null) {
+            repeatCounterRef.current = 0;
+            const surah = SURAHS.find((s) => s.number === sNum);
+            if (surah) {
+              const nextIdx = surah.verses.findIndex((v) => v.number === vNum) + 1;
+              if (nextIdx < surah.verses.length) {
+                if (playInternalRef.current) {
+                  await playInternalRef.current(sNum, surah.verses[nextIdx].number);
+                }
+              } else if (sNum < 114) {
+                if (playInternalRef.current) {
+                  await playInternalRef.current(sNum + 1, 1);
+                }
+              } else {
+                setIsPlaying(false);
+                setCurrentKey(null);
+                try { sound.unloadAsync(); } catch {}
+                soundRef.current = null;
+              }
+            }
+          } else {
+            repeatCounterRef.current = 0;
+            setIsPlaying(false);
+            setCurrentKey(null);
+            try { sound.unloadAsync(); } catch {}
+            soundRef.current = null;
+          }
         }
       });
     } catch {
@@ -66,10 +141,37 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setIsPlaying(false);
       setCurrentKey(null);
     }
-  }, [currentKey, isPlaying, stop]);
+  }, []);
+
+  playInternalRef.current = playInternal;
+
+  const play = useCallback(async (surahNum: number, verseNum: number) => {
+    const key = `${surahNum}:${verseNum}`;
+    if (currentKey === key && isPlaying) {
+      await stop();
+      return;
+    }
+    repeatCounterRef.current = 0;
+    await playInternal(surahNum, verseNum);
+  }, [currentKey, isPlaying, stop, playInternal]);
+
+  const playNext = useCallback(async (surahNum: number, verseNum: number) => {
+    repeatCounterRef.current = 0;
+    const surah = SURAHS.find((s) => s.number === surahNum);
+    if (!surah) return;
+    const nextIdx = surah.verses.findIndex((v) => v.number === verseNum) + 1;
+    if (nextIdx < surah.verses.length) {
+      await playInternal(surahNum, surah.verses[nextIdx].number);
+    } else if (surahNum < 114) {
+      await playInternal(surahNum + 1, 1);
+    }
+  }, [playInternal]);
 
   return (
-    <AudioCtx.Provider value={{ currentKey, isLoading, isPlaying, play, stop }}>
+    <AudioCtx.Provider value={{
+      currentKey, currentSurahNum, currentVerseNum,
+      isLoading, isPlaying, play, stop, playNext,
+    }}>
       {children}
     </AudioCtx.Provider>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   Animated,
   ActivityIndicator,
   TouchableOpacity,
+  PanResponder,
+  useWindowDimensions,
 } from "react-native";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -18,16 +20,39 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
+import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
+import { parseTajweed, TAJWEED_COLORS } from "@/utils/tajweed";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
 const MAX_HISTORY_ITEMS = 5;
-
 const MIN_FONT = 16;
-const MAX_FONT = 36;
+const MAX_FONT = 40;
 const FONT_STEP = 2;
-
 const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+
+function TajweedText({
+  text,
+  style,
+  arabicFont,
+  colors,
+}: {
+  text: string;
+  style: object;
+  arabicFont?: string;
+  colors: ReturnType<typeof useSettings>["colors"];
+}) {
+  const segments = useMemo(() => parseTajweed(text), [text]);
+  return (
+    <Text style={[style, arabicFont ? { fontFamily: arabicFont } : {}]}>
+      {segments.map((seg, i) => (
+        <Text key={i} style={{ color: seg.rule ? TAJWEED_COLORS[seg.rule] : colors.textPrimary }}>
+          {seg.text}
+        </Text>
+      ))}
+    </Text>
+  );
+}
 
 function VerseItem({
   verse,
@@ -43,6 +68,8 @@ function VerseItem({
   isAudioLoading,
   onPlayAudio,
   stripBismillah,
+  showTajweed,
+  isLandscape,
 }: {
   verse: Verse;
   surahNum: number;
@@ -57,6 +84,8 @@ function VerseItem({
   isAudioLoading: boolean;
   onPlayAudio: () => void;
   stripBismillah: boolean;
+  showTajweed: boolean;
+  isLandscape: boolean;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -75,22 +104,39 @@ function VerseItem({
       ? verse.text.slice(BISMILLAH.length).trimStart()
       : verse.text;
 
+  const isKaraoke = isCurrentAudio && !isAudioLoading;
+
+  const textStyle = {
+    fontSize,
+    lineHeight: fontSize * lineSpacingValue,
+    textAlign: "right" as const,
+  };
+
   return (
     <View style={[
       styles.verseContainer,
+      isLandscape && styles.verseContainerLandscape,
       {
-        backgroundColor: isActive
-          ? colors.gold + "12"
-          : isBookmarked
-            ? colors.gold + "0D"
-            : colors.bgCard,
-        borderColor: isActive
-          ? colors.gold + "50"
-          : isBookmarked
+        backgroundColor: isKaraoke
+          ? colors.gold + "18"
+          : isActive
+            ? colors.gold + "12"
+            : isBookmarked
+              ? colors.gold + "0D"
+              : colors.bgCard,
+        borderColor: isKaraoke
+          ? colors.gold + "70"
+          : isActive
             ? colors.gold + "50"
-            : colors.border,
-        borderLeftWidth: isActive ? 3 : 1,
-        borderLeftColor: isActive ? colors.gold : (isBookmarked ? colors.gold + "50" : colors.border),
+            : isBookmarked
+              ? colors.gold + "50"
+              : colors.border,
+        borderLeftWidth: isKaraoke ? 4 : isActive ? 3 : 1,
+        borderLeftColor: isKaraoke
+          ? colors.gold
+          : isActive
+            ? colors.gold
+            : isBookmarked ? colors.gold + "50" : colors.border,
       }
     ]}>
       <View style={styles.verseHeader}>
@@ -131,13 +177,23 @@ function VerseItem({
           </Animated.View>
         </View>
       </View>
-      <Text style={[
-        styles.verseText,
-        { fontSize, lineHeight: fontSize * lineSpacingValue, color: colors.textPrimary },
-        arabicFont ? { fontFamily: arabicFont } : {},
-      ]}>
-        {displayText}
-      </Text>
+
+      {showTajweed ? (
+        <TajweedText
+          text={displayText}
+          style={textStyle}
+          arabicFont={arabicFont}
+          colors={colors}
+        />
+      ) : (
+        <Text style={[
+          styles.verseText,
+          { fontSize, lineHeight: fontSize * lineSpacingValue, color: colors.textPrimary },
+          arabicFont ? { fontFamily: arabicFont } : {},
+        ]}>
+          {displayText}
+        </Text>
+      )}
     </View>
   );
 }
@@ -146,9 +202,15 @@ export default function SurahScreen() {
   const { id, verse: verseParam } = useLocalSearchParams<{ id: string; verse?: string }>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isLandscape = winWidth > winHeight;
+
   const { isBookmarked, toggleBookmark } = useBookmarks();
-  const { colors, arabicFontFamily, hideVerseNumbers, highlightActiveVerse, lineSpacingValue } = useSettings();
-  const { play, currentKey, isLoading: audioLoading } = useAudio();
+  const {
+    colors, arabicFontFamily, hideVerseNumbers,
+    highlightActiveVerse, lineSpacingValue, showTajweed,
+  } = useSettings();
+  const { play, currentKey, currentSurahNum: audioSurahNum, isLoading: audioLoading } = useAudio();
 
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
@@ -156,8 +218,19 @@ export default function SurahScreen() {
   const [fontSize, setFontSize] = useState(22);
   const [isImmersive, setIsImmersive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [infoExpanded, setInfoExpanded] = useState(false);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const containerWidthRef = useRef(winWidth);
+
+  const isPinchRef = useRef(false);
+  const pinchDistanceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    containerWidthRef.current = winWidth;
+  }, [winWidth]);
 
   useEffect(() => {
     if (!surahNumber || isNaN(surahNumber)) return;
@@ -167,6 +240,20 @@ export default function SurahScreen() {
       AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     });
   }, [surahNumber]);
+
+  useEffect(() => {
+    if (!surah || !currentKey) return;
+    const keyParts = currentKey.split(":");
+    const keySurah = parseInt(keyParts[0], 10);
+    const keyVerse = parseInt(keyParts[1], 10);
+    if (keySurah !== surahNumber) return;
+    const index = surah.verses.findIndex((v) => v.number === keyVerse);
+    if (index < 0) return;
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentKey, surah, surahNumber]);
 
   const increaseFont = useCallback(() => setFontSize((f) => Math.min(f + FONT_STEP, MAX_FONT)), []);
   const decreaseFont = useCallback(() => setFontSize((f) => Math.max(f - FONT_STEP, MIN_FONT)), []);
@@ -219,11 +306,63 @@ export default function SurahScreen() {
     minimumViewTime: 200,
   }).current;
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
     if (viewableItems.length > 0) {
       setActiveIndex(viewableItems[0].index ?? -1);
     }
   }).current;
+
+  const panResponder = useMemo(() => {
+    if (Platform.OS === "web") return null;
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2) return true;
+        const { dx, dy } = gestureState;
+        return Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy) * 2;
+      },
+      onPanResponderGrant: (evt) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2) {
+          isPinchRef.current = true;
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          pinchDistanceRef.current = Math.sqrt(dx * dx + dy * dy);
+        } else {
+          isPinchRef.current = false;
+          pinchDistanceRef.current = null;
+        }
+      },
+      onPanResponderMove: (evt) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2 && pinchDistanceRef.current !== null) {
+          isPinchRef.current = true;
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          const newDist = Math.sqrt(dx * dx + dy * dy);
+          const delta = newDist / pinchDistanceRef.current;
+          pinchDistanceRef.current = newDist;
+          setFontSize((prev) =>
+            Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(prev * delta)))
+          );
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (!isPinchRef.current) {
+          const { dx, dy } = gestureState;
+          if (Math.abs(dx) > 80 && Math.abs(dy) < 60) {
+            if (dx < 0 && surahNumber < 114) {
+              router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber + 1) } });
+            } else if (dx > 0 && surahNumber > 1) {
+              router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber - 1) } });
+            }
+          }
+        }
+        isPinchRef.current = false;
+        pinchDistanceRef.current = null;
+      },
+    });
+  }, [surahNumber]);
 
   if (!surah) {
     return (
@@ -235,12 +374,41 @@ export default function SurahScreen() {
   }
 
   const showBismillahHeader = surahNumber !== 1 && surahNumber !== 9;
+  const surahInfo = SURAH_INFO[surahNumber];
+  const juzNum = SURAH_JUZ[surahNumber];
+  const revType = SURAH_TYPE[surahNumber];
+
+  const wordCount = useMemo(() =>
+    surah.verses.reduce((sum, v) => sum + v.text.trim().split(/\s+/).length, 0),
+    [surah]
+  );
+  const letterCount = useMemo(() =>
+    surah.verses.reduce((sum, v) =>
+      sum + v.text.replace(/[\u0610-\u061A\u064B-\u065F\s]/g, "").length, 0),
+    [surah]
+  );
 
   const headerComponent = (
     <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-      <Text style={[styles.surahArabicName, { color: colors.gold }, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
-        {surah.nameArabic}
-      </Text>
+      <View style={styles.surahHeaderTop}>
+        <Text style={[
+          styles.surahArabicName, { color: colors.gold },
+          arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
+        ]}>
+          {surah.nameArabic}
+        </Text>
+        <Pressable
+          onPress={() => setInfoExpanded((e) => !e)}
+          hitSlop={10}
+          style={[styles.infoBtn, { backgroundColor: infoExpanded ? colors.gold + "20" : "transparent" }]}
+        >
+          <Ionicons
+            name={infoExpanded ? "information-circle" : "information-circle-outline"}
+            size={22}
+            color={infoExpanded ? colors.gold : colors.textMuted}
+          />
+        </Pressable>
+      </View>
 
       {showBismillahHeader && (
         <>
@@ -262,16 +430,77 @@ export default function SurahScreen() {
         <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>سورة {surah.number}</Text>
         </View>
+        <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>جزء {juzNum}</Text>
+        </View>
       </View>
+
+      {infoExpanded && (
+        <View style={[styles.infoPanel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+          <View style={styles.infoGrid}>
+            <View style={[styles.infoCell, { borderColor: colors.border }]}>
+              <Text style={[styles.infoCellNum, { color: colors.gold }]}>{wordCount.toLocaleString("ar")}</Text>
+              <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>كلمة</Text>
+            </View>
+            <View style={[styles.infoCell, { borderColor: colors.border }]}>
+              <Text style={[styles.infoCellNum, { color: colors.gold }]}>{letterCount.toLocaleString("ar")}</Text>
+              <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>حرف</Text>
+            </View>
+            <View style={[styles.infoCell, { borderColor: colors.border }]}>
+              <Text style={[styles.infoCellNum, { color: colors.tealLight }]}>
+                {revType === "mecquoise" ? "مكية" : "مدنية"}
+              </Text>
+              <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>نوع</Text>
+            </View>
+            <View style={[styles.infoCell, { borderColor: colors.border }]}>
+              <Text style={[styles.infoCellNum, { color: colors.gold }]}>{juzNum}</Text>
+              <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>الجزء</Text>
+            </View>
+          </View>
+
+          {surahInfo?.theme ? (
+            <View style={[styles.infoTheme, { borderTopColor: colors.border }]}>
+              <Text style={[styles.infoThemeLabel, { color: colors.textMuted }]}>الموضوع</Text>
+              <Text style={[styles.infoThemeText, { color: colors.textPrimary }]}>{surahInfo.theme}</Text>
+            </View>
+          ) : null}
+
+          {surahInfo?.virtue ? (
+            <View style={[styles.infoVirtue, { backgroundColor: colors.gold + "10", borderColor: colors.gold + "30" }]}>
+              <Ionicons name="star" size={14} color={colors.gold} />
+              <Text style={[styles.infoVirtueText, { color: colors.textSecondary }]}>{surahInfo.virtue}</Text>
+            </View>
+          ) : null}
+        </View>
+      )}
     </View>
   );
 
+  const numColumns = isLandscape ? 2 : 1;
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
+    <View
+      style={{ flex: 1, backgroundColor: colors.bgDark }}
+      {...(panResponder ? panResponder.panHandlers : {})}
+    >
+      <Animated.View style={[
+        styles.progressBar,
+        {
+          backgroundColor: colors.gold,
+          width: progressAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, containerWidthRef.current],
+            extrapolate: "clamp",
+          }),
+        },
+      ]} />
+
       <FlatList
         ref={flatListRef}
+        key={isLandscape ? "landscape" : "portrait"}
         data={surah.verses}
         keyExtractor={(v) => String(v.number)}
+        numColumns={numColumns}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.listContent,
@@ -280,10 +509,22 @@ export default function SurahScreen() {
             paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24,
           },
         ]}
+        columnWrapperStyle={isLandscape ? { gap: 8, paddingHorizontal: 8 } : undefined}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={headerComponent}
         viewabilityConfig={highlightActiveVerse ? viewabilityConfig : undefined}
         onViewableItemsChanged={highlightActiveVerse ? onViewableItemsChanged : undefined}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+          const scrollY = contentOffset.y;
+          const totalH = contentSize.height;
+          const viewH = layoutMeasurement.height;
+          if (totalH > viewH) {
+            const p = Math.min(1, Math.max(0, scrollY / (totalH - viewH)));
+            progressAnim.setValue(p);
+          }
+        }}
         onScrollToIndexFailed={({ index }) => {
           setTimeout(() => {
             flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
@@ -308,11 +549,49 @@ export default function SurahScreen() {
               isAudioLoading={isCurrentAudio && audioLoading}
               onPlayAudio={() => play(surahNumber, item.number)}
               stripBismillah={stripBismillah}
+              showTajweed={showTajweed}
+              isLandscape={isLandscape}
             />
           );
         }}
-        ItemSeparatorComponent={() => <View style={styles.verseSeparator} />}
+        ItemSeparatorComponent={() => <View style={isLandscape ? { height: 0 } : styles.verseSeparator} />}
       />
+
+      {surahNumber > 1 && (
+        <Pressable
+          onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber - 1) } })}
+          style={[
+            styles.navArrow,
+            styles.navArrowRight,
+            {
+              backgroundColor: colors.bgCard + "E0",
+              borderColor: colors.border,
+              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
+            },
+          ]}
+          hitSlop={10}
+        >
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        </Pressable>
+      )}
+
+      {surahNumber < 114 && (
+        <Pressable
+          onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber + 1) } })}
+          style={[
+            styles.navArrow,
+            styles.navArrowLeft,
+            {
+              backgroundColor: colors.bgCard + "E0",
+              borderColor: colors.border,
+              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
+            },
+          ]}
+          hitSlop={10}
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+        </Pressable>
+      )}
 
       {isImmersive && (
         <TouchableOpacity
@@ -322,7 +601,7 @@ export default function SurahScreen() {
             {
               backgroundColor: colors.bgCard + "E0",
               borderColor: colors.border,
-              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
+              bottom: Platform.OS === "web" ? 100 : insets.bottom + 80,
             },
           ]}
         >
@@ -334,29 +613,45 @@ export default function SurahScreen() {
 }
 
 const fontBtnStyle: object = {
-  borderRadius: 8,
-  borderWidth: 1,
-  paddingHorizontal: 7,
-  paddingVertical: 4,
+  borderRadius: 8, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 4,
 };
 
 const styles = StyleSheet.create({
+  progressBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    height: 3,
+    zIndex: 100,
+  },
   listContent: {
     paddingHorizontal: 16,
   },
   surahHeader: {
     alignItems: "center",
-    paddingVertical: 28,
+    paddingVertical: 24,
     paddingHorizontal: 16,
     borderRadius: 20,
     marginTop: 12,
     marginBottom: 20,
     borderWidth: 1,
   },
+  surahHeaderTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginBottom: 4,
+    gap: 8,
+  },
   surahArabicName: {
     fontSize: 36,
     textAlign: "center",
-    marginBottom: 6,
+    flex: 1,
+  },
+  infoBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
   },
   bismillahSeparator: {
     width: "60%",
@@ -372,6 +667,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 14,
+    flexWrap: "wrap",
+    justifyContent: "center",
   },
   metaPill: {
     borderRadius: 20,
@@ -382,10 +679,70 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 12,
   },
+  infoPanel: {
+    width: "100%",
+    marginTop: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  infoGrid: {
+    flexDirection: "row",
+  },
+  infoCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 4,
+    borderRightWidth: 1,
+  },
+  infoCellNum: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+  },
+  infoCellLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+  },
+  infoTheme: {
+    padding: 14,
+    gap: 6,
+    borderTopWidth: 1,
+  },
+  infoThemeLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    textAlign: "right",
+  },
+  infoThemeText: {
+    fontSize: 15,
+    textAlign: "right",
+    lineHeight: 26,
+  },
+  infoVirtue: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    margin: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  infoVirtueText: {
+    flex: 1,
+    fontSize: 13,
+    textAlign: "right",
+    lineHeight: 22,
+    fontFamily: "Inter_400Regular",
+  },
   verseContainer: {
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
+    flex: 1,
+  },
+  verseContainerLandscape: {
+    margin: 4,
   },
   verseHeader: {
     flexDirection: "row",
@@ -446,5 +803,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  navArrow: {
+    position: "absolute",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navArrowRight: {
+    right: 16,
+  },
+  navArrowLeft: {
+    left: 16,
   },
 });

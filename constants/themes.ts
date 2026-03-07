@@ -46,15 +46,66 @@ export const lightTheme: ThemeColors = {
   success: "#1A7A50",
 };
 
-export type ThemeName = "dark" | "light";
-export type ArabicFontName = "system" | "naskh" | "amiri";
+export const sepiaTheme: ThemeColors = {
+  gold: "#D4962A",
+  goldLight: "#E8AF45",
+  teal: "#6B8C5A",
+  tealLight: "#88B072",
+  bgDark: "#1A0E07",
+  bgCard: "#2A1A0E",
+  bgSurface: "#3A2415",
+  textPrimary: "#EDD9BB",
+  textSecondary: "#B89060",
+  textMuted: "#7A5A38",
+  border: "#4A3020",
+  error: "#C94040",
+  success: "#5A9B5A",
+};
+
+export const violetTheme: ThemeColors = {
+  gold: "#A87FD4",
+  goldLight: "#C09AE8",
+  teal: "#5A8AB0",
+  tealLight: "#7AAED4",
+  bgDark: "#0A0714",
+  bgCard: "#130D25",
+  bgSurface: "#1C1438",
+  textPrimary: "#E4DCF5",
+  textSecondary: "#9B8CC0",
+  textMuted: "#5A4A7A",
+  border: "#271B4A",
+  error: "#C05070",
+  success: "#5A9B8A",
+};
+
+export type ThemeName = "dark" | "light" | "sepia" | "violet";
+export type ArabicFontName = "system" | "naskh" | "amiri" | "cairo" | "tajawal";
 export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
+export type ReciterName = "alafasy" | "sudais" | "kurdi" | "sobhi";
+export type PlaybackRate = 0.75 | 1.0 | 1.25;
+export type RepeatMode = 0 | 1 | 3 | 5 | 10;
+
+export const THEMES: Record<ThemeName, ThemeColors> = {
+  dark: darkTheme,
+  light: lightTheme,
+  sepia: sepiaTheme,
+  violet: violetTheme,
+};
 
 export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",
   amiri: "Amiri_400Regular",
+  cairo: "Cairo_400Regular",
+  tajawal: "Tajawal_400Regular",
+};
+
+export const RECITERS: Record<ReciterName, { label: string; cdnId: string }> = {
+  alafasy: { label: "مشاري راشد العفاسي", cdnId: "ar.alafasy" },
+  sudais: { label: "عبد الرحمن السديس", cdnId: "ar.abdurrahmaansudais" },
+  kurdi: { label: "محمد رعد الكردي", cdnId: "ar.muhammadraadalkurdi" },
+  sobhi: { label: "إسلام صبحي", cdnId: "ar.islamsobhi" },
 };
 
 export const ACCENT_COLORS: Record<AccentColorName, { primary: string; light: string }> = {

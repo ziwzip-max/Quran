@@ -16,7 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { SURAHS, Surah } from "@/constants/quranData";
-import { SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
+import { SURAH_TYPE } from "@/constants/quranMeta";
 import { SettingsModal } from "@/components/SettingsModal";
 
 export const HISTORY_KEY = "al_hifz_history";
@@ -47,29 +47,6 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   const surah = SURAHS[surahIndex];
   const verseIndex = (dayEpoch * 7919) % surah.verses.length;
   return { surahNumber: surah.number, verseNumber: surah.verses[verseIndex].number };
-}
-
-function JuzChip({ juz, selected, onPress, colors }: {
-  juz: number; selected: boolean;
-  onPress: () => void;
-  colors: ReturnType<typeof useSettings>["colors"];
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.filterChip,
-        {
-          backgroundColor: selected ? colors.gold : colors.bgCard,
-          borderColor: selected ? colors.gold : colors.border,
-        }
-      ]}
-    >
-      <Text style={[styles.filterChipText, { color: selected ? colors.bgDark : colors.textSecondary }]}>
-        {juz}
-      </Text>
-    </Pressable>
-  );
 }
 
 function LengthChip({ label, selected, onPress, colors }: {
@@ -212,7 +189,6 @@ export default function QuranScreen() {
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const [search, setSearch] = useState("");
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [selectedJuz, setSelectedJuz] = useState<number | null>(null);
   const [lengthFilter, setLengthFilter] = useState<LengthFilter>("كل");
   const [history, setHistory] = useState<number[]>([]);
 
@@ -237,11 +213,7 @@ export default function QuranScreen() {
     const q = search.trim();
 
     if (q === "") {
-      let surahs = SURAHS;
-      if (selectedJuz !== null) {
-        surahs = surahs.filter((s) => SURAH_JUZ[s.number] === selectedJuz);
-      }
-      surahs = surahs.filter((s) => matchesLength(s, lengthFilter));
+      let surahs = SURAHS.filter((s) => matchesLength(s, lengthFilter));
       return { mode: "surahs", filteredSurahs: surahs, verseResult: null };
     }
 
@@ -271,7 +243,7 @@ export default function QuranScreen() {
       (s) => s.nameArabic.includes(q) || s.nameTranslit.toLowerCase().includes(q.toLowerCase())
     );
     return { mode: "surahs", filteredSurahs: matched, verseResult: null };
-  }, [search, selectedJuz, lengthFilter]);
+  }, [search, lengthFilter]);
 
   const showFilters = search.trim() === "";
 
@@ -335,41 +307,19 @@ export default function QuranScreen() {
       )}
 
       {showFilters && (
-        <>
-          <View style={styles.filterSection}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-              <Pressable
-                onPress={() => setSelectedJuz(null)}
-                style={[styles.filterChip, { backgroundColor: selectedJuz === null ? colors.gold : colors.bgCard, borderColor: selectedJuz === null ? colors.gold : colors.border }]}
-              >
-                <Text style={[styles.filterChipText, { color: selectedJuz === null ? colors.bgDark : colors.textSecondary }]}>كل الأجزاء</Text>
-              </Pressable>
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
-                <JuzChip
-                  key={juz}
-                  juz={juz}
-                  selected={selectedJuz === juz}
-                  onPress={() => setSelectedJuz(selectedJuz === juz ? null : juz)}
-                  colors={colors}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          <View style={styles.lengthFilterSection}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-              {LENGTH_LABELS.map((label) => (
-                <LengthChip
-                  key={label}
-                  label={label}
-                  selected={lengthFilter === label}
-                  onPress={() => setLengthFilter(label)}
-                  colors={colors}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        </>
+        <View style={styles.lengthFilterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {LENGTH_LABELS.map((label) => (
+              <LengthChip
+                key={label}
+                label={label}
+                selected={lengthFilter === label}
+                onPress={() => setLengthFilter(label)}
+                colors={colors}
+              />
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {mode === "verse" && verseResult && (
@@ -395,7 +345,7 @@ export default function QuranScreen() {
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           ListEmptyComponent={
-            search.trim() !== "" || selectedJuz !== null || lengthFilter !== "كل" ? (
+            search.trim() !== "" || lengthFilter !== "كل" ? (
               <View style={styles.emptyState}>
                 <Ionicons name="search" size={40} color={colors.textMuted} />
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>لا توجد نتائج</Text>
@@ -439,7 +389,6 @@ const styles = StyleSheet.create({
   },
   historyChipArabic: { fontSize: 14 },
   historyChipNum: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  filterSection: { marginBottom: 4 },
   lengthFilterSection: { marginBottom: 6 },
   filterScroll: { paddingHorizontal: 16, gap: 7 },
   filterChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },

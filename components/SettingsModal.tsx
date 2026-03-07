@@ -12,7 +12,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/contexts/SettingsContext";
-import { ThemeName, ArabicFontName, AccentColorName, LineSpacingName, ACCENT_COLORS } from "@/constants/themes";
+import {
+  ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
+  ReciterName, PlaybackRate, RepeatMode,
+  ACCENT_COLORS, RECITERS,
+} from "@/constants/themes";
 
 interface SettingsModalProps {
   visible: boolean;
@@ -23,31 +27,54 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const {
     theme, arabicFont, accentColor, lineSpacing,
     hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
+    reciter, playbackRate, repeatMode, showTajweed, continuousPlay,
     setTheme, setArabicFont, setAccentColor, setLineSpacing,
     setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
+    setReciter, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay,
     colors, arabicFontFamily,
   } = useSettings();
   const insets = useSafeAreaInsets();
   const s = makeStyles(colors);
 
   const themes: { key: ThemeName; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: "dark", label: "سكوري", icon: "moon" },
-    { key: "light", label: "فاتح", icon: "sunny" },
+    { key: "dark",   label: "ليلي",    icon: "moon" },
+    { key: "light",  label: "نهاري",   icon: "sunny" },
+    { key: "sepia",  label: "عتيق",    icon: "leaf-outline" },
+    { key: "violet", label: "بنفسجي",  icon: "planet-outline" },
   ];
 
   const fonts: { key: ArabicFontName; sample: string; label: string }[] = [
-    { key: "system", sample: "بِسْمِ اللَّهِ", label: "افتراضي" },
-    { key: "naskh", sample: "بِسْمِ اللَّهِ", label: "نسخ" },
-    { key: "amiri", sample: "بِسْمِ اللَّهِ", label: "أميري" },
+    { key: "system",  sample: "بِسْمِ اللَّهِ", label: "افتراضي" },
+    { key: "naskh",   sample: "بِسْمِ اللَّهِ", label: "نسخ" },
+    { key: "amiri",   sample: "بِسْمِ اللَّهِ", label: "أميري" },
+    { key: "cairo",   sample: "بسم الله",       label: "قاهرة" },
+    { key: "tajawal", sample: "بسم الله",       label: "تجوّل" },
   ];
 
+  const fontFamilyMap: Record<ArabicFontName, string | undefined> = {
+    system:  undefined,
+    naskh:   "NotoNaskhArabic_400Regular",
+    amiri:   "Amiri_400Regular",
+    cairo:   "Cairo_400Regular",
+    tajawal: "Tajawal_400Regular",
+  };
+
   const spacings: { key: LineSpacingName; label: string }[] = [
-    { key: "serré", label: "ضيق" },
+    { key: "serré",  label: "ضيق" },
     { key: "normal", label: "عادي" },
-    { key: "aéré", label: "واسع" },
+    { key: "aéré",   label: "واسع" },
   ];
 
   const accentKeys = Object.keys(ACCENT_COLORS) as AccentColorName[];
+  const reciterKeys = Object.keys(RECITERS) as ReciterName[];
+  const rates: PlaybackRate[] = [0.75, 1.0, 1.25];
+  const repeats: { value: RepeatMode; label: string }[] = [
+    { value: 0,  label: "—" },
+    { value: 1,  label: "×١" },
+    { value: 3,  label: "×٣" },
+    { value: 5,  label: "×٥" },
+    { value: 10, label: "×١٠" },
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -63,12 +90,12 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={s.sectionTitle}>المظهر</Text>
-          <View style={s.optionRow}>
+          <View style={s.themeGrid}>
             {themes.map((t) => (
               <Pressable
                 key={t.key}
                 onPress={() => setTheme(t.key)}
-                style={[s.optionBtn, theme === t.key && s.optionBtnActive]}
+                style={[s.themeBtn, theme === t.key && s.themeBtnActive]}
               >
                 <Ionicons name={t.icon} size={20} color={theme === t.key ? colors.bgDark : colors.textSecondary} />
                 <Text style={[s.optionLabel, theme === t.key && s.optionLabelActive]}>{t.label}</Text>
@@ -98,10 +125,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           <Text style={s.sectionTitle}>الخط العربي</Text>
           <View style={s.fontOptionCol}>
             {fonts.map((f) => {
-              const fontFamily =
-                f.key === "naskh" ? "NotoNaskhArabic_400Regular"
-                : f.key === "amiri" ? "Amiri_400Regular"
-                : undefined;
+              const fontFamily = fontFamilyMap[f.key];
               return (
                 <Pressable
                   key={f.key}
@@ -133,6 +157,50 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             ))}
           </View>
 
+          <Text style={s.sectionTitle}>الإمام</Text>
+          <View style={s.reciterCol}>
+            {reciterKeys.map((key) => (
+              <Pressable
+                key={key}
+                onPress={() => setReciter(key)}
+                style={[s.reciterBtn, reciter === key && s.reciterBtnActive]}
+              >
+                <Text style={[s.reciterLabel, reciter === key && { color: colors.gold }]}>
+                  {RECITERS[key].label}
+                </Text>
+                {reciter === key && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={s.sectionTitle}>سرعة التلاوة</Text>
+          <View style={s.optionRow}>
+            {rates.map((r) => (
+              <Pressable
+                key={r}
+                onPress={() => setPlaybackRate(r)}
+                style={[s.optionBtn, playbackRate === r && s.optionBtnActive, { flex: 1 }]}
+              >
+                <Text style={[s.optionLabel, playbackRate === r && s.optionLabelActive]}>
+                  ×{r}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={s.sectionTitle}>تكرار الآية</Text>
+          <View style={s.optionRow}>
+            {repeats.map(({ value, label }) => (
+              <Pressable
+                key={value}
+                onPress={() => setRepeatMode(value)}
+                style={[s.optionBtn, repeatMode === value && s.optionBtnActive, { flex: 1, paddingHorizontal: 6 }]}
+              >
+                <Text style={[s.optionLabel, repeatMode === value && s.optionLabelActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
           <Text style={s.sectionTitle}>معاينة</Text>
           <View style={s.preview}>
             <Text style={[s.previewText, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
@@ -143,6 +211,24 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           <Text style={s.sectionTitle}>خيارات القراءة</Text>
           <View style={s.toggleGroup}>
             <View style={s.toggleRow}>
+              <Switch
+                value={continuousPlay}
+                onValueChange={setContinuousPlay}
+                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
+                thumbColor={continuousPlay ? colors.gold : colors.textMuted}
+              />
+              <Text style={s.toggleLabel}>تشغيل متواصل بين الآيات</Text>
+            </View>
+            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+              <Switch
+                value={showTajweed}
+                onValueChange={setShowTajweed}
+                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
+                thumbColor={showTajweed ? colors.gold : colors.textMuted}
+              />
+              <Text style={s.toggleLabel}>ألوان التجويد</Text>
+            </View>
+            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
               <Switch
                 value={hideVerseNumbers}
                 onValueChange={setHideVerseNumbers}
@@ -185,7 +271,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       borderTopRightRadius: 24,
       paddingTop: 12,
       paddingHorizontal: 20,
-      maxHeight: "85%",
+      maxHeight: "90%",
       borderTopWidth: 1,
       borderColor: colors.border,
     },
@@ -204,15 +290,26 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       textAlign: "right", marginBottom: 10, marginTop: 4,
       textTransform: "uppercase", letterSpacing: 0.5,
     },
-    optionRow: { flexDirection: "row", gap: 10, marginBottom: 20, justifyContent: "flex-end" },
+    themeGrid: {
+      flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20, justifyContent: "flex-end",
+    },
+    themeBtn: {
+      flexDirection: "row", alignItems: "center", gap: 8,
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderRadius: 12, borderWidth: 1,
+      borderColor: colors.border, backgroundColor: colors.bgSurface,
+      minWidth: "46%",
+    },
+    themeBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+    optionRow: { flexDirection: "row", gap: 8, marginBottom: 20, justifyContent: "flex-end" },
     optionBtn: {
       flexDirection: "row", alignItems: "center", gap: 8,
-      paddingHorizontal: 16, paddingVertical: 12,
+      paddingHorizontal: 14, paddingVertical: 11,
       borderRadius: 12, borderWidth: 1,
       borderColor: colors.border, backgroundColor: colors.bgSurface,
     },
     optionBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14 },
+    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "center" },
     optionLabelActive: { color: colors.bgDark, fontFamily: "Inter_700Bold" },
     accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-end" },
     accentCircleWrap: { alignItems: "center", justifyContent: "center" },
@@ -230,6 +327,14 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     fontBtnInner: { flexDirection: "row", alignItems: "center", gap: 14 },
     fontSample: { fontSize: 20, color: colors.textPrimary },
     fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "Inter_400Regular" },
+    reciterCol: { gap: 8, marginBottom: 20 },
+    reciterBtn: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
+      borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+    },
+    reciterBtnActive: { borderColor: colors.gold + "60", backgroundColor: colors.gold + "10" },
+    reciterLabel: { fontSize: 16, color: colors.textPrimary },
     preview: {
       backgroundColor: colors.bgSurface, borderRadius: 14, padding: 20,
       alignItems: "center", marginBottom: 20, borderWidth: 1, borderColor: colors.border,

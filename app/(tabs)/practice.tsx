@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   Animated,
+  PanResponder,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,16 +15,7 @@ import * as Haptics from "expo-haptics";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, VerseBlock } from "@/contexts/BookmarksContext";
 
-type PracticeMode = "عرض" | "اختبار";
-
-function maskText(text: string): { visible: string; hidden: string } {
-  const words = text.trim().split(/\s+/);
-  const cutAt = Math.max(1, Math.ceil(words.length * 0.55));
-  return {
-    visible: words.slice(0, cutAt).join(" "),
-    hidden: words.slice(cutAt).join(" "),
-  };
-}
+type PracticeMode = "عرض" | "اختبار" | "بطاقات";
 
 function pickTwoBlocks(blocks: VerseBlock[]): VerseBlock[] {
   if (blocks.length === 0) return [];
@@ -78,26 +70,50 @@ function DisplayBlockCard({
   );
 }
 
-function TestBlockCard({
+function WordTestCard({
   block, index, colors, arabicFont,
 }: {
   block: VerseBlock; index: number;
   colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
 }) {
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [revealedWords, setRevealedWords] = useState<Record<number, Set<number>>>({});
+
   const rangeLabel = block.startVerse === block.endVerse
     ? `الآية ${block.startVerse}`
     : `الآيات ${block.startVerse} – ${block.endVerse}`;
 
-  const revealAll = () => {
-    const all: Record<number, boolean> = {};
-    block.verses.forEach((v) => { all[v.number] = true; });
-    setRevealed(all);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const allWordSets = useMemo(() => {
+    const m: Record<number, string[]> = {};
+    block.verses.forEach((v) => { m[v.number] = v.text.trim().split(/\s+/); });
+    return m;
+  }, [block]);
+
+  const totalWords = useMemo(() =>
+    Object.values(allWordSets).reduce((s, w) => s + w.length, 0), [allWordSets]);
+
+  const revealedCount = useMemo(() =>
+    Object.values(revealedWords).reduce((s, set) => s + set.size, 0), [revealedWords]);
+
+  const allRevealed = revealedCount === totalWords;
+
+  const revealWord = (verseNum: number, wordIdx: number) => {
+    setRevealedWords((prev) => {
+      const current = new Set(prev[verseNum] ?? []);
+      current.add(wordIdx);
+      return { ...prev, [verseNum]: current };
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const revealedCount = Object.keys(revealed).length;
-  const allRevealed = revealedCount === block.verses.length;
+  const revealAll = () => {
+    const all: Record<number, Set<number>> = {};
+    block.verses.forEach((v) => {
+      const words = allWordSets[v.number];
+      all[v.number] = new Set(words.map((_, i) => i));
+    });
+    setRevealedWords(all);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
   return (
     <View style={[styles.blockCard, { backgroundColor: colors.bgCard, borderColor: colors.gold + "30" }]}>
@@ -112,49 +128,194 @@ function TestBlockCard({
           </View>
           <Text style={[styles.refRange, { color: colors.textMuted }]}>{rangeLabel}</Text>
         </View>
-        {!allRevealed && (
-          <Pressable onPress={revealAll} style={[styles.revealAllBtn, { borderColor: colors.gold + "40", backgroundColor: colors.gold + "10" }]}>
-            <Text style={[styles.revealAllText, { color: colors.gold }]}>كشف الكل</Text>
-          </Pressable>
-        )}
+        <View style={styles.revealHeaderRight}>
+          <Text style={[styles.wordCounter, { color: colors.textMuted }]}>{revealedCount}/{totalWords}</Text>
+          {!allRevealed && (
+            <Pressable
+              onPress={revealAll}
+              style={[styles.revealAllBtn, { borderColor: colors.gold + "40", backgroundColor: colors.gold + "10" }]}
+            >
+              <Text style={[styles.revealAllText, { color: colors.gold }]}>كشف الكل</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
       <View style={styles.versesContainer}>
         {block.verses.map((verse) => {
-          const isRevealed = !!revealed[verse.number];
-          const { visible, hidden } = maskText(verse.text);
+          const words = allWordSets[verse.number];
+          const revealed = revealedWords[verse.number] ?? new Set<number>();
           return (
-            <View key={verse.number} style={styles.testVerseRow}>
-              <View style={styles.testVerseTop}>
-                <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface }]}>
-                  <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
-                </View>
-                {!isRevealed && (
-                  <Pressable
-                    onPress={() => {
-                      setRevealed((prev) => ({ ...prev, [verse.number]: true }));
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                    style={[styles.revealBtn, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}
-                  >
-                    <Ionicons name="eye-outline" size={13} color={colors.tealLight} />
-                    <Text style={[styles.revealBtnText, { color: colors.tealLight }]}>كشف</Text>
-                  </Pressable>
-                )}
+            <View key={verse.number} style={styles.wordVerseBlock}>
+              <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface, alignSelf: "flex-end", marginBottom: 6 }]}>
+                <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
               </View>
-              {isRevealed ? (
-                <Text style={[styles.verseArabic, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
-                  {verse.text}
-                </Text>
-              ) : (
-                <Text style={[styles.verseArabic, { color: colors.textPrimary, textAlign: "right" }, arabicFont ? { fontFamily: arabicFont } : {}]}>
-                  {visible}{" "}
-                  <Text style={{ color: colors.textMuted, letterSpacing: 4 }}>﹏﹏﹏﹏</Text>
-                </Text>
-              )}
+              <View style={styles.wordRow}>
+                {words.map((word, idx) => {
+                  const isRev = revealed.has(idx);
+                  return (
+                    <Pressable
+                      key={idx}
+                      onPress={() => !isRev && revealWord(verse.number, idx)}
+                      disabled={isRev}
+                      style={[
+                        styles.wordChip,
+                        {
+                          backgroundColor: isRev ? "transparent" : colors.bgSurface,
+                          borderColor: isRev ? "transparent" : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[
+                        styles.wordChipText,
+                        { color: isRev ? colors.textPrimary : colors.bgSurface },
+                        arabicFont ? { fontFamily: arabicFont } : {},
+                      ]}>
+                        {word}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           );
         })}
       </View>
+    </View>
+  );
+}
+
+function FlashcardMode({
+  blocks, colors, arabicFont,
+}: {
+  blocks: VerseBlock[];
+  colors: ReturnType<typeof useSettings>["colors"];
+  arabicFont: string | undefined;
+}) {
+  const shuffled = useMemo(() => [...blocks].sort(() => Math.random() - 0.5), [blocks]);
+  const [cardIndex, setCardIndex] = useState(0);
+  const [knownCount, setKnownCount] = useState(0);
+  const [seenCount, setSeenCount] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const isPinchRef = useRef(false);
+
+  const currentBlock = shuffled[cardIndex % shuffled.length];
+
+  const referenceLabel = currentBlock
+    ? `سورة ${currentBlock.surahNameArabic} — ${
+        currentBlock.startVerse === currentBlock.endVerse
+          ? `الآية ${currentBlock.startVerse}`
+          : `الآيات ${currentBlock.startVerse} – ${currentBlock.endVerse}`
+      }`
+    : "";
+
+  const verseText = currentBlock
+    ? currentBlock.verses.map((v) => v.text).join(" ")
+    : "";
+
+  const flip = useCallback(() => {
+    Animated.timing(flipAnim, {
+      toValue: isFlipped ? 0 : 1,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+    setIsFlipped((f) => !f);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [isFlipped, flipAnim]);
+
+  const next = useCallback((known: boolean) => {
+    if (known) setKnownCount((k) => k + 1);
+    setSeenCount((s) => s + 1);
+    flipAnim.setValue(0);
+    setIsFlipped(false);
+    setCardIndex((i) => i + 1);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [flipAnim]);
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) =>
+      Math.abs(gs.dx) > 12 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
+    onPanResponderRelease: (_, gs) => {
+      if (Math.abs(gs.dx) > 60) {
+        next(gs.dx > 0);
+      }
+    },
+  }), [next]);
+
+  const frontRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
+  const backRotate  = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ["180deg", "360deg"] });
+
+  const total = shuffled.length;
+  const progress = total > 0 ? ((cardIndex % total) + 1) : 1;
+
+  return (
+    <View style={styles.flashContainer}>
+      <View style={styles.flashProgress}>
+        <Text style={[styles.flashProgressText, { color: colors.textMuted }]}>
+          {knownCount} حفظت • {seenCount} مررت • {progress}/{total}
+        </Text>
+      </View>
+
+      <View {...panResponder.panHandlers} style={styles.flashCardWrap}>
+        <Pressable onPress={flip} style={styles.flashCardPressable}>
+          <Animated.View style={[
+            styles.flashCard,
+            { backgroundColor: colors.bgCard, borderColor: colors.gold + "40" },
+            { transform: [{ rotateY: frontRotate }], backfaceVisibility: "hidden" },
+          ]}>
+            <View style={styles.flashFaceContent}>
+              <Ionicons name="help-circle-outline" size={32} color={colors.gold + "80"} style={{ marginBottom: 16 }} />
+              <Text style={[styles.flashReference, { color: colors.textPrimary }]}>
+                {referenceLabel}
+              </Text>
+              <Text style={[styles.flashHint, { color: colors.textMuted }]}>اضغط لكشف الآية</Text>
+            </View>
+          </Animated.View>
+
+          <Animated.View style={[
+            styles.flashCard,
+            { backgroundColor: colors.bgCard, borderColor: colors.gold + "40", position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+            { transform: [{ rotateY: backRotate }], backfaceVisibility: "hidden" },
+          ]}>
+            <View style={styles.flashFaceContent}>
+              <Text style={[
+                styles.flashVerseText,
+                { color: colors.textPrimary },
+                arabicFont ? { fontFamily: arabicFont } : {},
+              ]}>
+                {verseText}
+              </Text>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </View>
+
+      <View style={styles.flashActions}>
+        <Pressable
+          onPress={() => next(false)}
+          style={[styles.flashActionBtn, { backgroundColor: colors.error + "20", borderColor: colors.error + "50" }]}
+        >
+          <Ionicons name="close" size={24} color={colors.error} />
+          <Text style={[styles.flashActionText, { color: colors.error }]}>لا أعرف</Text>
+        </Pressable>
+        <Pressable
+          onPress={flip}
+          style={[styles.flashFlipBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+        >
+          <Ionicons name="sync" size={20} color={colors.textSecondary} />
+        </Pressable>
+        <Pressable
+          onPress={() => next(true)}
+          style={[styles.flashActionBtn, { backgroundColor: colors.success + "20", borderColor: colors.success + "50" }]}
+        >
+          <Ionicons name="checkmark" size={24} color={colors.success} />
+          <Text style={[styles.flashActionText, { color: colors.success }]}>أعرفها</Text>
+        </Pressable>
+      </View>
+
+      <Text style={[styles.flashSwipeHint, { color: colors.textMuted }]}>
+        ← لا أعرف • أعرفها →
+      </Text>
     </View>
   );
 }
@@ -193,7 +354,7 @@ export default function PracticeScreen() {
 
       {!isEmpty && hasDrawn && (
         <View style={[styles.modeBar, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          {(["عرض", "اختبار"] as PracticeMode[]).map((m) => (
+          {(["عرض", "اختبار", "بطاقات"] as PracticeMode[]).map((m) => (
             <Pressable
               key={m}
               onPress={() => setMode(m)}
@@ -205,53 +366,57 @@ export default function PracticeScreen() {
         </View>
       )}
 
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 70 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {isEmpty ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
-            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-              أضف آيات للحفظ من صفحة "الحفظ" لتتمكن من التسميع.
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={[styles.infoBox, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
-              <Ionicons name="information-circle" size={16} color={colors.tealLight} />
-              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                {blocks.length === 1 ? "مجموعة واحدة متاحة" : `${blocks.length} مجموعة • مجموعتان عشوائيتان مقترحتان`}
+      {mode === "بطاقات" && hasDrawn && !isEmpty ? (
+        <FlashcardMode blocks={blocks} colors={colors} arabicFont={arabicFontFamily} />
+      ) : (
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 70 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {isEmpty ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                أضف آيات للحفظ من صفحة "الحفظ" لتتمكن من التسميع.
               </Text>
             </View>
-
-            {!hasDrawn && (
-              <View style={styles.promptArea}>
-                <Text style={[styles.promptArabic, { color: colors.gold }]}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
-                <Text style={[styles.promptHint, { color: colors.textMuted }]}>اضغط على "اقترح" للبدء</Text>
-              </View>
-            )}
-
-            {hasDrawn && selected.length > 0 && (
-              <View style={styles.cardsContainer}>
-                <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-                  {mode === "عرض" ? "المجموعات المقترحة" : "اختبر حفظك — أكمل الآيات"}
+          ) : (
+            <>
+              <View style={[styles.infoBox, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
+                <Ionicons name="information-circle" size={16} color={colors.tealLight} />
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                  {blocks.length === 1 ? "مجموعة واحدة متاحة" : `${blocks.length} مجموعة • مجموعتان عشوائيتان مقترحتان`}
                 </Text>
-                {selected.map((block, i) =>
-                  mode === "عرض" ? (
-                    <DisplayBlockCard key={block.id} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
-                  ) : (
-                    <TestBlockCard key={block.id + mode} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
-                  )
-                )}
               </View>
-            )}
-          </>
-        )}
-      </ScrollView>
 
-      {!isEmpty && (
+              {!hasDrawn && (
+                <View style={styles.promptArea}>
+                  <Text style={[styles.promptArabic, { color: colors.gold }]}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
+                  <Text style={[styles.promptHint, { color: colors.textMuted }]}>اضغط على "اقترح" للبدء</Text>
+                </View>
+              )}
+
+              {hasDrawn && selected.length > 0 && (
+                <View style={styles.cardsContainer}>
+                  <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+                    {mode === "عرض" ? "المجموعات المقترحة" : "اختبر حفظك — اكشف كلمة بكلمة"}
+                  </Text>
+                  {selected.map((block, i) =>
+                    mode === "عرض" ? (
+                      <DisplayBlockCard key={block.id} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
+                    ) : (
+                      <WordTestCard key={block.id + "test"} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
+                    )
+                  )}
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      )}
+
+      {!isEmpty && mode !== "بطاقات" && (
         <View style={[styles.drawButtonContainer, { bottom: Platform.OS === "web" ? 34 + 16 : insets.bottom + 90 + 16 }]}>
           <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
             <Pressable
@@ -313,6 +478,8 @@ const styles = StyleSheet.create({
   refSurahArabic: { fontSize: 16, textAlign: "right" },
   refSurahNumber: { fontFamily: "Inter_500Medium", fontSize: 13 },
   refRange: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "right", marginTop: 2 },
+  revealHeaderRight: { alignItems: "flex-end", gap: 4 },
+  wordCounter: { fontFamily: "Inter_500Medium", fontSize: 11 },
   versesContainer: { gap: 12 },
   verseRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   verseArabic: { flex: 1, fontSize: 22, textAlign: "right", lineHeight: 42 },
@@ -321,17 +488,48 @@ const styles = StyleSheet.create({
     justifyContent: "center", marginTop: 6, flexShrink: 0,
   },
   verseNumText: { fontFamily: "Inter_500Medium", fontSize: 9 },
-  revealAllBtn: {
-    borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5,
-  },
+  revealAllBtn: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   revealAllText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
-  testVerseRow: { gap: 8 },
-  testVerseTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  revealBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4,
+  wordVerseBlock: { gap: 8 },
+  wordRow: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "flex-start",
   },
-  revealBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
+  wordChip: {
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4,
+    minWidth: 32, alignItems: "center",
+  },
+  wordChipText: { fontSize: 20, lineHeight: 34 },
+  flashContainer: { flex: 1, paddingHorizontal: 16 },
+  flashProgress: { alignItems: "center", paddingBottom: 12 },
+  flashProgressText: { fontFamily: "Inter_400Regular", fontSize: 12 },
+  flashCardWrap: { flex: 1, justifyContent: "center" },
+  flashCardPressable: { flex: 1, maxHeight: 380 },
+  flashCard: {
+    flex: 1, borderRadius: 24, borderWidth: 1, padding: 24,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+  },
+  flashFaceContent: { alignItems: "center", gap: 16, padding: 8 },
+  flashReference: { fontSize: 22, textAlign: "center", lineHeight: 36 },
+  flashHint: { fontFamily: "Inter_400Regular", fontSize: 13 },
+  flashVerseText: { fontSize: 22, textAlign: "center", lineHeight: 40 },
+  flashActions: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
+    paddingVertical: 16, gap: 12,
+  },
+  flashActionBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    borderRadius: 16, borderWidth: 1, paddingVertical: 14, gap: 8,
+  },
+  flashFlipBtn: {
+    width: 50, height: 50, borderRadius: 25, borderWidth: 1,
+    alignItems: "center", justifyContent: "center",
+  },
+  flashActionText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  flashSwipeHint: { textAlign: "center", fontFamily: "Inter_400Regular", fontSize: 11, paddingBottom: 8 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
   emptyDesc: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
