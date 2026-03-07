@@ -48,9 +48,25 @@ export const lightTheme: ThemeColors = {
 
 export type ThemeName = "dark" | "light";
 export type ArabicFontName = "system" | "naskh" | "amiri";
+export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
+export type LineSpacingName = "serré" | "normal" | "aéré";
 
 export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",
   amiri: "Amiri_400Regular",
+};
+
+export const ACCENT_COLORS: Record<AccentColorName, { primary: string; light: string }> = {
+  or:       { primary: "#C9A227", light: "#E8C547" },
+  emeraude: { primary: "#27AE60", light: "#2ECC71" },
+  bleu:     { primary: "#2980B9", light: "#3498DB" },
+  bordeaux: { primary: "#C0392B", light: "#E74C3C" },
+  lilas:    { primary: "#8E44AD", light: "#9B59B6" },
+};
+
+export const LINE_SPACING: Record<LineSpacingName, number> = {
+  "serré": 1.6,
+  "normal": 1.9,
+  "aéré": 2.4,
 };

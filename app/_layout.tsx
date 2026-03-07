@@ -17,6 +17,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { BookmarksProvider } from "@/contexts/BookmarksContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
+import { MasteryProvider } from "@/contexts/MasteryContext";
+import { AudioProvider } from "@/contexts/AudioContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -69,7 +71,11 @@ export default function RootLayout() {
           <KeyboardProvider>
             <SettingsProvider>
               <BookmarksProvider>
-                <RootLayoutNav />
+                <MasteryProvider>
+                  <AudioProvider>
+                    <RootLayoutNav />
+                  </AudioProvider>
+                </MasteryProvider>
               </BookmarksProvider>
             </SettingsProvider>
           </KeyboardProvider>

@@ -4,15 +4,11 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useBookmarks } from "@/contexts/BookmarksContext";
 
 export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { colors } = useSettings();
-  const { blocks } = useBookmarks();
-
-  const bookmarkCount = blocks.reduce((sum, b) => sum + b.verses.length, 0);
 
   return (
     <Tabs
@@ -64,7 +60,6 @@ export default function TabLayout() {
         name="bookmarks"
         options={{
           title: "الحفظ",
-          tabBarBadge: bookmarkCount > 0 ? bookmarkCount : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bookmark-outline" size={size} color={color} />
           ),

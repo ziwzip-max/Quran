@@ -7,6 +7,8 @@ import {
   Pressable,
   Platform,
   Animated,
+  ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,23 +17,53 @@ import * as Haptics from "expo-haptics";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
+import { useAudio } from "@/contexts/AudioContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const HISTORY_KEY = "al_hifz_history";
+const MAX_HISTORY_ITEMS = 5;
 
 const MIN_FONT = 16;
 const MAX_FONT = 36;
 const FONT_STEP = 2;
 
+const MASTERY_COLORS: Record<MasteryLevel, string> = {
+  0: "transparent",
+  1: "#E67E22",
+  2: "#27AE60",
+};
+
 function VerseItem({
   verse,
+  surahNum,
   isBookmarked,
   onToggle,
   fontSize,
   arabicFont,
+  lineSpacingValue,
+  isActive,
+  hideNumbers,
+  mastery,
+  onCycleMastery,
+  isCurrentAudio,
+  isAudioLoading,
+  onPlayAudio,
 }: {
   verse: Verse;
+  surahNum: number;
   isBookmarked: boolean;
   onToggle: () => void;
   fontSize: number;
   arabicFont: string | undefined;
+  lineSpacingValue: number;
+  isActive: boolean;
+  hideNumbers: boolean;
+  mastery: MasteryLevel;
+  onCycleMastery: () => void;
+  isCurrentAudio: boolean;
+  isAudioLoading: boolean;
+  onPlayAudio: () => void;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -45,39 +77,78 @@ function VerseItem({
     onToggle();
   };
 
+  const masteryColor = mastery === 0 ? colors.border : MASTERY_COLORS[mastery];
+  const masteryBg = mastery === 0 ? "transparent" : MASTERY_COLORS[mastery] + "20";
+
   return (
     <View style={[
       styles.verseContainer,
       {
-        backgroundColor: isBookmarked ? colors.gold + "0D" : colors.bgCard,
-        borderColor: isBookmarked ? colors.gold + "50" : colors.border,
+        backgroundColor: isActive
+          ? colors.gold + "12"
+          : isBookmarked
+            ? colors.gold + "0D"
+            : colors.bgCard,
+        borderColor: isActive
+          ? colors.gold + "50"
+          : isBookmarked
+            ? colors.gold + "50"
+            : colors.border,
+        borderLeftWidth: isActive ? 3 : 1,
+        borderLeftColor: isActive ? colors.gold : (isBookmarked ? colors.gold + "50" : colors.border),
       }
     ]}>
       <View style={styles.verseHeader}>
-        <View style={[
-          styles.verseNumberBadge,
-          {
-            backgroundColor: isBookmarked ? colors.gold + "20" : colors.bgSurface,
-            borderColor: isBookmarked ? colors.gold + "60" : colors.border,
-          }
-        ]}>
-          <Text style={[styles.verseNumberText, { color: isBookmarked ? colors.gold : colors.textMuted }]}>
-            {verse.number}
-          </Text>
-        </View>
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <Pressable onPress={handleToggle} hitSlop={12}>
-            <Ionicons
-              name={isBookmarked ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color={isBookmarked ? colors.gold : colors.textMuted}
-            />
+        <View style={styles.verseHeaderLeft}>
+          {!hideNumbers && (
+            <View style={[
+              styles.verseNumberBadge,
+              {
+                backgroundColor: isBookmarked ? colors.gold + "20" : colors.bgSurface,
+                borderColor: isBookmarked ? colors.gold + "60" : colors.border,
+              }
+            ]}>
+              <Text style={[styles.verseNumberText, { color: isBookmarked ? colors.gold : colors.textMuted }]}>
+                {verse.number}
+              </Text>
+            </View>
+          )}
+          <Pressable
+            onPress={onCycleMastery}
+            hitSlop={8}
+            style={[styles.masteryPill, { backgroundColor: masteryBg, borderColor: masteryColor, borderWidth: mastery === 0 ? 1 : 0 }]}
+          >
+            {mastery === 0
+              ? <View style={[styles.masteryDot, { backgroundColor: colors.border }]} />
+              : <View style={[styles.masteryDot, { backgroundColor: MASTERY_COLORS[mastery] }]} />
+            }
           </Pressable>
-        </Animated.View>
+        </View>
+        <View style={styles.verseHeaderRight}>
+          <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
+            {isAudioLoading
+              ? <ActivityIndicator size="small" color={colors.gold} />
+              : <Ionicons
+                  name={isCurrentAudio ? "pause-circle" : "play-circle-outline"}
+                  size={24}
+                  color={isCurrentAudio ? colors.gold : colors.textMuted}
+                />
+            }
+          </Pressable>
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Pressable onPress={handleToggle} hitSlop={12}>
+              <Ionicons
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={22}
+                color={isBookmarked ? colors.gold : colors.textMuted}
+              />
+            </Pressable>
+          </Animated.View>
+        </View>
       </View>
       <Text style={[
         styles.verseText,
-        { fontSize, lineHeight: fontSize * 1.9, color: colors.textPrimary },
+        { fontSize, lineHeight: fontSize * lineSpacingValue, color: colors.textPrimary },
         arabicFont ? { fontFamily: arabicFont } : {},
       ]}>
         {verse.text}
@@ -91,51 +162,60 @@ export default function SurahScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isBookmarked, toggleBookmark } = useBookmarks();
-  const { colors, arabicFontFamily } = useSettings();
+  const { colors, arabicFontFamily, hideVerseNumbers, highlightActiveVerse, lineSpacingValue } = useSettings();
+  const { getMastery, cycleMastery } = useMastery();
+  const { play, currentKey, isLoading: audioLoading } = useAudio();
 
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
 
   const [fontSize, setFontSize] = useState(22);
+  const [isImmersive, setIsImmersive] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
+
+  useEffect(() => {
+    if (!surahNumber || isNaN(surahNumber)) return;
+    AsyncStorage.getItem(HISTORY_KEY).then((stored) => {
+      let history: number[] = stored ? JSON.parse(stored) : [];
+      history = [surahNumber, ...history.filter((n) => n !== surahNumber)].slice(0, MAX_HISTORY_ITEMS);
+      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    });
+  }, [surahNumber]);
 
   const increaseFont = useCallback(() => setFontSize((f) => Math.min(f + FONT_STEP, MAX_FONT)), []);
   const decreaseFont = useCallback(() => setFontSize((f) => Math.max(f - FONT_STEP, MIN_FONT)), []);
 
+  const toggleImmersive = useCallback(() => {
+    setIsImmersive((prev) => !prev);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
   useEffect(() => {
-    if (surah) {
-      navigation.setOptions({
-        title: surah.nameArabic,
-        headerStyle: { backgroundColor: colors.bgDark },
-        headerTintColor: colors.textPrimary,
-        headerTitleStyle: {
-          fontFamily: "Inter_600SemiBold",
-          fontSize: 18,
-          color: colors.textPrimary,
-        },
-        headerBackTitle: "القرآن",
-        headerRight: () => (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 8 }}>
-            <Pressable
-              onPress={decreaseFont}
-              hitSlop={10}
-              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: "Inter_700Bold" }}>ا-</Text>
-            </Pressable>
-            <Pressable
-              onPress={increaseFont}
-              hitSlop={10}
-              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: "Inter_700Bold" }}>ا+</Text>
-            </Pressable>
-          </View>
-        ),
-      });
-    }
-  }, [surah, navigation, colors, decreaseFont, increaseFont]);
+    if (!surah) return;
+    navigation.setOptions({
+      headerShown: !isImmersive,
+      title: surah.nameArabic,
+      headerStyle: { backgroundColor: colors.bgDark },
+      headerTintColor: colors.textPrimary,
+      headerTitleStyle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: colors.textPrimary },
+      headerBackTitle: "القرآن",
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 }}>
+          <Pressable onPress={decreaseFont} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_700Bold" }}>ا-</Text>
+          </Pressable>
+          <Pressable onPress={increaseFont} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_700Bold" }}>ا+</Text>
+          </Pressable>
+          <Pressable onPress={toggleImmersive} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <Ionicons name="expand-outline" size={16} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive]);
 
   useEffect(() => {
     if (!surah || !verseParam || hasScrolled.current) return;
@@ -149,6 +229,17 @@ export default function SurahScreen() {
     }, 400);
     return () => clearTimeout(timer);
   }, [surah, verseParam]);
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 55,
+    minimumViewTime: 200,
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setActiveIndex(viewableItems[0].index ?? -1);
+    }
+  }).current;
 
   if (!surah) {
     return (
@@ -172,17 +263,6 @@ export default function SurahScreen() {
           <Text style={[styles.metaText, { color: colors.textMuted }]}>سورة {surah.number}</Text>
         </View>
       </View>
-      {surah.number !== 1 && surah.number !== 9 && (
-        <View style={[styles.bismillahContainer, { borderTopColor: colors.border }]}>
-          <Text style={[
-            styles.bismillah,
-            { color: colors.textSecondary },
-            arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
-          ]}>
-            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-          </Text>
-        </View>
-      )}
     </View>
   );
 
@@ -195,26 +275,60 @@ export default function SurahScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24 },
+          {
+            paddingTop: isImmersive ? (Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top) + 12 : 0,
+            paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={headerComponent}
+        viewabilityConfig={highlightActiveVerse ? viewabilityConfig : undefined}
+        onViewableItemsChanged={highlightActiveVerse ? onViewableItemsChanged : undefined}
         onScrollToIndexFailed={({ index }) => {
           setTimeout(() => {
             flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
           }, 300);
         }}
-        renderItem={({ item }) => (
-          <VerseItem
-            verse={item}
-            isBookmarked={isBookmarked(surah.number, item.number)}
-            onToggle={() => toggleBookmark(surah.number, item.number)}
-            fontSize={fontSize}
-            arabicFont={arabicFontFamily}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const verseKey = `${surahNumber}:${item.number}`;
+          const isCurrentAudio = currentKey === verseKey;
+          return (
+            <VerseItem
+              verse={item}
+              surahNum={surahNumber}
+              isBookmarked={isBookmarked(surahNumber, item.number)}
+              onToggle={() => toggleBookmark(surahNumber, item.number)}
+              fontSize={fontSize}
+              arabicFont={arabicFontFamily}
+              lineSpacingValue={lineSpacingValue}
+              isActive={highlightActiveVerse && activeIndex === index}
+              hideNumbers={hideVerseNumbers}
+              mastery={getMastery(surahNumber, item.number)}
+              onCycleMastery={() => cycleMastery(surahNumber, item.number)}
+              isCurrentAudio={isCurrentAudio}
+              isAudioLoading={isCurrentAudio && audioLoading}
+              onPlayAudio={() => play(surahNumber, item.number)}
+            />
+          );
+        }}
         ItemSeparatorComponent={() => <View style={styles.verseSeparator} />}
       />
+
+      {isImmersive && (
+        <TouchableOpacity
+          onPress={toggleImmersive}
+          style={[
+            styles.exitImmersiveBtn,
+            {
+              backgroundColor: colors.bgCard + "E0",
+              borderColor: colors.border,
+              bottom: Platform.OS === "web" ? 50 : insets.bottom + 24,
+            },
+          ]}
+        >
+          <Ionicons name="contract-outline" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -222,7 +336,7 @@ export default function SurahScreen() {
 const fontBtnStyle: object = {
   borderRadius: 8,
   borderWidth: 1,
-  paddingHorizontal: 8,
+  paddingHorizontal: 7,
   paddingVertical: 4,
 };
 
@@ -258,18 +372,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 12,
   },
-  bismillahContainer: {
-    marginTop: 18,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    width: "100%",
-    alignItems: "center",
-  },
-  bismillah: {
-    fontSize: 21,
-    textAlign: "center",
-    lineHeight: 36,
-  },
   verseContainer: {
     borderRadius: 14,
     padding: 16,
@@ -280,6 +382,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 14,
+  },
+  verseHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  verseHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   verseNumberBadge: {
     width: 34,
@@ -292,6 +404,24 @@ const styles = StyleSheet.create({
   verseNumberText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
+  },
+  masteryPill: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  masteryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  audioBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   verseText: {
     textAlign: "right",
@@ -308,5 +438,15 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontFamily: "Inter_400Regular",
     fontSize: 16,
+  },
+  exitImmersiveBtn: {
+    position: "absolute",
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
