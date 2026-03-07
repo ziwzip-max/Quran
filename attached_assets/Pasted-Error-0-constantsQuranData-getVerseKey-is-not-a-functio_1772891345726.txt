@@ -1,0 +1,17 @@
+Error: (0, _constantsQuranData.getVerseKey) is not a function. (In '(0, _constantsQuranData.getVerseKey)(surahNumber_0, verseNumber_0)', '(0, _constantsQuranData.getVerseKey)' is undefined)
+
+Stack Trace:
+isBookmarked@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:159046:62
+t14@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:209559:37
+render@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:36199:40
+react-stack-bottom-frame@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:16665:35
+updateClassComponent@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:8721:38
+runWithFiberInDEV@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:4635:135
+performUnitOfWork@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11215:112
+workLoopSync@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11108:57
+renderRootSync@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11092:21
+performWorkOnRoot@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:10856:58
+performSyncWorkOnRoot@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11820:24
+flushSyncWorkAcrossRoots_impl@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11739:329
+processRootScheduleInMicrotask@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11759:36
+@https://9d283607-cbf6-4ce6-b6e5-7aa77cf7e974-00-3ewt6hnljqibw.picard.replit.dev/node_modules/expo-router/entry.bundle:11831:184
