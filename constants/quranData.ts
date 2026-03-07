@@ -7276,3 +7276,7 @@ export const SURAHS: Surah[] = [
     ],
   },
 ];
+
+export function getVerseKey(surahNumber: number, verseNumber: number): string {
+  return `${surahNumber}-${verseNumber}`;
+}
