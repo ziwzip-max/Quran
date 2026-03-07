@@ -1,6 +1,4 @@
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,26 +6,7 @@ import React from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "book", selected: "book.fill" }} />
-        <Label>القرآن</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="bookmarks">
-        <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
-        <Label>الحفظ</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="practice">
-        <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
-        <Label>آيات الصلاة</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
-
-function ClassicTabLayout() {
+export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { colors } = useSettings();
@@ -102,11 +81,4 @@ function ClassicTabLayout() {
       />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
 }
