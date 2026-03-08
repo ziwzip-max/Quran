@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,19 +8,27 @@ import {
   TextInput,
   Platform,
   ScrollView,
+  Animated,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS, Surah } from "@/constants/quranData";
 import { SURAH_TYPE } from "@/constants/quranMeta";
 import { SettingsModal } from "@/components/SettingsModal";
 
 export const HISTORY_KEY = "al_hifz_history";
+const PINS_KEY = "al_hifz_pins";
+const REVIEWS_KEY = "al_hifz_reviews";
 const MAX_HISTORY = 5;
+const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
+const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
+const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
 
 type SearchMode = "surahs" | "verse";
 type LengthFilter = "كل" | "قصيرة" | "متوسطة" | "طويلة";
@@ -47,6 +55,23 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   const surah = SURAHS[surahIndex];
   const verseIndex = (dayEpoch * 7919) % surah.verses.length;
   return { surahNumber: surah.number, verseNumber: surah.verses[verseIndex].number };
+}
+
+function countDueBlocks(
+  masteryMap: Record<string, number>,
+  reviews: Record<string, number>
+): number {
+  let count = 0;
+  for (const [key, level] of Object.entries(masteryMap)) {
+    if (level === 0) continue;
+    const lastReview = reviews[key];
+    if (lastReview === undefined) { count++; continue; }
+    const elapsed = Date.now() - lastReview;
+    if (level === 1 && elapsed > REVIEW_THRESHOLD_L1) count++;
+    else if (level === 2 && elapsed > REVIEW_THRESHOLD_L2) count++;
+    else if (level === 3 && elapsed > REVIEW_THRESHOLD_L3) count++;
+  }
+  return count;
 }
 
 function LengthChip({ label, selected, onPress, colors }: {
@@ -130,28 +155,73 @@ function HistoryChip({ surahNumber, colors, onPress }: {
   );
 }
 
-function SurahCard({ surah, onPress, colors }: {
-  surah: Surah; onPress: () => void;
+function PinChip({ surahNumber, colors, onUnpin }: {
+  surahNumber: number;
+  colors: ReturnType<typeof useSettings>["colors"];
+  onUnpin: () => void;
+}) {
+  const surah = SURAHS.find((s) => s.number === surahNumber);
+  if (!surah) return null;
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: "/surah/[id]", params: { id: String(surahNumber) } })}
+      style={[styles.pinChip, { backgroundColor: colors.gold + "18", borderColor: colors.gold + "50" }]}
+    >
+      <Text style={[styles.pinChipText, { color: colors.gold }]}>{surah.nameArabic}</Text>
+      <Pressable onPress={(e) => { e.stopPropagation(); onUnpin(); }} hitSlop={10}>
+        <Ionicons name="close-circle" size={15} color={colors.gold + "90"} />
+      </Pressable>
+    </Pressable>
+  );
+}
+
+function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
+  surah: Surah; onPress: () => void; onLongPress: () => void;
+  isPinned: boolean;
   colors: ReturnType<typeof useSettings>["colors"];
 }) {
   const revType = SURAH_TYPE[surah.number];
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handleLongPress = () => {
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+    onLongPress();
+  };
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }, pressed && { opacity: 0.75 }]}
+      onLongPress={handleLongPress}
+      delayLongPress={400}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: isPinned ? colors.gold + "10" : colors.bgCard,
+          borderColor: isPinned ? colors.gold + "50" : colors.border,
+        },
+        pressed && { opacity: 0.75 }
+      ]}
     >
-      <View style={styles.cardLeft}>
-        <Text style={[styles.verseCount, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
-        <View style={[styles.revTypePill, { backgroundColor: revType === "mecquoise" ? colors.teal + "20" : colors.gold + "15" }]}>
-          <Text style={[styles.revTypeText, { color: revType === "mecquoise" ? colors.tealLight : colors.gold }]}>
-            {revType === "mecquoise" ? "مكية" : "مدنية"}
-          </Text>
+      <Animated.View style={[styles.cardInner, { transform: [{ scale }] }]}>
+        <View style={styles.cardLeft}>
+          <Text style={[styles.verseCount, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
+          <View style={[styles.revTypePill, { backgroundColor: revType === "mecquoise" ? colors.teal + "20" : colors.gold + "15" }]}>
+            <Text style={[styles.revTypeText, { color: revType === "mecquoise" ? colors.tealLight : colors.gold }]}>
+              {revType === "mecquoise" ? "مكية" : "مدنية"}
+            </Text>
+          </View>
         </View>
-      </View>
-      <Text style={[styles.arabicName, { color: colors.textPrimary }]}>{surah.nameArabic}</Text>
-      <View style={[styles.numberBadge, { backgroundColor: colors.bgSurface, borderColor: colors.gold + "40" }]}>
-        <Text style={[styles.numberText, { color: colors.gold }]}>{surah.number}</Text>
-      </View>
+        <Text style={[styles.arabicName, { color: colors.textPrimary }]}>{surah.nameArabic}</Text>
+        <View style={[styles.numberBadge, {
+          backgroundColor: isPinned ? colors.gold + "20" : colors.bgSurface,
+          borderColor: isPinned ? colors.gold + "60" : colors.gold + "40",
+        }]}>
+          <Text style={[styles.numberText, { color: colors.gold }]}>{surah.number}</Text>
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -187,10 +257,14 @@ function matchesLength(surah: Surah, filter: LengthFilter): boolean {
 export default function QuranScreen() {
   const insets = useSafeAreaInsets();
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
+  const { masteryMap } = useMastery();
   const [search, setSearch] = useState("");
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [lengthFilter, setLengthFilter] = useState<LengthFilter>("كل");
   const [history, setHistory] = useState<number[]>([]);
+  const [pins, setPins] = useState<number[]>([]);
+  const [dueCount, setDueCount] = useState(0);
+  const [reviewBannerDismissed, setReviewBannerDismissed] = useState(false);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
@@ -201,9 +275,38 @@ export default function QuranScreen() {
     } catch {}
   }, []);
 
+  const loadPins = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(PINS_KEY);
+      if (stored) setPins(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const loadDueCount = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(REVIEWS_KEY);
+      const reviews: Record<string, number> = stored ? JSON.parse(stored) : {};
+      setDueCount(countDueBlocks(masteryMap, reviews));
+      setReviewBannerDismissed(false);
+    } catch {}
+  }, [masteryMap]);
+
   useFocusEffect(useCallback(() => {
     loadHistory();
-  }, [loadHistory]));
+    loadPins();
+    loadDueCount();
+  }, [loadHistory, loadPins, loadDueCount]));
+
+  const togglePin = useCallback(async (surahNumber: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setPins((prev) => {
+      const next = prev.includes(surahNumber)
+        ? prev.filter((n) => n !== surahNumber)
+        : [...prev, surahNumber];
+      AsyncStorage.setItem(PINS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const vodData = useMemo(() => getVerseOfDay(), []);
 
@@ -251,6 +354,8 @@ export default function QuranScreen() {
     router.push({ pathname: "/surah/[id]", params: { id: String(surahNumber) } });
   }, []);
 
+  const showBanner = dueCount > 0 && !reviewBannerDismissed && showFilters;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
@@ -261,8 +366,35 @@ export default function QuranScreen() {
           <Text style={[styles.title, { color: colors.gold }]}>القرآن الكريم</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>١١٤ سورة • ٦٢٣٦ آية</Text>
         </View>
-        <View style={{ width: 30 }} />
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            const random = SURAHS[Math.floor(Math.random() * SURAHS.length)];
+            router.push({ pathname: "/surah/[id]", params: { id: String(random.number) } });
+          }}
+          hitSlop={10}
+          style={styles.gearBtn}
+        >
+          <Ionicons name="shuffle-outline" size={22} color={colors.textMuted} />
+        </Pressable>
       </View>
+
+      {showBanner && (
+        <Pressable
+          onPress={() => { setReviewBannerDismissed(true); router.push("/(tabs)/bookmarks"); }}
+          style={[styles.reviewBanner, { backgroundColor: colors.gold + "18", borderColor: colors.gold + "50" }]}
+        >
+          <View style={styles.reviewBannerContent}>
+            <Text style={[styles.reviewBannerText, { color: colors.gold }]}>
+              لديك {dueCount} كتلة للمراجعة — اضغط للبدء
+            </Text>
+            <Ionicons name="chevron-back-outline" size={16} color={colors.gold} />
+          </View>
+          <Pressable onPress={(e) => { e.stopPropagation(); setReviewBannerDismissed(true); }} hitSlop={10}>
+            <Ionicons name="close" size={16} color={colors.gold + "90"} />
+          </Pressable>
+        </Pressable>
+      )}
 
       {showFilters && showVerseOfDay && (
         <View style={styles.vodContainer}>
@@ -306,6 +438,17 @@ export default function QuranScreen() {
         </View>
       )}
 
+      {showFilters && pins.length > 0 && (
+        <View style={styles.pinsSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pinsScroll}>
+            <Text style={[styles.pinsSectionLabel, { color: colors.textMuted }]}>المثبتة</Text>
+            {pins.map((num) => (
+              <PinChip key={num} surahNumber={num} colors={colors} onUnpin={() => togglePin(num)} />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {showFilters && (
         <View style={styles.lengthFilterSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
@@ -340,7 +483,9 @@ export default function QuranScreen() {
             <SurahCard
               surah={item}
               colors={colors}
+              isPinned={pins.includes(item.number)}
               onPress={() => navigateToSurah(item.number)}
+              onLongPress={() => togglePin(item.number)}
             />
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
@@ -367,6 +512,15 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, alignItems: "center" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "center" },
   subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 3, textAlign: "center" },
+  reviewBanner: {
+    flexDirection: "row", alignItems: "center",
+    marginHorizontal: 16, marginBottom: 8,
+    borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 10,
+    gap: 8,
+  },
+  reviewBannerContent: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
+  reviewBannerText: { fontFamily: "Inter_600SemiBold", fontSize: 13, textAlign: "right", flex: 1 },
   vodContainer: { paddingHorizontal: 16, marginBottom: 10 },
   vodWidget: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
   vodTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -380,7 +534,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, gap: 8,
   },
   searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 15, padding: 0 },
-  historySection: { marginBottom: 6 },
+  historySection: { marginBottom: 4 },
   historyScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
   historySectionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginRight: 4 },
   historyChip: {
@@ -389,19 +543,28 @@ const styles = StyleSheet.create({
   },
   historyChipArabic: { fontSize: 14 },
   historyChipNum: { fontFamily: "Inter_500Medium", fontSize: 10 },
+  pinsSection: { marginBottom: 4 },
+  pinsScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
+  pinsSectionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginRight: 4 },
+  pinChip: {
+    borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
+    flexDirection: "row", alignItems: "center", gap: 6,
+  },
+  pinChipText: { fontFamily: "Inter_500Medium", fontSize: 14 },
   lengthFilterSection: { marginBottom: 6 },
   filterScroll: { paddingHorizontal: 16, gap: 7 },
   filterChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
   filterChipText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   listContent: { paddingHorizontal: 16 },
-  card: { flexDirection: "row", alignItems: "center", borderRadius: 14, paddingVertical: 13, paddingHorizontal: 14, gap: 14, borderWidth: 1 },
+  card: { borderRadius: 14, borderWidth: 1 },
+  cardInner: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 14 },
   cardLeft: { flex: 1, alignItems: "flex-start", gap: 5 },
   verseCount: { fontFamily: "Inter_400Regular", fontSize: 11 },
   revTypePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   revTypeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
   arabicName: { fontSize: 20, textAlign: "right" },
   numberBadge: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  numberText: { color: "#C9A227", fontFamily: "Inter_600SemiBold", fontSize: 13 },
+  numberText: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
   verseResultContainer: { paddingHorizontal: 16, paddingBottom: 12 },
   verseResultLabel: { fontFamily: "Inter_500Medium", fontSize: 12, textAlign: "right", marginBottom: 8 },
   verseCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 12 },

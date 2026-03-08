@@ -1,8 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QALOON_SURAHS } from "@/constants/qaloonData";
 
 const CACHE_PREFIX = "al_hifz_qaloon_";
 
 export async function fetchQaloonSurah(surahNum: number): Promise<string[]> {
+  const bundled = QALOON_SURAHS[surahNum - 1];
+  if (bundled && bundled.verses.length > 0) {
+    return bundled.verses.map((v) => v.text);
+  }
+
   try {
     const cacheKey = CACHE_PREFIX + surahNum;
     const cached = await AsyncStorage.getItem(cacheKey);

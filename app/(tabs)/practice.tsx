@@ -348,8 +348,23 @@ export default function PracticeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>آيات الصلاة</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>اختيار عشوائي للتلاوة في الصلاة</Text>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>المراجعة</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>راجع محفوظاتك وتدرّب على آياتك</Text>
+          </View>
+          {!isEmpty && (
+            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+              <Pressable
+                onPress={draw}
+                style={({ pressed }) => [styles.drawButton, { backgroundColor: colors.gold }, pressed && { opacity: 0.85 }]}
+              >
+                <Ionicons name="shuffle" size={18} color={colors.bgDark} />
+                <Text style={[styles.drawButtonText, { color: colors.bgDark }]}>{hasDrawn ? "اقترح جديد" : "اقترح"}</Text>
+              </Pressable>
+            </Animated.View>
+          )}
+        </View>
       </View>
 
       {!isEmpty && hasDrawn && (
@@ -416,21 +431,6 @@ export default function PracticeScreen() {
         </ScrollView>
       )}
 
-      {!isEmpty && mode !== "بطاقات" && (
-        <View style={[styles.drawButtonContainer, { bottom: Platform.OS === "web" ? 34 + 16 : insets.bottom + 90 + 16 }]}>
-          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-            <Pressable
-              onPress={draw}
-              style={({ pressed }) => [styles.drawButton, { backgroundColor: colors.gold }, pressed && { opacity: 0.85 }]}
-            >
-              <Ionicons name="shuffle" size={20} color={colors.bgDark} />
-              <Text style={[styles.drawButtonText, { color: colors.bgDark }]}>
-                {hasDrawn ? "اقترح جديد" : "اقترح"}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      )}
     </View>
   );
 }
@@ -438,8 +438,9 @@ export default function PracticeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  title: { fontSize: 26, fontFamily: "Inter_700Bold" },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  title: { fontSize: 24, fontFamily: "Inter_700Bold" },
+  subtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3 },
   modeBar: {
     flexDirection: "row",
     marginHorizontal: 20,
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
   emptyDesc: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
-  drawButtonContainer: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+
   drawButton: { flexDirection: "row", alignItems: "center", borderRadius: 50, paddingVertical: 16, paddingHorizontal: 36, gap: 10 },
   drawButtonText: { fontFamily: "Inter_700Bold", fontSize: 16 },
 });

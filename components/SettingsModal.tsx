@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -23,18 +23,27 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
+type SettingsTab = "المظهر" | "النص" | "التلاوة" | "القراءة";
+
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const {
     theme, arabicFont, accentColor, lineSpacing,
     hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
     reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+    notifEnabled, notifHour, notifMinute,
     setTheme, setArabicFont, setAccentColor, setLineSpacing,
     setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
     setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
+    setNotifEnabled, setNotifHour, setNotifMinute,
     colors, arabicFontFamily,
   } = useSettings();
   const insets = useSafeAreaInsets();
   const s = makeStyles(colors);
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>("المظهر");
+  const [reciterPickerVisible, setReciterPickerVisible] = useState(false);
+
+  const tabs: SettingsTab[] = ["المظهر", "النص", "التلاوة", "القراءة"];
 
   const themes: { key: ThemeName; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: "dark",   label: "ليلي",    icon: "moon" },
@@ -66,6 +75,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     { value: 10, label: "×١٠" },
   ];
 
+  const activeReciter = RECITERS_LIST.find((r) => r.id === reciterId);
+
+  const hourDisplay = String(notifHour).padStart(2, "0");
+  const minDisplay = String(notifMinute).padStart(2, "0");
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={s.overlay} onPress={onClose} />
@@ -78,190 +92,291 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={s.sectionTitle}>المظهر</Text>
-          <View style={s.themeGrid}>
-            {themes.map((t) => (
-              <Pressable
-                key={t.key}
-                onPress={() => setTheme(t.key)}
-                style={[s.themeBtn, theme === t.key && s.themeBtnActive]}
-              >
-                <Ionicons name={t.icon} size={20} color={theme === t.key ? colors.bgDark : colors.textSecondary} />
-                <Text style={[s.optionLabel, theme === t.key && s.optionLabelActive]}>{t.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+        <View style={s.tabBar}>
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={[s.tabBtn, activeTab === tab && { borderBottomColor: colors.gold, borderBottomWidth: 2 }]}
+            >
+              <Text style={[s.tabLabel, { color: activeTab === tab ? colors.gold : colors.textMuted }]}>{tab}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-          <Text style={s.sectionTitle}>لون التمييز</Text>
-          <View style={s.accentRow}>
-            {accentKeys.map((key) => {
-              const accent = ACCENT_COLORS[key];
-              const isActive = accentColor === key;
-              return (
-                <Pressable key={key} onPress={() => setAccentColor(key)} style={s.accentCircleWrap}>
-                  <View style={[
-                    s.accentCircle,
-                    { backgroundColor: accent.primary },
-                    isActive && { borderWidth: 3, borderColor: colors.textPrimary },
-                  ]}>
-                    {isActive && <Ionicons name="checkmark" size={14} color="#fff" />}
-                  </View>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          {activeTab === "المظهر" && (
+            <>
+              <Text style={s.sectionTitle}>الثيم</Text>
+              <View style={s.themeGrid}>
+                {themes.map((t) => (
+                  <Pressable
+                    key={t.key}
+                    onPress={() => setTheme(t.key)}
+                    style={[s.themeBtn, theme === t.key && s.themeBtnActive]}
+                  >
+                    <Ionicons name={t.icon} size={20} color={theme === t.key ? colors.bgDark : colors.textSecondary} />
+                    <Text style={[s.optionLabel, theme === t.key && s.optionLabelActive]}>{t.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.sectionTitle}>لون التمييز</Text>
+              <View style={s.accentRow}>
+                {accentKeys.map((key) => {
+                  const accent = ACCENT_COLORS[key];
+                  const isActive = accentColor === key;
+                  return (
+                    <Pressable key={key} onPress={() => setAccentColor(key)} style={s.accentCircleWrap}>
+                      <View style={[
+                        s.accentCircle,
+                        { backgroundColor: accent.primary },
+                        isActive && { borderWidth: 3, borderColor: colors.textPrimary },
+                      ]}>
+                        {isActive && <Ionicons name="checkmark" size={14} color="#fff" />}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Text style={s.sectionTitle}>معاينة</Text>
+              <View style={s.preview}>
+                <Text style={[s.previewText, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
+                  آلِ عِمۡرَانَ — ٱلْحَمْدُ لِلَّهِ
+                </Text>
+              </View>
+            </>
+          )}
+
+          {activeTab === "النص" && (
+            <>
+              <Text style={s.sectionTitle}>الخط العربي</Text>
+              <View style={s.fontOptionCol}>
+                {fonts.map((f) => (
+                  <Pressable
+                    key={f.key}
+                    onPress={() => setArabicFont(f.key)}
+                    style={[s.fontBtn, arabicFont === f.key && s.fontBtnActive]}
+                  >
+                    <View style={s.fontBtnInner}>
+                      <Text style={[s.fontSample, f.fontFamily ? { fontFamily: f.fontFamily } : {}, arabicFont === f.key && { color: colors.gold }]}>
+                        {f.sample}
+                      </Text>
+                      <Text style={[s.fontLabel, arabicFont === f.key && { color: colors.gold }]}>{f.label}</Text>
+                    </View>
+                    {arabicFont === f.key && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.sectionTitle}>تباعد الأسطر</Text>
+              <View style={s.optionRow}>
+                {spacings.map((sp) => (
+                  <Pressable
+                    key={sp.key}
+                    onPress={() => setLineSpacing(sp.key)}
+                    style={[s.optionBtn, lineSpacing === sp.key && s.optionBtnActive, { flex: 1 }]}
+                  >
+                    <Text style={[s.optionLabel, lineSpacing === sp.key && s.optionLabelActive]}>{sp.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.sectionTitle}>معاينة الخط</Text>
+              <View style={s.preview}>
+                <Text style={[s.previewText, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
+                  ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ
+                </Text>
+              </View>
+            </>
+          )}
+
+          {activeTab === "التلاوة" && (
+            <>
+              <Text style={s.sectionTitle}>الإمام</Text>
+              <Pressable
+                onPress={() => setReciterPickerVisible(true)}
+                style={[s.reciterPickerRow, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+              >
+                <Ionicons name="chevron-back-outline" size={18} color={colors.textMuted} />
+                <Text style={[s.reciterPickerLabel, { color: colors.textPrimary }]}>
+                  {activeReciter?.labelAr ?? "اختر الإمام"}
+                </Text>
+              </Pressable>
+
+              <Text style={s.sectionTitle}>رواية القراءة</Text>
+              <View style={s.optionRow}>
+                <Pressable
+                  onPress={() => setQiraa("hafs")}
+                  style={[s.optionBtn, qiraa === "hafs" && s.optionBtnActive, { flex: 1 }]}
+                >
+                  <Text style={[s.optionLabel, qiraa === "hafs" && s.optionLabelActive]}>حفص</Text>
                 </Pressable>
-              );
-            })}
-          </View>
+                <Pressable
+                  onPress={() => setQiraa("qaloon")}
+                  style={[s.optionBtn, qiraa === "qaloon" && s.optionBtnActive, { flex: 1 }]}
+                >
+                  <Text style={[s.optionLabel, qiraa === "qaloon" && s.optionLabelActive]}>قالون</Text>
+                </Pressable>
+              </View>
 
-          <Text style={s.sectionTitle}>الخط العربي</Text>
-          <View style={s.fontOptionCol}>
-            {fonts.map((f) => (
-              <Pressable
-                key={f.key}
-                onPress={() => setArabicFont(f.key)}
-                style={[s.fontBtn, arabicFont === f.key && s.fontBtnActive]}
-              >
-                <View style={s.fontBtnInner}>
-                  <Text style={[s.fontSample, f.fontFamily ? { fontFamily: f.fontFamily } : {}, arabicFont === f.key && { color: colors.gold }]}>
-                    {f.sample}
-                  </Text>
-                  <Text style={[s.fontLabel, arabicFont === f.key && { color: colors.gold }]}>{f.label}</Text>
+              <Text style={s.sectionTitle}>سرعة التلاوة</Text>
+              <View style={s.optionRow}>
+                {rates.map((r) => (
+                  <Pressable
+                    key={r}
+                    onPress={() => setPlaybackRate(r)}
+                    style={[s.optionBtn, playbackRate === r && s.optionBtnActive, { flex: 1 }]}
+                  >
+                    <Text style={[s.optionLabel, playbackRate === r && s.optionLabelActive]}>×{r}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.sectionTitle}>تكرار الآية</Text>
+              <View style={s.optionRow}>
+                {repeats.map(({ value, label }) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setRepeatMode(value)}
+                    style={[s.optionBtn, repeatMode === value && s.optionBtnActive, { flex: 1, paddingHorizontal: 6 }]}
+                  >
+                    <Text style={[s.optionLabel, repeatMode === value && s.optionLabelActive]}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={s.toggleGroup}>
+                <View style={s.toggleRow}>
+                  <Switch
+                    value={continuousPlay}
+                    onValueChange={setContinuousPlay}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={continuousPlay ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>تشغيل متواصل بين الآيات</Text>
                 </View>
-                {arabicFont === f.key && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
-              </Pressable>
-            ))}
-          </View>
+              </View>
 
-          <Text style={s.sectionTitle}>تباعد الأسطر</Text>
-          <View style={s.optionRow}>
-            {spacings.map((sp) => (
-              <Pressable
-                key={sp.key}
-                onPress={() => setLineSpacing(sp.key)}
-                style={[s.optionBtn, lineSpacing === sp.key && s.optionBtnActive, { flex: 1 }]}
-              >
-                <Text style={[s.optionLabel, lineSpacing === sp.key && s.optionLabelActive]}>{sp.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+              <Text style={s.sectionTitle}>التذكير اليومي</Text>
+              <View style={s.toggleGroup}>
+                <View style={s.toggleRow}>
+                  <Switch
+                    value={notifEnabled}
+                    onValueChange={setNotifEnabled}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={notifEnabled ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>إشعار يومي بآية</Text>
+                </View>
+                {notifEnabled && (
+                  <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                    <View style={s.timeStepper}>
+                      <Pressable onPress={() => setNotifMinute((notifMinute + 5) % 60)} style={s.stepperBtn} hitSlop={8}>
+                        <Ionicons name="chevron-up" size={16} color={colors.gold} />
+                      </Pressable>
+                      <Text style={[s.stepperVal, { color: colors.textPrimary }]}>{minDisplay}</Text>
+                      <Pressable onPress={() => setNotifMinute(notifMinute === 0 ? 55 : notifMinute - 5)} style={s.stepperBtn} hitSlop={8}>
+                        <Ionicons name="chevron-down" size={16} color={colors.gold} />
+                      </Pressable>
+                    </View>
+                    <Text style={[s.timeSep, { color: colors.textSecondary }]}>:</Text>
+                    <View style={s.timeStepper}>
+                      <Pressable onPress={() => setNotifHour((notifHour + 1) % 24)} style={s.stepperBtn} hitSlop={8}>
+                        <Ionicons name="chevron-up" size={16} color={colors.gold} />
+                      </Pressable>
+                      <Text style={[s.stepperVal, { color: colors.textPrimary }]}>{hourDisplay}</Text>
+                      <Pressable onPress={() => setNotifHour(notifHour === 0 ? 23 : notifHour - 1)} style={s.stepperBtn} hitSlop={8}>
+                        <Ionicons name="chevron-down" size={16} color={colors.gold} />
+                      </Pressable>
+                    </View>
+                    <Text style={[s.toggleLabel, { color: colors.textSecondary, flex: 1 }]}>وقت الإشعار</Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
 
-          <Text style={s.sectionTitle}>الإمام</Text>
-          <View style={s.reciterList}>
+          {activeTab === "القراءة" && (
+            <>
+              <View style={s.toggleGroup}>
+                <View style={s.toggleRow}>
+                  <Switch
+                    value={showTajweed}
+                    onValueChange={setShowTajweed}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={showTajweed ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>ألوان التجويد</Text>
+                </View>
+                <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <Switch
+                    value={hideVerseNumbers}
+                    onValueChange={setHideVerseNumbers}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={hideVerseNumbers ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>إخفاء أرقام الآيات</Text>
+                </View>
+                <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <Switch
+                    value={highlightActiveVerse}
+                    onValueChange={setHighlightActiveVerse}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={highlightActiveVerse ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>تمييز الآية النشطة</Text>
+                </View>
+                <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <Switch
+                    value={showVerseOfDay}
+                    onValueChange={setShowVerseOfDay}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={showVerseOfDay ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>آية اليوم في الرئيسية</Text>
+                </View>
+              </View>
+            </>
+          )}
+
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      </View>
+
+      <Modal
+        visible={reciterPickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReciterPickerVisible(false)}
+      >
+        <Pressable style={s.overlay} onPress={() => setReciterPickerVisible(false)} />
+        <View style={[s.subSheet, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
+          <View style={s.handle} />
+          <View style={s.subHeaderRow}>
+            <Pressable onPress={() => setReciterPickerVisible(false)} hitSlop={12}>
+              <Ionicons name="close" size={22} color={colors.textMuted} />
+            </Pressable>
+            <Text style={[s.subTitle, { color: colors.textPrimary }]}>اختر الإمام</Text>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
             {RECITERS_LIST.map((r) => (
               <Pressable
                 key={r.id}
-                onPress={() => setReciterId(r.id)}
-                style={[s.reciterBtn, reciterId === r.id && s.reciterBtnActive]}
+                onPress={() => { setReciterId(r.id); setReciterPickerVisible(false); }}
+                style={[s.reciterItem, { borderColor: colors.border }, reciterId === r.id && { backgroundColor: colors.gold + "12", borderColor: colors.gold + "40" }]}
               >
-                <Text style={[s.reciterLabel, reciterId === r.id && { color: colors.gold }]}>
+                <Text style={[s.reciterItemLabel, { color: reciterId === r.id ? colors.gold : colors.textPrimary }]}>
                   {r.labelAr}
                 </Text>
-                {reciterId === r.id && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}
+                {reciterId === r.id && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
               </Pressable>
             ))}
-          </View>
-
-          <Text style={s.sectionTitle}>سرعة التلاوة</Text>
-          <View style={s.optionRow}>
-            {rates.map((r) => (
-              <Pressable
-                key={r}
-                onPress={() => setPlaybackRate(r)}
-                style={[s.optionBtn, playbackRate === r && s.optionBtnActive, { flex: 1 }]}
-              >
-                <Text style={[s.optionLabel, playbackRate === r && s.optionLabelActive]}>
-                  ×{r}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={s.sectionTitle}>تكرار الآية</Text>
-          <View style={s.optionRow}>
-            {repeats.map(({ value, label }) => (
-              <Pressable
-                key={value}
-                onPress={() => setRepeatMode(value)}
-                style={[s.optionBtn, repeatMode === value && s.optionBtnActive, { flex: 1, paddingHorizontal: 6 }]}
-              >
-                <Text style={[s.optionLabel, repeatMode === value && s.optionLabelActive]}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={s.sectionTitle}>رواية القراءة</Text>
-          <View style={s.optionRow}>
-            <Pressable
-              onPress={() => setQiraa("hafs")}
-              style={[s.optionBtn, qiraa === "hafs" && s.optionBtnActive, { flex: 1 }]}
-            >
-              <Text style={[s.optionLabel, qiraa === "hafs" && s.optionLabelActive]}>حفص</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setQiraa("qaloon")}
-              style={[s.optionBtn, qiraa === "qaloon" && s.optionBtnActive, { flex: 1 }]}
-            >
-              <Text style={[s.optionLabel, qiraa === "qaloon" && s.optionLabelActive]}>قالون</Text>
-            </Pressable>
-          </View>
-          <Text style={s.qiraaNote}>نص قالون يُحمَّل من الإنترنت عند أول استخدام</Text>
-
-          <Text style={s.sectionTitle}>معاينة</Text>
-          <View style={s.preview}>
-            <Text style={[s.previewText, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
-              آلِ عِمۡرَانَ — ٱلْحَمْدُ لِلَّهِ
-            </Text>
-          </View>
-
-          <Text style={s.sectionTitle}>خيارات القراءة</Text>
-          <View style={s.toggleGroup}>
-            <View style={s.toggleRow}>
-              <Switch
-                value={continuousPlay}
-                onValueChange={setContinuousPlay}
-                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
-                thumbColor={continuousPlay ? colors.gold : colors.textMuted}
-              />
-              <Text style={s.toggleLabel}>تشغيل متواصل بين الآيات</Text>
-            </View>
-            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Switch
-                value={showTajweed}
-                onValueChange={setShowTajweed}
-                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
-                thumbColor={showTajweed ? colors.gold : colors.textMuted}
-              />
-              <Text style={s.toggleLabel}>ألوان التجويد</Text>
-            </View>
-            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Switch
-                value={hideVerseNumbers}
-                onValueChange={setHideVerseNumbers}
-                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
-                thumbColor={hideVerseNumbers ? colors.gold : colors.textMuted}
-              />
-              <Text style={s.toggleLabel}>إخفاء أرقام الآيات</Text>
-            </View>
-            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Switch
-                value={highlightActiveVerse}
-                onValueChange={setHighlightActiveVerse}
-                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
-                thumbColor={highlightActiveVerse ? colors.gold : colors.textMuted}
-              />
-              <Text style={s.toggleLabel}>تمييز الآية النشطة</Text>
-            </View>
-            <View style={[s.toggleRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Switch
-                value={showVerseOfDay}
-                onValueChange={setShowVerseOfDay}
-                trackColor={{ false: colors.bgSurface, true: colors.gold + "80" }}
-                thumbColor={showVerseOfDay ? colors.gold : colors.textMuted}
-              />
-              <Text style={s.toggleLabel}>آية اليوم في الصفحة الرئيسية</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
+            <View style={{ height: 20 }} />
+          </ScrollView>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -275,20 +390,42 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       borderTopRightRadius: 24,
       paddingTop: 12,
       paddingHorizontal: 20,
-      maxHeight: "90%",
+      maxHeight: "92%",
+      borderTopWidth: 1,
+      borderColor: colors.border,
+      flex: 1,
+    },
+    subSheet: {
+      backgroundColor: colors.bgCard,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingTop: 12,
+      paddingHorizontal: 20,
+      maxHeight: "70%",
       borderTopWidth: 1,
       borderColor: colors.border,
     },
     handle: {
       width: 40, height: 4, borderRadius: 2,
       backgroundColor: colors.border,
-      alignSelf: "center", marginBottom: 16,
+      alignSelf: "center", marginBottom: 12,
     },
     headerRow: {
       flexDirection: "row", justifyContent: "space-between",
-      alignItems: "center", marginBottom: 20,
+      alignItems: "center", marginBottom: 16,
     },
     title: { fontSize: 20, color: colors.textPrimary, fontFamily: "Inter_700Bold" },
+    tabBar: {
+      flexDirection: "row",
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      marginBottom: 16,
+    },
+    tabBtn: {
+      flex: 1, alignItems: "center", paddingVertical: 10,
+      borderBottomColor: "transparent", borderBottomWidth: 2,
+    },
+    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
     sectionTitle: {
       fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
       textAlign: "right", marginBottom: 10, marginTop: 4,
@@ -331,17 +468,36 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     fontBtnInner: { flexDirection: "row", alignItems: "center", gap: 14 },
     fontSample: { fontSize: 20, color: colors.textPrimary },
     fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "Inter_400Regular" },
-    reciterList: { gap: 8, marginBottom: 20 },
-    reciterBtn: {
+    reciterPickerRow: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
-      borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+      borderWidth: 1, marginBottom: 20,
     },
-    reciterBtnActive: { borderColor: colors.gold + "60", backgroundColor: colors.gold + "10" },
-    reciterLabel: { fontSize: 16, color: colors.textPrimary },
-    qiraaNote: {
-      fontSize: 12, color: colors.textMuted, textAlign: "right",
-      marginTop: -14, marginBottom: 20, fontFamily: "Inter_400Regular",
+    reciterPickerLabel: { fontSize: 16, fontFamily: "Inter_500Medium", textAlign: "right" },
+    toggleGroup: {
+      backgroundColor: colors.bgSurface, borderRadius: 14,
+      borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: "hidden",
+    },
+    toggleRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    toggleLabel: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "right", flex: 1 },
+    timeStepper: {
+      alignItems: "center", gap: 2,
+    },
+    stepperBtn: {
+      width: 28, height: 22, alignItems: "center", justifyContent: "center",
+    },
+    stepperVal: {
+      fontFamily: "Inter_700Bold", fontSize: 18, minWidth: 28, textAlign: "center",
+    },
+    timeSep: {
+      fontFamily: "Inter_700Bold", fontSize: 22,
+      marginHorizontal: 4,
     },
     preview: {
       backgroundColor: colors.bgSurface, borderRadius: 14, padding: 20,
@@ -350,14 +506,18 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     previewText: {
       fontSize: 24, color: colors.textPrimary, textAlign: "center", lineHeight: 44,
     },
-    toggleGroup: {
-      backgroundColor: colors.bgSurface, borderRadius: 14,
-      borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: "hidden",
+    subHeaderRow: {
+      flexDirection: "row", justifyContent: "space-between",
+      alignItems: "center", marginBottom: 16,
     },
-    toggleRow: {
+    subTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
+    reciterItem: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-      paddingHorizontal: 16, paddingVertical: 14,
+      paddingHorizontal: 16, paddingVertical: 16,
+      borderRadius: 12, borderWidth: 1,
+      marginBottom: 8,
+      backgroundColor: colors.bgSurface,
     },
-    toggleLabel: { color: colors.textPrimary, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "right" },
+    reciterItemLabel: { fontSize: 16 },
   });
 }

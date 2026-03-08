@@ -10,8 +10,12 @@ interface AudioContextValue {
   currentVerseNum: number | null;
   isLoading: boolean;
   isPlaying: boolean;
+  playbackPosition: number;
+  playbackDuration: number;
   play: (surahNum: number, verseNum: number) => Promise<void>;
   stop: () => Promise<void>;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
   playNext: (surahNum: number, verseNum: number) => Promise<void>;
 }
 
@@ -30,6 +34,18 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [currentVerseNum, setCurrentVerseNum] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackPosition, setPlaybackPosition] = useState(0);
+  const [playbackDuration, setPlaybackDuration] = useState(0);
+
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+  }, []);
 
   const reciterIdRef = useRef(reciterId);
   const playbackRateRef = useRef(playbackRate);
@@ -61,7 +77,27 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     currentVerseNumRef.current = null;
     setIsPlaying(false);
     setIsLoading(false);
+    setPlaybackPosition(0);
+    setPlaybackDuration(0);
     repeatCounterRef.current = 0;
+  }, []);
+
+  const pause = useCallback(async () => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.pauseAsync();
+        setIsPlaying(false);
+      } catch {}
+    }
+  }, []);
+
+  const resume = useCallback(async () => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
+      } catch {}
+    }
   }, []);
 
   const playInternal = useCallback(async (surahNum: number, verseNum: number) => {
@@ -80,10 +116,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     currentSurahNumRef.current = surahNum;
     currentVerseNumRef.current = verseNum;
     setIsLoading(true);
+    setPlaybackPosition(0);
+    setPlaybackDuration(0);
 
     try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
       const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
       const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
       const folder = reciterEntry?.folder ?? "Alafasy_128kbps";
@@ -104,7 +140,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       sound.setOnPlaybackStatusUpdate(async (status) => {
         if (!status.isLoaded) return;
+        setPlaybackPosition(status.positionMillis ?? 0);
+        if (status.durationMillis) setPlaybackDuration(status.durationMillis);
+
         if (status.didJustFinish) {
+          setPlaybackPosition(0);
           const rMode = repeatModeRef.current;
           const sNum = currentSurahNumRef.current;
           const vNum = currentVerseNumRef.current;
@@ -153,12 +193,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const play = useCallback(async (surahNum: number, verseNum: number) => {
     const key = `${surahNum}:${verseNum}`;
     if (currentKey === key && isPlaying) {
-      await stop();
+      await pause();
+      return;
+    }
+    if (currentKey === key && !isPlaying) {
+      await resume();
       return;
     }
     repeatCounterRef.current = 0;
     await playInternal(surahNum, verseNum);
-  }, [currentKey, isPlaying, stop, playInternal]);
+  }, [currentKey, isPlaying, pause, resume, playInternal]);
 
   const playNext = useCallback(async (surahNum: number, verseNum: number) => {
     repeatCounterRef.current = 0;
@@ -175,7 +219,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   return (
     <AudioCtx.Provider value={{
       currentKey, currentSurahNum, currentVerseNum,
-      isLoading, isPlaying, play, stop, playNext,
+      isLoading, isPlaying, playbackPosition, playbackDuration,
+      play, stop, pause, resume, playNext,
     }}>
       {children}
     </AudioCtx.Provider>

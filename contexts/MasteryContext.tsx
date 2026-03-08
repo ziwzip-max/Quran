@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "al_hifz_mastery";
 
-export type MasteryLevel = 0 | 1 | 2;
+export type MasteryLevel = 0 | 1 | 2 | 3;
 
 interface MasteryContextValue {
   getMastery: (surahNum: number, verseNum: number) => MasteryLevel;
@@ -55,7 +55,7 @@ export function MasteryProvider({ children }: { children: ReactNode }) {
     setMasteryMap((prev) => {
       const key = makeKey(surahNum, verseNum);
       const current: MasteryLevel = (prev[key] as MasteryLevel) ?? 0;
-      const next: MasteryLevel = current === 2 ? 0 : ((current + 1) as MasteryLevel);
+      const next: MasteryLevel = current === 3 ? 0 : ((current + 1) as MasteryLevel);
       const updated = { ...prev };
       if (next === 0) delete updated[key];
       else updated[key] = next;

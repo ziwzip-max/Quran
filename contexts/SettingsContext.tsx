@@ -23,6 +23,9 @@ interface SettingsContextValue {
   showTajweed: boolean;
   continuousPlay: boolean;
   qiraa: "hafs" | "qaloon";
+  notifEnabled: boolean;
+  notifHour: number;
+  notifMinute: number;
   setTheme: (t: ThemeName) => void;
   setArabicFont: (f: ArabicFontName) => void;
   setAccentColor: (a: AccentColorName) => void;
@@ -36,6 +39,9 @@ interface SettingsContextValue {
   setShowTajweed: (v: boolean) => void;
   setContinuousPlay: (v: boolean) => void;
   setQiraa: (q: "hafs" | "qaloon") => void;
+  setNotifEnabled: (v: boolean) => void;
+  setNotifHour: (h: number) => void;
+  setNotifMinute: (m: number) => void;
   colors: ThemeColors;
   arabicFontFamily: string | undefined;
   lineSpacingValue: number;
@@ -75,6 +81,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [showTajweed, setShowTajweedState] = useState(false);
   const [continuousPlay, setContinuousPlayState] = useState(false);
   const [qiraa, setQiraaState] = useState<"hafs" | "qaloon">("hafs");
+  const [notifEnabled, setNotifEnabledState] = useState(false);
+  const [notifHour, setNotifHourState] = useState(8);
+  const [notifMinute, setNotifMinuteState] = useState(0);
 
   useEffect(() => {
     loadSettings().then((p) => {
@@ -95,6 +104,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (p.showTajweed !== undefined) setShowTajweedState(p.showTajweed);
       if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
       if (p.qiraa) setQiraaState(p.qiraa);
+      if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
+      if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
+      if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
     });
   }, []);
 
@@ -111,6 +123,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setShowTajweed = (v: boolean) => { setShowTajweedState(v); saveSettings({ showTajweed: v }); };
   const setContinuousPlay = (v: boolean) => { setContinuousPlayState(v); saveSettings({ continuousPlay: v }); };
   const setQiraa = (q: "hafs" | "qaloon") => { setQiraaState(q); saveSettings({ qiraa: q }); };
+  const setNotifEnabled = (v: boolean) => { setNotifEnabledState(v); saveSettings({ notifEnabled: v }); };
+  const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
+  const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
 
   const colors = useMemo<ThemeColors>(() => {
     const base = THEMES[theme] ?? THEMES.dark;
@@ -126,15 +141,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+      notifEnabled, notifHour, notifMinute,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
       setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
+      setNotifEnabled, setNotifHour, setNotifMinute,
       colors, arabicFontFamily, lineSpacingValue,
     }),
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+      notifEnabled, notifHour, notifMinute,
       colors, arabicFontFamily, lineSpacingValue,
     ]
   );

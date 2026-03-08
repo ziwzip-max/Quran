@@ -24,14 +24,16 @@ import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
 import { parseTajweed, TAJWEED_COLORS, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
+import { QALOON_SURAHS } from "@/constants/qaloonData";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
 const MAX_HISTORY_ITEMS = 5;
-const MIN_FONT = 16;
-const MAX_FONT = 40;
+const MIN_FONT = 18;
+const MAX_FONT = 48;
 const FONT_STEP = 2;
-const BISMILLAH = SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "") ?? "";
+const BISMILLAH = SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "").normalize("NFC") ?? "";
+const QALOON_BISMILLAH = QALOON_SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "").normalize("NFC") ?? "";
 
 function TajweedText({
   text,
@@ -133,9 +135,11 @@ function VerseItem({
   };
 
   const rawText = overrideText ?? verse.text;
+  const normalizedRaw = rawText.normalize("NFC");
+  const bism = overrideText ? QALOON_BISMILLAH : BISMILLAH;
   const displayText =
-    stripBismillah && rawText.startsWith(BISMILLAH)
-      ? rawText.slice(BISMILLAH.length).trimStart()
+    stripBismillah && normalizedRaw.startsWith(bism) && bism.length > 0
+      ? rawText.slice(bism.length).trimStart()
       : rawText;
 
   const isKaraoke = isCurrentAudio && !isAudioLoading;
@@ -248,22 +252,28 @@ export default function SurahScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const {
     colors, arabicFontFamily, hideVerseNumbers,
-    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa,
+    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa, repeatMode,
   } = useSettings();
-  const { play, currentKey, currentSurahNum: audioSurahNum, isLoading: audioLoading } = useAudio();
+  const {
+    play, stop, pause, resume,
+    currentKey, currentSurahNum: audioSurahNum, currentVerseNum: audioVerseNum,
+    isLoading: audioLoading, isPlaying: audioIsPlaying,
+    playbackPosition, playbackDuration,
+  } = useAudio();
 
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
 
-  const [fontSize, setFontSize] = useState(22);
+  const [fontSize, setFontSize] = useState(30);
   const [isImmersive, setIsImmersive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
-  const [qaloonLoading, setQaloonLoading] = useState(false);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
+  const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRestoredPosition = useRef(false);
 
   const handleRuleTap = useCallback((rule: TajweedRule, word: string) => {
     setTajweedPopup({ rule, word });
@@ -293,10 +303,8 @@ export default function SurahScreen() {
       setQaloonVerses([]);
       return;
     }
-    setQaloonLoading(true);
     fetchQaloonSurah(surahNumber).then((verses) => {
       setQaloonVerses(verses);
-      setQaloonLoading(false);
     });
   }, [surahNumber, qiraa]);
 
@@ -359,6 +367,20 @@ export default function SurahScreen() {
     }, 400);
     return () => clearTimeout(timer);
   }, [surah, verseParam]);
+
+  useEffect(() => {
+    if (!surah || verseParam || hasRestoredPosition.current) return;
+    hasRestoredPosition.current = true;
+    AsyncStorage.getItem(`al_hifz_pos_${surahNumber}`).then((stored) => {
+      if (!stored) return;
+      const offset = parseFloat(stored);
+      if (offset > 50) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToOffset({ offset, animated: false });
+        }, 600);
+      }
+    });
+  }, [surah, surahNumber, verseParam]);
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 55,
@@ -561,13 +583,6 @@ export default function SurahScreen() {
         },
       ]} />
 
-      {qaloonLoading && (
-        <View style={[styles.qaloonLoadingOverlay, { backgroundColor: colors.bgDark + "CC" }]}>
-          <ActivityIndicator size="large" color={colors.gold} />
-          <Text style={[styles.qaloonLoadingText, { color: colors.textSecondary }]}>جارٍ تحميل رواية قالون…</Text>
-        </View>
-      )}
-
       <FlatList
         ref={flatListRef}
         key={isLandscape ? "landscape" : "portrait"}
@@ -597,6 +612,10 @@ export default function SurahScreen() {
             const p = Math.min(1, Math.max(0, scrollY / (totalH - viewH)));
             progressAnim.setValue(p);
           }
+          if (positionSaveTimer.current) clearTimeout(positionSaveTimer.current);
+          positionSaveTimer.current = setTimeout(() => {
+            AsyncStorage.setItem(`al_hifz_pos_${surahNumber}`, String(scrollY));
+          }, 800);
         }}
         onScrollToIndexFailed={({ index }) => {
           setTimeout(() => {
@@ -649,6 +668,53 @@ export default function SurahScreen() {
         >
           <Ionicons name="contract-outline" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
+      )}
+
+      {currentKey !== null && audioSurahNum !== null && (
+        <View style={[
+          styles.audioBar,
+          {
+            backgroundColor: colors.bgCard + "F5",
+            borderColor: colors.border,
+            bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
+          }
+        ]}>
+          <View style={[styles.audioBarTrack, { backgroundColor: colors.border }]}>
+            <View style={[styles.audioBarFill, {
+              backgroundColor: colors.gold,
+              width: playbackDuration > 0 ? `${Math.round((playbackPosition / playbackDuration) * 100)}%` as any : "0%",
+            }]} />
+          </View>
+          <View style={styles.audioBarRow}>
+            <View style={styles.audioBarControls}>
+              <Pressable onPress={stop} hitSlop={12} style={[styles.audioBarBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+                <Ionicons name="stop" size={18} color={colors.textSecondary} />
+              </Pressable>
+              <Pressable
+                onPress={audioIsPlaying ? pause : resume}
+                hitSlop={12}
+                style={[styles.audioBarBtn, {
+                  backgroundColor: audioIsPlaying ? colors.gold + "20" : colors.bgSurface,
+                  borderColor: audioIsPlaying ? colors.gold + "60" : colors.border,
+                }]}
+              >
+                <Ionicons
+                  name={audioLoading ? "hourglass-outline" : audioIsPlaying ? "pause" : "play"}
+                  size={20}
+                  color={audioIsPlaying ? colors.gold : colors.textSecondary}
+                />
+              </Pressable>
+            </View>
+            <View style={styles.audioBarInfo}>
+              <Text style={[styles.audioBarRef, { color: colors.textPrimary }]} numberOfLines={1}>
+                {SURAHS.find(s => s.number === audioSurahNum)?.nameArabic ?? ""} • {audioVerseNum}
+              </Text>
+              {repeatMode > 0 && (
+                <Text style={[styles.audioBarRepeat, { color: colors.gold }]}>تكرار ×{repeatMode}</Text>
+              )}
+            </View>
+          </View>
+        </View>
       )}
 
       <TajweedPopup
@@ -879,16 +945,54 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
   },
-  qaloonLoadingOverlay: {
+  audioBar: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 20,
+    left: 12,
+    right: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  audioBarTrack: { height: 3, width: "100%" },
+  audioBarFill: { height: 3 },
+  audioBarRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 12,
   },
-  qaloonLoadingText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
+  audioBarControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  audioBarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  audioBarInfo: {
+    flex: 1,
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  audioBarRef: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    textAlign: "right",
+  },
+  audioBarRepeat: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    textAlign: "right",
   },
 });

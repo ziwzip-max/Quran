@@ -21,6 +21,7 @@ import { SURAHS } from "@/constants/quranData";
 const REVIEWS_KEY = "al_hifz_reviews";
 const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
+const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
 
 async function loadReviews(): Promise<Record<string, number>> {
   try {
@@ -39,8 +40,11 @@ function isDueForReview(blockId: string, reviews: Record<string, number>, master
   const elapsed = Date.now() - lastReview;
   if (masteryLevel === 1) return elapsed > REVIEW_THRESHOLD_L1;
   if (masteryLevel === 2) return elapsed > REVIEW_THRESHOLD_L2;
+  if (masteryLevel === 3) return elapsed > REVIEW_THRESHOLD_L3;
   return false;
 }
+
+export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 };
 
 function StatBar({ value, total, color }: { value: number; total: number; color: string }) {
   const pct = total > 0 ? value / total : 0;
@@ -113,7 +117,7 @@ const statsStyles = StyleSheet.create({
   barItem: { flex: 1 },
 });
 
-const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#27AE60"] as const;
+const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
 
 function BlockItem({
   block, onRemoveVerse, colors, arabicFont, reviews, onReview,
@@ -300,7 +304,7 @@ export default function BookmarksScreen() {
       for (const verse of block.verses) {
         const key = `${block.surahNumber}:${verse.number}`;
         const level = mastery[key] ?? 0;
-        if (level === 2) mastered++;
+        if (level >= 2) mastered++;
         else if (level === 1) inProgress++;
       }
     }

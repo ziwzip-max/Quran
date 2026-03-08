@@ -47,19 +47,19 @@ export const lightTheme: ThemeColors = {
 };
 
 export const sepiaTheme: ThemeColors = {
-  gold: "#D4962A",
-  goldLight: "#E8AF45",
-  teal: "#6B8C5A",
-  tealLight: "#88B072",
-  bgDark: "#1A0E07",
-  bgCard: "#2A1A0E",
-  bgSurface: "#3A2415",
-  textPrimary: "#EDD9BB",
-  textSecondary: "#B89060",
-  textMuted: "#7A5A38",
-  border: "#4A3020",
-  error: "#C94040",
-  success: "#5A9B5A",
+  gold: "#A0722A",
+  goldLight: "#C49A3C",
+  teal: "#5C7A5A",
+  tealLight: "#7A9E78",
+  bgDark: "#F5EDD8",
+  bgCard: "#FDF6E3",
+  bgSurface: "#EDE0C4",
+  textPrimary: "#2C1A08",
+  textSecondary: "#6B4C28",
+  textMuted: "#9E7A50",
+  border: "#D4B896",
+  error: "#B03030",
+  success: "#4A7A45",
 };
 
 export const violetTheme: ThemeColors = {
