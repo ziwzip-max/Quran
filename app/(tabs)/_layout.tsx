@@ -74,6 +74,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="dua"
+        options={{
+          title: "الأدعية",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="hand-left-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

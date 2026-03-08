@@ -15,18 +15,26 @@ Application mobile Expo React Native pour apprendre et mémoriser le Coran en ar
 app/
   _layout.tsx              # Root layout, providers, fonts
   (tabs)/
-    _layout.tsx            # 3 onglets: القرآن / الحفظ / التسميع
-    index.tsx              # Liste des sourates (écran principal)
-    bookmarks.tsx          # Mémorisation — sourates repliées
-    practice.tsx           # Tirage aléatoire de blocs
-  surah/[id].tsx           # Lecture d'une sourate avec marque-pages
+    _layout.tsx            # 4 onglets: السور / محفوظاتي / المراجعة / الأدعية
+    index.tsx              # Liste des sourates + Verset du jour + recherche
+    bookmarks.tsx          # Mémorisation — sourates avec niveaux de maîtrise L0-L3
+    practice.tsx           # Révision aléatoire avec flashcards
+    dua.tsx                # Bibliothèque de du'as + ajout personnalisé
+  surah/[id].tsx           # Lecture avec audio, Tajweed, bouton saut 1/3-2/3-fin
 
 constants/
-  colors.ts                # Palette: or, teal, fond sombre
-  quranData.ts             # 114 sourates avec texte arabe
+  quranData.ts             # 114 sourates avec texte arabe (Hafs)
+  qaloonData.ts            # Texte arabe selon la riwaya Qaloon
+  quranMeta.ts             # Métadonnées (type, juz, mots, lettres)
+  themes.ts                # 4 thèmes: sombre, sepia (parchmin), ocean, desert
+  duaaData.ts              # 35+ du'as classiques par catégorie
+  verseOfDayList.ts        # ~70 versets sélectionnés pour le Verset du Jour
 
 contexts/
-  BookmarksContext.tsx     # Gestion des signets + calcul des blocs consécutifs
+  BookmarksContext.tsx     # Signets + blocs consécutifs
+  MasteryContext.tsx       # Niveaux L0-L3 + spaced repetition
+  AudioContext.tsx         # Lecture audio (7 récitateurs) + pause/resume
+  SettingsContext.tsx      # Thème, police, récitateur, options lecture
 ```
 
 ## Fonctionnalités

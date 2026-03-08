@@ -270,6 +270,7 @@ export default function SurahScreen() {
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
+  const [jumpStep, setJumpStep] = useState<0 | 1 | 2 | 3>(0);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -361,11 +362,17 @@ export default function SurahScreen() {
     if (isNaN(targetVerse)) return;
     const index = surah.verses.findIndex((v) => v.number === targetVerse);
     if (index < 0) return;
-    const timer = setTimeout(() => {
+    const timer1 = setTimeout(() => {
       flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
       hasScrolled.current = true;
     }, 400);
-    return () => clearTimeout(timer);
+    const timer2 = setTimeout(() => {
+      if (!hasScrolled.current) {
+        flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+        hasScrolled.current = true;
+      }
+    }, 800);
+    return () => { clearTimeout(timer1); clearTimeout(timer2); };
   }, [surah, verseParam]);
 
   useEffect(() => {
@@ -612,6 +619,7 @@ export default function SurahScreen() {
             const p = Math.min(1, Math.max(0, scrollY / (totalH - viewH)));
             progressAnim.setValue(p);
           }
+          if (scrollY < 80) setJumpStep(0);
           if (positionSaveTimer.current) clearTimeout(positionSaveTimer.current);
           positionSaveTimer.current = setTimeout(() => {
             AsyncStorage.setItem(`al_hifz_pos_${surahNumber}`, String(scrollY));
@@ -668,6 +676,42 @@ export default function SurahScreen() {
         >
           <Ionicons name="contract-outline" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
+      )}
+
+      {surah && surah.versesCount >= 30 && (
+        <Pressable
+          onPress={() => {
+            if (!surah) return;
+            const count = surah.verses.length;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (jumpStep === 0 || jumpStep === 3) {
+              const idx = Math.floor(count / 3);
+              flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
+              setJumpStep(1);
+            } else if (jumpStep === 1) {
+              const idx = Math.floor(count * 2 / 3);
+              flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
+              setJumpStep(2);
+            } else if (jumpStep === 2) {
+              flatListRef.current?.scrollToIndex({ index: count - 1, animated: true, viewPosition: 0 });
+              setJumpStep(3);
+              setTimeout(() => setJumpStep(0), 1500);
+            }
+          }}
+          style={[
+            styles.jumpBtn,
+            {
+              backgroundColor: colors.bgCard + "F0",
+              borderColor: jumpStep === 3 ? colors.border : colors.gold + "80",
+              bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
+              opacity: jumpStep === 3 ? 0.4 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.jumpBtnText, { color: colors.gold }]}>
+            {jumpStep === 0 || jumpStep === 3 ? "١/٣" : jumpStep === 1 ? "٢/٣" : "نهاية"}
+          </Text>
+        </Pressable>
       )}
 
       {currentKey !== null && audioSurahNum !== null && (
@@ -945,9 +989,29 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
   },
+  jumpBtn: {
+    position: "absolute",
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  jumpBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    textAlign: "center",
+  },
   audioBar: {
     position: "absolute",
-    left: 12,
+    left: 72,
     right: 12,
     borderRadius: 16,
     borderWidth: 1,

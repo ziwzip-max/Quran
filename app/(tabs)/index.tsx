@@ -20,6 +20,7 @@ import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS, Surah } from "@/constants/quranData";
 import { SURAH_TYPE } from "@/constants/quranMeta";
+import { VOD_LIST } from "@/constants/verseOfDayList";
 import { SettingsModal } from "@/components/SettingsModal";
 
 export const HISTORY_KEY = "al_hifz_history";
@@ -51,10 +52,7 @@ function parseVerseQuery(query: string): { surahNum: number; verseNum: number } 
 
 function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   const dayEpoch = Math.floor(Date.now() / 86400000);
-  const surahIndex = dayEpoch % 114;
-  const surah = SURAHS[surahIndex];
-  const verseIndex = (dayEpoch * 7919) % surah.verses.length;
-  return { surahNumber: surah.number, verseNumber: surah.verses[verseIndex].number };
+  return VOD_LIST[dayEpoch % VOD_LIST.length];
 }
 
 function countDueBlocks(
@@ -240,8 +238,12 @@ function VerseResultCard({ result, colors }: { result: VerseResult; colors: Retu
       </View>
       {result.verseText
         ? <Text style={[styles.verseCardText, { color: colors.textPrimary }]}>{result.verseText}</Text>
-        : <Text style={[styles.verseCardMissing, { color: colors.textSecondary }]}>الآية {result.verseNumber} — اضغط للانتقال</Text>
+        : <Text style={[styles.verseCardMissing, { color: colors.textSecondary }]}>الآية {result.verseNumber}</Text>
       }
+      <View style={styles.verseCardNav}>
+        <Ionicons name="arrow-back-outline" size={13} color={colors.gold} />
+        <Text style={[styles.verseCardNavText, { color: colors.gold }]}>اقرأ في السورة</Text>
+      </View>
     </Pressable>
   );
 }
@@ -415,7 +417,7 @@ export default function QuranScreen() {
         )}
         <TextInput
           style={[styles.searchInput, { color: colors.textPrimary }]}
-          placeholder="البحث... مثال: 2:255"
+          placeholder="ابحث عن سورة... أو اكتب ٢:٢٥٥ للانتقال لآية"
           placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
@@ -574,6 +576,8 @@ const styles = StyleSheet.create({
   verseCardName: { fontSize: 18, textAlign: "right" },
   verseCardText: { fontSize: 22, textAlign: "right", lineHeight: 42 },
   verseCardMissing: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "right" },
+  verseCardNav: { flexDirection: "row", alignItems: "center", gap: 4, justifyContent: "flex-end", paddingTop: 2 },
+  verseCardNavText: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "right" },
   emptyState: { alignItems: "center", paddingTop: 60, gap: 12 },
   emptyText: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
 });
