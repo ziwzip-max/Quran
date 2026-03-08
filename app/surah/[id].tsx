@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   PanResponder,
   useWindowDimensions,
+  ScrollView,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,8 +22,9 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
+import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { parseTajweed, TAJWEED_COLORS, TajweedRule } from "@/utils/tajweed";
+import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
 import { QALOON_SURAHS } from "@/constants/qaloonData";
@@ -103,6 +106,8 @@ function VerseItem({
   isLandscape,
   onRuleTap,
   overrideText,
+  masteryLevel,
+  isNavigatedTo,
 }: {
   verse: Verse;
   surahNum: number;
@@ -121,6 +126,8 @@ function VerseItem({
   isLandscape: boolean;
   onRuleTap: (rule: TajweedRule, word: string) => void;
   overrideText?: string;
+  masteryLevel: MasteryLevel;
+  isNavigatedTo: boolean;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -150,31 +157,39 @@ function VerseItem({
     textAlign: "right" as const,
   };
 
+  const masteryDotColor = masteryLevel === 1 ? "#E67E22" : masteryLevel === 2 ? "#C9A227" : masteryLevel === 3 ? "#27AE60" : null;
+
   return (
     <View style={[
       styles.verseContainer,
       isLandscape && styles.verseContainerLandscape,
       {
-        backgroundColor: isKaraoke
-          ? colors.gold + "18"
-          : isActive
-            ? colors.gold + "12"
-            : isBookmarked
-              ? colors.gold + "0D"
-              : colors.bgCard,
-        borderColor: isKaraoke
-          ? colors.gold + "70"
-          : isActive
-            ? colors.gold + "50"
-            : isBookmarked
-              ? colors.gold + "50"
-              : colors.border,
-        borderLeftWidth: isKaraoke ? 4 : isActive ? 3 : 1,
-        borderLeftColor: isKaraoke
+        backgroundColor: isNavigatedTo
+          ? colors.gold + "30"
+          : isKaraoke
+            ? colors.gold + "18"
+            : isActive
+              ? colors.gold + "12"
+              : isBookmarked
+                ? colors.gold + "0D"
+                : colors.bgCard,
+        borderColor: isNavigatedTo
           ? colors.gold
-          : isActive
+          : isKaraoke
+            ? colors.gold + "70"
+            : isActive
+              ? colors.gold + "50"
+              : isBookmarked
+                ? colors.gold + "50"
+                : colors.border,
+        borderLeftWidth: isNavigatedTo ? 4 : isKaraoke ? 4 : isActive ? 3 : 1,
+        borderLeftColor: isNavigatedTo
+          ? colors.gold
+          : isKaraoke
             ? colors.gold
-            : isBookmarked ? colors.gold + "50" : colors.border,
+            : isActive
+              ? colors.gold
+              : isBookmarked ? colors.gold + "50" : colors.border,
       }
     ]}>
       <View style={styles.verseHeader}>
@@ -191,6 +206,9 @@ function VerseItem({
                 {verse.number}
               </Text>
             </View>
+          )}
+          {masteryDotColor !== null && (
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: masteryDotColor }} />
           )}
         </View>
         <View style={styles.verseHeaderRight}>
@@ -252,7 +270,8 @@ export default function SurahScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const {
     colors, arabicFontFamily, hideVerseNumbers,
-    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa, repeatMode,
+    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa, repeatMode, playbackRate,
+    setPlaybackRate, setRepeatMode,
   } = useSettings();
   const {
     play, stop, pause, resume,
@@ -260,6 +279,7 @@ export default function SurahScreen() {
     isLoading: audioLoading, isPlaying: audioIsPlaying,
     playbackPosition, playbackDuration,
   } = useAudio();
+  const { getMastery } = useMastery();
 
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
@@ -271,6 +291,10 @@ export default function SurahScreen() {
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
   const [jumpStep, setJumpStep] = useState<0 | 1 | 2 | 3>(0);
+  const [bookmarkNavIdx, setBookmarkNavIdx] = useState(-1);
+  const [navigatedVerseNum, setNavigatedVerseNum] = useState<number | null>(null);
+  const [progressExpanded, setProgressExpanded] = useState(false);
+  const [tajweedGuideVisible, setTajweedGuideVisible] = useState(false);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -452,6 +476,11 @@ export default function SurahScreen() {
     });
   }, [surahNumber]);
 
+  useEffect(() => {
+    setBookmarkNavIdx(-1);
+    setNavigatedVerseNum(null);
+  }, [surahNumber]);
+
   if (!surah) {
     return (
       <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
@@ -476,6 +505,44 @@ export default function SurahScreen() {
     [surah]
   );
 
+  const bookmarkedIndices = useMemo(() =>
+    surah.verses
+      .map((v, i) => ({ idx: i, verseNum: v.number }))
+      .filter(({ verseNum }) => isBookmarked(surahNumber, verseNum)),
+    [surah, surahNumber, isBookmarked]
+  );
+
+  const masteryStats = useMemo(() => {
+    const counts: [number, number, number, number] = [0, 0, 0, 0];
+    surah.verses.forEach((v) => {
+      const lvl = getMastery(surahNumber, v.number);
+      counts[lvl]++;
+    });
+    const total = surah.versesCount;
+    const mastered = counts[2] + counts[3];
+    return { counts, total, mastered, pct: Math.round((mastered / total) * 100) };
+  }, [surah, surahNumber, getMastery]);
+
+  const upcomingReviewVerses = useMemo(() =>
+    surah.verses
+      .filter((v) => {
+        const lvl = getMastery(surahNumber, v.number);
+        return lvl > 0 && lvl < 3;
+      })
+      .slice(0, 5),
+    [surah, surahNumber, getMastery]
+  );
+
+  const navigateToBookmark = useCallback((bIdx: number) => {
+    if (bookmarkedIndices.length === 0) return;
+    const entry = bookmarkedIndices[bIdx];
+    flatListRef.current?.scrollToIndex({ index: entry.idx, animated: true, viewPosition: 0.3 });
+    setBookmarkNavIdx(bIdx);
+    setNavigatedVerseNum(entry.verseNum);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimeout(() => setNavigatedVerseNum(null), 1500);
+  }, [bookmarkedIndices]);
+
   const headerComponent = (
     <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <View style={styles.surahHeaderTop}>
@@ -492,17 +559,28 @@ export default function SurahScreen() {
             </View>
           )}
         </View>
-        <Pressable
-          onPress={() => setInfoExpanded((e) => !e)}
-          hitSlop={10}
-          style={[styles.infoBtn, { backgroundColor: infoExpanded ? colors.gold + "20" : "transparent" }]}
-        >
-          <Ionicons
-            name={infoExpanded ? "information-circle" : "information-circle-outline"}
-            size={22}
-            color={infoExpanded ? colors.gold : colors.textMuted}
-          />
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {showTajweed && (
+            <Pressable
+              onPress={() => setTajweedGuideVisible(true)}
+              hitSlop={10}
+              style={[styles.infoBtn, { backgroundColor: colors.teal + "15" }]}
+            >
+              <Ionicons name="color-palette-outline" size={20} color={colors.tealLight} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => setInfoExpanded((e) => !e)}
+            hitSlop={10}
+            style={[styles.infoBtn, { backgroundColor: infoExpanded ? colors.gold + "20" : "transparent" }]}
+          >
+            <Ionicons
+              name={infoExpanded ? "information-circle" : "information-circle-outline"}
+              size={22}
+              color={infoExpanded ? colors.gold : colors.textMuted}
+            />
+          </Pressable>
+        </View>
       </View>
 
       {showBismillahHeader && (
@@ -529,6 +607,102 @@ export default function SurahScreen() {
           <Text style={[styles.metaText, { color: colors.textMuted }]}>جزء {juzNum}</Text>
         </View>
       </View>
+
+      {bookmarkedIndices.length > 0 && (
+        <Pressable
+          onPress={() => navigateToBookmark(0)}
+          style={[styles.bookmarkCountRow, { backgroundColor: colors.gold + "15", borderColor: colors.gold + "40" }]}
+        >
+          <Ionicons name="chevron-back-outline" size={13} color={colors.gold + "90"} />
+          <Text style={[styles.bookmarkCountText, { color: colors.gold }]}>
+            {bookmarkedIndices.length} آية محفوظة — اضغط للتنقل
+          </Text>
+          <Ionicons name="bookmark" size={14} color={colors.gold} />
+        </Pressable>
+      )}
+
+      <Pressable
+        onPress={() => setProgressExpanded((p) => !p)}
+        style={[styles.progressPanel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+      >
+        <View style={styles.progressPanelTop}>
+          <Text style={[styles.progressPct, { color: masteryStats.pct > 0 ? colors.gold : colors.textMuted }]}>
+            {masteryStats.pct}% محفوظ
+          </Text>
+          <Ionicons
+            name={progressExpanded ? "chevron-up" : "chevron-down"}
+            size={14}
+            color={colors.textMuted}
+          />
+        </View>
+        <View style={[styles.progressBarRow, { backgroundColor: colors.border }]}>
+          {masteryStats.counts[3] > 0 && (
+            <View style={{ flex: masteryStats.counts[3], backgroundColor: "#27AE60", borderRadius: 3 }} />
+          )}
+          {masteryStats.counts[2] > 0 && (
+            <View style={{ flex: masteryStats.counts[2], backgroundColor: "#C9A227", borderRadius: 3 }} />
+          )}
+          {masteryStats.counts[1] > 0 && (
+            <View style={{ flex: masteryStats.counts[1], backgroundColor: "#E67E22", borderRadius: 3 }} />
+          )}
+          {masteryStats.counts[0] > 0 && (
+            <View style={{ flex: masteryStats.counts[0], backgroundColor: colors.bgCard, borderRadius: 3 }} />
+          )}
+        </View>
+        {progressExpanded && (
+          <View style={styles.progressDetail}>
+            <View style={styles.progressLegendRow}>
+              {[
+                { label: "لم يُبدأ", color: "#4A5880", count: masteryStats.counts[0] },
+                { label: "في التعلم", color: "#E67E22", count: masteryStats.counts[1] },
+                { label: "محفوظ", color: "#C9A227", count: masteryStats.counts[2] },
+                { label: "مُتقن", color: "#27AE60", count: masteryStats.counts[3] },
+              ].map((item) => (
+                <View key={item.label} style={styles.progressLegendItem}>
+                  <View style={[styles.progressLegendDot, { backgroundColor: item.color }]} />
+                  <Text style={[styles.progressLegendLabel, { color: colors.textMuted }]}>
+                    {item.label}
+                  </Text>
+                  <Text style={[styles.progressLegendCount, { color: colors.textSecondary }]}>
+                    {item.count}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {upcomingReviewVerses.length > 0 && (
+              <View style={styles.upcomingSection}>
+                <Text style={[styles.upcomingLabel, { color: colors.textMuted }]}>
+                  الآيات القادمة للمراجعة
+                </Text>
+                <View style={styles.upcomingChips}>
+                  {upcomingReviewVerses.map((v) => {
+                    const lvl = getMastery(surahNumber, v.number);
+                    const dotColor = lvl === 1 ? "#E67E22" : lvl === 2 ? "#C9A227" : "#27AE60";
+                    const vIdx = surah.verses.findIndex((sv) => sv.number === v.number);
+                    return (
+                      <Pressable
+                        key={v.number}
+                        onPress={() => {
+                          if (vIdx >= 0) {
+                            flatListRef.current?.scrollToIndex({ index: vIdx, animated: true, viewPosition: 0.3 });
+                            setNavigatedVerseNum(v.number);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setTimeout(() => setNavigatedVerseNum(null), 1500);
+                          }
+                        }}
+                        style={[styles.upcomingChip, { backgroundColor: dotColor + "20", borderColor: dotColor + "50" }]}
+                      >
+                        <View style={[styles.progressLegendDot, { backgroundColor: dotColor }]} />
+                        <Text style={[styles.upcomingChipText, { color: dotColor }]}>آية {v.number}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+      </Pressable>
 
       {infoExpanded && (
         <View style={[styles.infoPanel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
@@ -656,6 +830,8 @@ export default function SurahScreen() {
               isLandscape={isLandscape}
               onRuleTap={handleRuleTap}
               overrideText={overrideText}
+              masteryLevel={getMastery(surahNumber, item.number)}
+              isNavigatedTo={navigatedVerseNum === item.number}
             />
           );
         }}
@@ -714,6 +890,80 @@ export default function SurahScreen() {
         </Pressable>
       )}
 
+      {bookmarkedIndices.length > 0 && (
+        <>
+          <Pressable
+            onPress={() => {
+              const prevIdx = bookmarkNavIdx <= 0 ? bookmarkedIndices.length - 1 : bookmarkNavIdx - 1;
+              navigateToBookmark(prevIdx);
+            }}
+            style={[
+              styles.bookmarkNavBtn,
+              {
+                backgroundColor: colors.bgCard + "F0",
+                borderColor: colors.gold + "60",
+                right: 20,
+                bottom: Platform.OS === "web" ? 34 + 84 + 8 + 52 : insets.bottom + 84 + 8 + 52,
+              },
+            ]}
+          >
+            <Ionicons name="chevron-up-outline" size={18} color={colors.gold} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              const nextIdx = bookmarkNavIdx >= bookmarkedIndices.length - 1 ? 0 : bookmarkNavIdx + 1;
+              navigateToBookmark(nextIdx);
+            }}
+            style={[
+              styles.bookmarkNavBtn,
+              {
+                backgroundColor: colors.bgCard + "F0",
+                borderColor: colors.gold + "60",
+                right: 20,
+                bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
+              },
+            ]}
+          >
+            <Ionicons name="chevron-down-outline" size={18} color={colors.gold} />
+          </Pressable>
+        </>
+      )}
+
+      {bookmarkedIndices.length > 0 && (
+        <View
+          style={[
+            styles.bookmarkRail,
+            {
+              top: Platform.OS === "web" ? 67 : insets.top,
+              bottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 84,
+              pointerEvents: "box-none" as const,
+            },
+          ]}
+        >
+          {bookmarkedIndices.map(({ idx, verseNum }) => {
+            const total = Math.max(surah.verses.length - 1, 1);
+            const pct = idx / total;
+            return (
+              <Pressable
+                key={verseNum}
+                onPress={() => {
+                  const bIdx = bookmarkedIndices.findIndex((b) => b.verseNum === verseNum);
+                  navigateToBookmark(bIdx >= 0 ? bIdx : 0);
+                }}
+                style={[
+                  styles.bookmarkRailTick,
+                  {
+                    backgroundColor: colors.gold,
+                    top: `${pct * 100}%` as any,
+                  },
+                ]}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              />
+            );
+          })}
+        </View>
+      )}
+
       {currentKey !== null && audioSurahNum !== null && (
         <View style={[
           styles.audioBar,
@@ -758,6 +1008,57 @@ export default function SurahScreen() {
               )}
             </View>
           </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={[styles.audioChipsScroll, { borderTopColor: colors.border }]}
+            contentContainerStyle={styles.audioChipsContent}
+          >
+            {([0.75, 1.0, 1.25] as const).map((r) => (
+              <Pressable
+                key={r}
+                onPress={() => { setPlaybackRate(r); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                style={[
+                  styles.audioChip,
+                  {
+                    backgroundColor: playbackRate === r ? colors.gold + "30" : colors.bgSurface,
+                    borderColor: playbackRate === r ? colors.gold : colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.audioChipText, { color: playbackRate === r ? colors.gold : colors.textMuted }]}>
+                  {r}×
+                </Text>
+              </Pressable>
+            ))}
+            <View style={[styles.audioChipDivider, { backgroundColor: colors.border }]} />
+            {([
+              { value: 0 as const, label: "بلا" },
+              { value: 1 as const, label: "٢×" },
+              { value: 3 as const, label: "٤×" },
+              { value: 5 as const, label: "٦×" },
+              { value: 10 as const, label: "١١×" },
+            ]).map((item) => {
+              const isActive = repeatMode === item.value;
+              return (
+                <Pressable
+                  key={item.value}
+                  onPress={() => { setRepeatMode(item.value); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  style={[
+                    styles.audioChip,
+                    {
+                      backgroundColor: isActive ? colors.teal + "25" : colors.bgSurface,
+                      borderColor: isActive ? colors.tealLight : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.audioChipText, { color: isActive ? colors.tealLight : colors.textMuted }]}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       )}
 
@@ -767,6 +1068,60 @@ export default function SurahScreen() {
         visible={tajweedPopup !== null}
         onClose={() => setTajweedPopup(null)}
       />
+
+      <Modal
+        visible={tajweedGuideVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTajweedGuideVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={[styles.guideOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setTajweedGuideVisible(false)} />
+          <View style={[
+            styles.guideSheet,
+            {
+              backgroundColor: colors.bgCard,
+              borderColor: colors.border,
+              paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
+            },
+          ]}>
+            <View style={[styles.guideHandle, { backgroundColor: colors.border }]} />
+            <View style={[styles.guideHeader, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={() => setTajweedGuideVisible(false)} hitSlop={12}>
+                <Ionicons name="close-circle" size={22} color={colors.textMuted} />
+              </Pressable>
+              <Text style={[styles.guideTitleText, { color: colors.textPrimary }]}>دليل التجويد</Text>
+              <Ionicons name="color-palette-outline" size={18} color={colors.tealLight} />
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {(Object.entries(TAJWEED_RULES) as [TajweedRule, typeof TAJWEED_RULES[TajweedRule]][]).map(([key, info]) => (
+                <View
+                  key={key}
+                  style={[styles.guideRuleCard, { backgroundColor: colors.bgSurface, borderColor: info.color + "40" }]}
+                >
+                  <View style={styles.guideRuleTop}>
+                    <View style={[styles.guideRuleBadge, { backgroundColor: info.color + "20", borderColor: info.color + "50" }]}>
+                      <View style={[styles.guideRuleDot, { backgroundColor: info.color }]} />
+                      <Text style={[styles.guideRuleLabel, { color: info.color }]}>{info.shortLabel}</Text>
+                    </View>
+                    <Text style={[styles.guideRuleFullLabel, { color: colors.textPrimary }]}>{info.label}</Text>
+                  </View>
+                  <Text style={[styles.guideRuleDesc, { color: colors.textSecondary }]}>{info.description}</Text>
+                  <View style={[styles.guideHowToBox, { backgroundColor: colors.teal + "12", borderColor: colors.teal + "30" }]}>
+                    <Text style={[styles.guideBoxLabel, { color: colors.tealLight }]}>كيف تنطقها</Text>
+                    <Text style={[styles.guideBoxText, { color: colors.textSecondary }]}>{info.howTo}</Text>
+                  </View>
+                  <View style={[styles.guideExBox, { backgroundColor: colors.gold + "10", borderColor: colors.gold + "30" }]}>
+                    <Text style={[styles.guideBoxLabel, { color: colors.gold }]}>مثال</Text>
+                    <Text style={[styles.guideExText, { color: colors.textPrimary }]}>{info.example}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1058,5 +1413,254 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 11,
     textAlign: "right",
+  },
+  audioChipsScroll: {
+    borderTopWidth: 1,
+  },
+  audioChipsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  audioChip: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  audioChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+  },
+  audioChipDivider: {
+    width: 1,
+    height: 18,
+    marginHorizontal: 2,
+  },
+  bookmarkNavBtn: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  bookmarkRail: {
+    position: "absolute",
+    right: 0,
+    width: 14,
+    backgroundColor: "transparent",
+  },
+  bookmarkRailTick: {
+    position: "absolute",
+    right: 0,
+    width: 14,
+    height: 5,
+    borderRadius: 3,
+  },
+  bookmarkCountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    marginTop: 10,
+    width: "100%",
+  },
+  bookmarkCountText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    textAlign: "right",
+    flex: 1,
+  },
+  progressPanel: {
+    width: "100%",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    marginTop: 10,
+    gap: 8,
+  },
+  progressPanelTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  progressPct: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    textAlign: "right",
+  },
+  progressBarRow: {
+    flexDirection: "row",
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressDetail: {
+    gap: 10,
+    marginTop: 4,
+  },
+  progressLegendRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "flex-end",
+  },
+  progressLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  progressLegendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  progressLegendLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+  },
+  progressLegendCount: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+  },
+  upcomingSection: {
+    gap: 6,
+  },
+  upcomingLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    textAlign: "right",
+  },
+  upcomingChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "flex-end",
+  },
+  upcomingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  upcomingChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+  },
+  guideOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  guideSheet: {
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    maxHeight: "80%",
+  },
+  guideHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  guideHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    marginBottom: 12,
+  },
+  guideTitleText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    textAlign: "center",
+    flex: 1,
+  },
+  guideRuleCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+    gap: 8,
+  },
+  guideRuleTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
+  guideRuleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  guideRuleDot: { width: 7, height: 7, borderRadius: 4 },
+  guideRuleLabel: { fontFamily: "Inter_700Bold", fontSize: 12 },
+  guideRuleFullLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    textAlign: "right",
+    flex: 1,
+  },
+  guideRuleDesc: {
+    fontSize: 13,
+    textAlign: "right",
+    lineHeight: 22,
+    fontFamily: "Inter_400Regular",
+  },
+  guideHowToBox: {
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    gap: 4,
+  },
+  guideExBox: {
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    gap: 4,
+  },
+  guideBoxLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+    textAlign: "right",
+  },
+  guideBoxText: {
+    fontSize: 13,
+    textAlign: "right",
+    lineHeight: 22,
+    fontFamily: "Inter_400Regular",
+  },
+  guideExText: {
+    fontSize: 18,
+    textAlign: "right",
+    lineHeight: 32,
   },
 });
