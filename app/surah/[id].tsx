@@ -31,7 +31,7 @@ const MAX_HISTORY_ITEMS = 5;
 const MIN_FONT = 16;
 const MAX_FONT = 40;
 const FONT_STEP = 2;
-const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+const BISMILLAH = SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "") ?? "";
 
 function TajweedText({
   text,
