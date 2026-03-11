@@ -138,13 +138,14 @@ function getItemLayout(_: unknown, index: number) {
 
 
 function HighlightedText({
-  text, query, baseStyle, highlightBg, highlightColor,
+  text, query, baseStyle, highlightBg, highlightColor, suffix,
 }: {
   text: string; query: string; baseStyle: object;
   highlightBg: string; highlightColor: string;
+  suffix?: React.ReactNode;
 }) {
   if (!query.trim()) {
-    return <Text style={baseStyle}>{text}</Text>;
+    return <Text style={baseStyle}>{text}{suffix}</Text>;
   }
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
   return (
@@ -158,6 +159,7 @@ function HighlightedText({
           part
         )
       )}
+      {suffix}
     </Text>
   );
 }
@@ -316,15 +318,17 @@ function VerseItem({
         <View style={[vStyles.masteryDot, { backgroundColor: dotColor }]} />
       )}
       <HighlightedText
-        text={item.text + "  "}
+        text={item.text}
         query={searchQuery}
         baseStyle={[vStyles.verseText, { color: colors.textPrimary, fontFamily: arabicFont, fontSize: effectiveSize, lineHeight: lineH }]}
         highlightBg={colors.gold + "40"}
         highlightColor={colors.textPrimary}
+        suffix={
+          <Text style={{ color: colors.gold, fontSize: effectiveSize * 0.65 }}>
+            {" ﴾"}{item.verseNumber}{"﴿"}
+          </Text>
+        }
       />
-      <Text style={[vStyles.verseNum, { color: colors.gold, fontSize: effectiveSize * 0.7, lineHeight: lineH }]}>
-        {"﴿"}{item.verseNumber}{"﴾"}
-      </Text>
     </Pressable>
   );
 }
@@ -345,10 +349,6 @@ const vStyles = StyleSheet.create({
   verseText: {
     textAlign: "justify",
     writingDirection: "rtl",
-  },
-  verseNum: {
-    fontWeight: "600" as const,
-    textAlign: "center",
   },
 });
 
