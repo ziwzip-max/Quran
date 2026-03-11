@@ -68,9 +68,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="practice"
         options={{
-          title: "المراجعة",
+          title: "آيات الصلاة",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="school-outline" size={size} color={color} />
+            <Ionicons name="moon-outline" size={size} color={color} />
           ),
         }}
       />

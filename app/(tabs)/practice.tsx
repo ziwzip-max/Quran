@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, VerseBlock } from "@/contexts/BookmarksContext";
+import { useMastery } from "@/contexts/MasteryContext";
 
 type PracticeMode = "عرض" | "اختبار" | "بطاقات";
 
@@ -323,6 +324,7 @@ function FlashcardMode({
 export default function PracticeScreen() {
   const insets = useSafeAreaInsets();
   const { blocks } = useBookmarks();
+  const { getMastery } = useMastery();
   const { colors, arabicFontFamily } = useSettings();
   const [selected, setSelected] = useState<VerseBlock[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -330,30 +332,38 @@ export default function PracticeScreen() {
 
   const buttonScale = useRef(new Animated.Value(1)).current;
 
+  const wellLearnedBlocks = useMemo(() =>
+    blocks.filter(block =>
+      block.verses.every(v => getMastery(block.surahNumber, v.number) >= 2)
+    ),
+    [blocks, getMastery]
+  );
+
   const draw = useCallback(() => {
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.92, duration: 80, useNativeDriver: true }),
       Animated.timing(buttonScale, { toValue: 1, duration: 120, useNativeDriver: true }),
     ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelected(pickTwoBlocks(blocks));
+    setSelected(pickTwoBlocks(wellLearnedBlocks));
     setHasDrawn(true);
-  }, [blocks]);
+  }, [wellLearnedBlocks]);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 90;
 
-  const isEmpty = blocks.length === 0;
+  const noBookmarks = blocks.length === 0;
+  const noneQualified = blocks.length > 0 && wellLearnedBlocks.length === 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>المراجعة</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>راجع محفوظاتك وتدرّب على آياتك</Text>
+            <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>آيات الصلاة</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>آياتك الجاهزة للتلاوة في الصلاة</Text>
           </View>
-          {!isEmpty && (
+          {!noBookmarks && !noneQualified && (
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Pressable
                 onPress={draw}
@@ -367,7 +377,7 @@ export default function PracticeScreen() {
         </View>
       </View>
 
-      {!isEmpty && hasDrawn && (
+      {!noBookmarks && !noneQualified && hasDrawn && (
         <View style={[styles.modeBar, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
           {(["عرض", "اختبار", "بطاقات"] as PracticeMode[]).map((m) => (
             <Pressable
@@ -381,19 +391,27 @@ export default function PracticeScreen() {
         </View>
       )}
 
-      {mode === "بطاقات" && hasDrawn && !isEmpty ? (
-        <FlashcardMode blocks={blocks} colors={colors} arabicFont={arabicFontFamily} />
+      {mode === "بطاقات" && hasDrawn && !noBookmarks && !noneQualified ? (
+        <FlashcardMode blocks={wellLearnedBlocks} colors={colors} arabicFont={arabicFontFamily} />
       ) : (
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 70 }]}
           showsVerticalScrollIndicator={false}
         >
-          {isEmpty ? (
+          {noBookmarks ? (
             <View style={styles.emptyState}>
               <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                أضف آيات للحفظ من صفحة "الحفظ" لتتمكن من التسميع.
+                أضف آيات للحفظ من صفحة "محفوظاتي" لتتمكن من التلاوة في الصلاة.
+              </Text>
+            </View>
+          ) : noneQualified ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="medal-outline" size={52} color={colors.gold} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات جاهزة بعد</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                أكمل حفظك حتى تصل الآيات إلى مستوى (محفوظ) أو أعلى، وستظهر هنا جاهزة للتلاوة في الصلاة.
               </Text>
             </View>
           ) : (
@@ -401,7 +419,9 @@ export default function PracticeScreen() {
               <View style={[styles.infoBox, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
                 <Ionicons name="information-circle" size={16} color={colors.tealLight} />
                 <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                  {blocks.length === 1 ? "مجموعة واحدة متاحة" : `${blocks.length} مجموعة • مجموعتان عشوائيتان مقترحتان`}
+                  {wellLearnedBlocks.length === 1
+                    ? "مجموعة واحدة وصلت لمستوى الإتقان"
+                    : `${wellLearnedBlocks.length} مجموعات وصلت لمستوى الإتقان • مجموعتان للتلاوة`}
                 </Text>
               </View>
 
@@ -415,7 +435,7 @@ export default function PracticeScreen() {
               {hasDrawn && selected.length > 0 && (
                 <View style={styles.cardsContainer}>
                   <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-                    {mode === "عرض" ? "المجموعات المقترحة" : "اختبر حفظك — اكشف كلمة بكلمة"}
+                    {mode === "عرض" ? "آيات مقترحة للصلاة" : "اختبر حفظك — اكشف كلمة بكلمة"}
                   </Text>
                   {selected.map((block, i) =>
                     mode === "عرض" ? (
