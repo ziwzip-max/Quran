@@ -88,35 +88,32 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   }, []);
 
   const updateCacheSize = async () => {
+    if (Platform.OS === "web") { setCacheSize("0 MB"); return; }
     try {
       const dir = FileSystem.cacheDirectory + "audio/";
       const info = await FileSystem.getInfoAsync(dir);
-      if (!info.exists) {
-        setCacheSize("0 MB");
-        return;
-      }
-      // This is a rough estimation as FileSystem.getInfoAsync doesn't give folder size recursively easily in Expo
-      // We'll just say "Calculated" or use a more complex logic if needed, but for now let's try to get files
+      if (!info.exists) { setCacheSize("0 MB"); return; }
       const files = await FileSystem.readDirectoryAsync(dir);
       let totalSize = 0;
       for (const file of files) {
         const fInfo = await FileSystem.getInfoAsync(dir + file);
-        if (fInfo.exists) {
-          totalSize += fInfo.size;
+        if (fInfo.exists && (fInfo as any).size) {
+          totalSize += (fInfo as any).size;
         }
       }
       setCacheSize((totalSize / (1024 * 1024)).toFixed(1) + " MB");
-    } catch (e) {
+    } catch {
       setCacheSize("0 MB");
     }
   };
 
   const clearCache = async () => {
+    if (Platform.OS === "web") return;
     try {
       const dir = FileSystem.cacheDirectory + "audio/";
       await FileSystem.deleteAsync(dir, { idempotent: true });
       updateCacheSize();
-    } catch (e) {}
+    } catch {}
   };
 
   const hourDisplay = String(notifHour).padStart(2, "0");

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
+import { Platform } from "react-native";
 import { Audio } from "expo-av";
 import { useSettings } from "@/contexts/SettingsContext";
 import { RECITERS_LIST, DEFAULT_RECITER_ID } from "@/constants/themes";
@@ -175,25 +176,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       }
 
       const cacheKey = `${rid}_${surahPadded}`;
-      const localUri = FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3";
-      const info = await FileSystem.getInfoAsync(localUri);
+      const localUri = FileSystem.cacheDirectory ? FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3" : null;
       let uri = remoteUrl;
 
-      if (info.exists) {
-        uri = localUri;
-      } else {
-        // Optional: Trigger background download if not exists
-        (async () => {
-          try {
-            const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory + "audio/");
-            if (!dirInfo.exists) {
-              await FileSystem.makeDirectoryAsync(FileSystem.cacheDirectory + "audio/", { intermediates: true });
-            }
-            await FileSystem.downloadAsync(remoteUrl, localUri);
-          } catch (e) {
-            console.error("Background download failed", e);
-          }
-        })();
+      if (Platform.OS !== 'web' && localUri) {
+        const info = await FileSystem.getInfoAsync(localUri);
+        if (info.exists) {
+          uri = localUri;
+        } else {
+          (async () => {
+            try {
+              const dir = FileSystem.cacheDirectory + "audio/";
+              const dirInfo = await FileSystem.getInfoAsync(dir);
+              if (!dirInfo.exists) {
+                await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+              }
+              await FileSystem.downloadAsync(remoteUrl, localUri);
+            } catch {}
+          })();
+        }
       }
 
       const { sound } = await Audio.Sound.createAsync(
@@ -273,23 +274,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const remoteUrl = `https://everyayah.com/data/${folder}/${surahPadded}${versePadded}.mp3`;
 
       const cacheKey = `${rid}_${surahPadded}${versePadded}`;
-      const localUri = FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3";
-      const info = await FileSystem.getInfoAsync(localUri);
+      const localUri = FileSystem.cacheDirectory ? FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3" : null;
       let uri = remoteUrl;
 
-      if (info.exists) {
-        uri = localUri;
-      } else {
-        // Background download
-        (async () => {
-          try {
-            const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory + "audio/");
-            if (!dirInfo.exists) {
-              await FileSystem.makeDirectoryAsync(FileSystem.cacheDirectory + "audio/", { intermediates: true });
-            }
-            await FileSystem.downloadAsync(remoteUrl, localUri);
-          } catch (e) {}
-        })();
+      if (Platform.OS !== 'web' && localUri) {
+        const info = await FileSystem.getInfoAsync(localUri);
+        if (info.exists) {
+          uri = localUri;
+        } else {
+          (async () => {
+            try {
+              const dir = FileSystem.cacheDirectory + "audio/";
+              const dirInfo = await FileSystem.getInfoAsync(dir);
+              if (!dirInfo.exists) {
+                await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+              }
+              await FileSystem.downloadAsync(remoteUrl, localUri);
+            } catch {}
+          })();
+        }
       }
 
       const { sound } = await Audio.Sound.createAsync(
@@ -412,6 +415,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, [playInternal, playSurahInternal]);
 
   const downloadSurah = useCallback(async (surahNum: number) => {
+    if (Platform.OS === 'web') return;
     const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
     const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
     if (!reciterEntry) return;

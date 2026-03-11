@@ -443,13 +443,15 @@ export default function SurahScreen() {
               <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
             </Pressable>
           )}
-          <Pressable
-            onPress={handleDownload}
-            hitSlop={10}
-            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-          >
-            <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
-          </Pressable>
+          {Platform.OS !== "web" && (
+            <Pressable
+              onPress={handleDownload}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
           <Pressable
             onPress={() => {
               setShowTajweed(!showTajweed);
