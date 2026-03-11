@@ -1,0 +1,90 @@
+DEPLOYMENT WALKTHROUGH — Al-Hifz Expo App
+==========================================
+
+This document describes the errors encountered during the migration from
+Replit Agent to the Replit environment, and the corrections applied to
+get the app running.
+
+
+─────────────────────────────────────────────────────────────────────────────
+ERROR 1 — Backend workflow failing: "tsx: not found"
+─────────────────────────────────────────────────────────────────────────────
+
+Symptom:
+  The "Start Backend" workflow failed immediately with:
+    sh: 1: tsx: not found
+
+  The backend start command is:
+    NODE_ENV=development tsx server/index.ts
+
+  tsx is a TypeScript execution engine required to run the backend server
+  (server/index.ts) directly without a separate compilation step.
+
+Cause:
+  Although tsx was listed as a dependency in package.json, the node_modules
+  directory was not present or incomplete — npm packages had never been
+  installed in this Replit environment after the import.
+
+Fix:
+  Ran:
+    npm install
+
+  This installed all 1078 packages defined in package.json (including tsx,
+  express, drizzle-orm, and all other dependencies), and applied the
+  patch-package patches (expo-asset patch was applied successfully).
+
+  After installation, tsx was confirmed present at:
+    node_modules/.bin/tsx
+
+
+─────────────────────────────────────────────────────────────────────────────
+ERROR 2 — Frontend workflow stuck waiting for user input
+─────────────────────────────────────────────────────────────────────────────
+
+Symptom:
+  The "Start Frontend" workflow was stalled at:
+    Need to install the following packages:
+    expo@55.0.6
+    Ok to proceed? (y)
+
+  This is because npx tried to download a different version of expo than
+  what was already installed, prompting for confirmation — which never
+  came in an automated environment.
+
+Cause:
+  npm packages were not installed, so npx fell back to downloading expo
+  on-the-fly and hit an interactive prompt.
+
+Fix:
+  Running npm install first (see Error 1) ensured all packages including
+  expo were installed locally. The frontend workflow was then able to start
+  without hitting the interactive prompt.
+
+
+─────────────────────────────────────────────────────────────────────────────
+RESOLUTION SEQUENCE
+─────────────────────────────────────────────────────────────────────────────
+
+  1. Ran:          npm install
+                   → All 1078 packages installed, patches applied.
+
+  2. Restarted:    "Start Backend" workflow
+                   → tsx now found, server started on port 5000.
+                   → Confirmed response from http://localhost:5000/
+
+  3. Verified:     "Start Frontend" workflow
+                   → Running successfully on port 8081.
+
+  4. Final state:  Both workflows RUNNING.
+                   Backend: express server serving on port 5000
+                   Frontend: Expo dev server on port 8081
+
+
+─────────────────────────────────────────────────────────────────────────────
+SUMMARY
+─────────────────────────────────────────────────────────────────────────────
+
+  Root cause of all failures: node_modules was absent after the project
+  import from Replit Agent — npm install had never been run in the new
+  environment. A single npm install resolved both the backend tsx error
+  and the frontend interactive prompt issue.
