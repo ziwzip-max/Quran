@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
   ScrollView,
   Modal,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -367,6 +368,8 @@ export default function SurahScreen() {
   const [navigatedVerseNum, setNavigatedVerseNum] = useState<number | null>(null);
   const [tajweedGuideVisible, setTajweedGuideVisible] = useState(false);
   const [tafsirVerse, setTafsirVerse] = useState<{ surahNum: number; verseNum: number } | null>(null);
+  const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
+  const [jumpToVerseInput, setJumpToVerseInput] = useState("");
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -730,9 +733,13 @@ export default function SurahScreen() {
       )}
 
       <View style={[styles.surahMeta, showBismillahHeader ? { marginTop: 16 } : {}]}>
-        <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
+        <Pressable
+          onPress={() => { setJumpToVerseInput(""); setJumpToVerseVisible(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          style={[styles.metaPill, { backgroundColor: colors.bgSurface, flexDirection: "row", alignItems: "center", gap: 4 }]}
+        >
+          <Ionicons name="locate-outline" size={12} color={colors.textMuted} />
           <Text style={[styles.metaText, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
-        </View>
+        </Pressable>
         <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>سورة {surah.number}</Text>
         </View>
@@ -1138,6 +1145,95 @@ export default function SurahScreen() {
               />
             )}
           </View>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={jumpToVerseVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setJumpToVerseVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
+          onPress={() => setJumpToVerseVisible(false)}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: 20,
+              padding: 24,
+              width: 260,
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Ionicons name="locate-outline" size={28} color={colors.gold} style={{ marginBottom: 8 }} />
+            <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: "600", marginBottom: 4 }}>
+              الانتقال إلى آية
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 16 }}>
+              ١ – {surah.versesCount}
+            </Text>
+            <TextInput
+              value={jumpToVerseInput}
+              onChangeText={setJumpToVerseInput}
+              keyboardType="number-pad"
+              placeholder="رقم الآية"
+              placeholderTextColor={colors.textMuted}
+              autoFocus
+              returnKeyType="go"
+              onSubmitEditing={() => {
+                const num = parseInt(jumpToVerseInput, 10);
+                if (!surah || isNaN(num) || num < 1 || num > surah.versesCount) return;
+                const index = surah.verses.findIndex((v) => v.number === num);
+                if (index < 0) return;
+                flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+                setNavigatedVerseNum(num);
+                setTimeout(() => setNavigatedVerseNum(null), 2000);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setJumpToVerseVisible(false);
+              }}
+              style={{
+                backgroundColor: colors.bgSurface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                color: colors.textPrimary,
+                fontSize: 22,
+                fontWeight: "600",
+                textAlign: "center",
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                width: "100%",
+                marginBottom: 12,
+              }}
+            />
+            <Pressable
+              onPress={() => {
+                const num = parseInt(jumpToVerseInput, 10);
+                if (!surah || isNaN(num) || num < 1 || num > surah.versesCount) return;
+                const index = surah.verses.findIndex((v) => v.number === num);
+                if (index < 0) return;
+                flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+                setNavigatedVerseNum(num);
+                setTimeout(() => setNavigatedVerseNum(null), 2000);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setJumpToVerseVisible(false);
+              }}
+              style={{
+                backgroundColor: colors.gold,
+                borderRadius: 12,
+                paddingVertical: 10,
+                width: "100%",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: colors.bgDark, fontWeight: "600", fontSize: 14 }}>انتقال</Text>
+            </Pressable>
+          </Pressable>
         </Pressable>
       </Modal>
 
