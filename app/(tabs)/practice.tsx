@@ -546,20 +546,13 @@ export default function PracticeScreen() {
 
   const buttonScale = useRef(new Animated.Value(1)).current;
 
-  const wellLearnedBlocks = useMemo(() =>
-    blocks.filter(block =>
-      block.verses.every(v => getMastery(block.surahNumber, v.number) >= 2)
-    ),
-    [blocks, getMastery]
-  );
-
   const filteredBlocks = useMemo(() => {
-    if (masteryFilter === "الكل") return wellLearnedBlocks;
+    if (masteryFilter === "الكل") return blocks;
     return blocks.filter(block => {
       const minLevel = getBlockMinMastery(block, getMastery);
       return minLevel === masteryFilter;
     });
-  }, [blocks, wellLearnedBlocks, getMastery, masteryFilter]);
+  }, [blocks, getMastery, masteryFilter]);
 
   const draw = useCallback(() => {
     Animated.sequence([
@@ -575,8 +568,7 @@ export default function PracticeScreen() {
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 90;
 
   const noBookmarks = blocks.length === 0;
-  const noneQualified = blocks.length > 0 && wellLearnedBlocks.length === 0;
-  const filterEmpty = !noBookmarks && !noneQualified && filteredBlocks.length === 0;
+  const filterEmpty = !noBookmarks && filteredBlocks.length === 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
@@ -586,7 +578,7 @@ export default function PracticeScreen() {
             <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>آيات الصلاة</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>آياتك الجاهزة للتلاوة في الصلاة</Text>
           </View>
-          {!noBookmarks && !noneQualified && !filterEmpty && (
+          {!noBookmarks && !filterEmpty && (
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Pressable
                 onPress={draw}
@@ -600,7 +592,7 @@ export default function PracticeScreen() {
         </View>
       </View>
 
-      {!noBookmarks && !noneQualified && (
+      {!noBookmarks && (
         <View style={styles.filterBarContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBarScroll}>
             {MASTERY_FILTERS.map(({ key, label }) => {
@@ -632,7 +624,7 @@ export default function PracticeScreen() {
         </View>
       )}
 
-      {!noBookmarks && !noneQualified && hasDrawn && (
+      {!noBookmarks && !filterEmpty && hasDrawn && (
         <View style={[styles.modeBarContainer, { backgroundColor: colors.bgDark }]}>
           <ScrollView 
             horizontal 
@@ -652,7 +644,7 @@ export default function PracticeScreen() {
         </View>
       )}
 
-      {mode === "بطاقات" && hasDrawn && !noBookmarks && !noneQualified && !filterEmpty ? (
+      {mode === "بطاقات" && hasDrawn && !noBookmarks && !filterEmpty ? (
         <FlashcardMode blocks={filteredBlocks} colors={colors} arabicFont={arabicFontFamily} />
       ) : (
         <ScrollView
@@ -673,14 +665,6 @@ export default function PracticeScreen() {
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد مجموعات بهذا المستوى</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                 جرّب اختيار مستوى آخر أو اختر "الكل" لعرض جميع المجموعات.
-              </Text>
-            </View>
-          ) : noneQualified ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="medal-outline" size={52} color={colors.gold} />
-              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات جاهزة بعد</Text>
-              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                أكمل حفظك حتى تصل الآيات إلى مستوى (محفوظ) أو أعلى، وستظهر هنا جاهزة للتلاوة في الصلاة.
               </Text>
             </View>
           ) : (
