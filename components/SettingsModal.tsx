@@ -57,6 +57,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ",      fontFamily: "NotoNaskhArabic_400Regular" },
     { key: "amiri",         sample: "بِسْمِ ٱللَّهِ", label: "أميري",    fontFamily: "Amiri_400Regular" },
     { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",   fontFamily: "ScheherazadeNew_400Regular" },
+    { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",     fontFamily: "Lateef_400Regular" },
+    { key: "reemkufi",      sample: "بِسْمِ ٱللَّهِ", label: "ريم كوفي", fontFamily: "ReemKufi_400Regular" },
   ];
 
   const spacings: { key: LineSpacingName; label: string }[] = [
@@ -69,7 +71,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const rates: PlaybackRate[] = [0.75, 1.0, 1.25];
   const repeats: { value: RepeatMode; label: string }[] = [
     { value: 0,  label: "—" },
-    { value: 1,  label: "×١" },
     { value: 3,  label: "×٣" },
     { value: 5,  label: "×٥" },
     { value: 10, label: "×١٠" },
@@ -428,7 +429,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
     sectionTitle: {
       fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
-      textAlign: "right", marginBottom: 10, marginTop: 4,
+      textAlign: "center", marginBottom: 10, marginTop: 4,
       textTransform: "uppercase", letterSpacing: 0.5,
     },
     themeGrid: {

@@ -79,7 +79,7 @@ export const violetTheme: ThemeColors = {
 };
 
 export type ThemeName = "dark" | "light" | "sepia" | "violet";
-export type ArabicFontName = "system" | "naskh" | "amiri" | "scheherazade";
+export type ArabicFontName = "system" | "naskh" | "amiri" | "scheherazade" | "lateef" | "reemkufi";
 export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
 export type PlaybackRate = 0.75 | 1.0 | 1.25;
@@ -97,6 +97,8 @@ export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   naskh: "NotoNaskhArabic_400Regular",
   amiri: "Amiri_400Regular",
   scheherazade: "ScheherazadeNew_400Regular",
+  lateef: "Lateef_400Regular",
+  reemkufi: "ReemKufi_400Regular",
 };
 
 export interface ReciterEntry {

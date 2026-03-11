@@ -8,6 +8,8 @@ import {
 import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic";
 import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new";
+import { Lateef_400Regular } from "@expo-google-fonts/lateef";
+import { ReemKufi_400Regular } from "@expo-google-fonts/reem-kufi";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -56,6 +58,8 @@ export default function RootLayout() {
     NotoNaskhArabic_400Regular,
     Amiri_400Regular,
     ScheherazadeNew_400Regular,
+    Lateef_400Regular,
+    ReemKufi_400Regular,
   });
 
   useEffect(() => {

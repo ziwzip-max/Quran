@@ -96,10 +96,11 @@ function LengthChip({ label, selected, onPress, colors }: {
 }
 
 function VerseOfDayWidget({
-  surahNumber, verseNumber, colors, arabicFont,
+  surahNumber, verseNumber, colors, arabicFont, onDismiss,
 }: {
   surahNumber: number; verseNumber: number;
   colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
+  onDismiss: () => void;
 }) {
   const surah = SURAHS.find((s) => s.number === surahNumber);
   const verse = surah?.verses.find((v) => v.number === verseNumber);
@@ -108,10 +109,7 @@ function VerseOfDayWidget({
   const bookmarked = isBookmarked(surahNumber, verseNumber);
 
   return (
-    <Pressable
-      onPress={() => router.push({ pathname: "/surah/[id]", params: { id: String(surahNumber), verse: String(verseNumber) } })}
-      style={[styles.vodWidget, { backgroundColor: colors.bgCard, borderColor: colors.gold + "40" }]}
-    >
+    <View style={[styles.vodWidget, { backgroundColor: colors.bgCard, borderColor: colors.gold + "40" }]}>
       <View style={styles.vodTop}>
         <View style={[styles.vodBadge, { backgroundColor: colors.gold + "20" }]}>
           <Text style={[styles.vodBadgeText, { color: colors.gold }]}>آية اليوم</Text>
@@ -120,18 +118,29 @@ function VerseOfDayWidget({
           <Text style={[styles.vodRefText, { color: colors.textMuted }]}>
             {surah.nameArabic} • {verseNumber}
           </Text>
-          <Pressable onPress={(e) => { e.stopPropagation(); toggleBookmark(surahNumber, verseNumber); }} hitSlop={12}>
+          <Pressable onPress={() => { toggleBookmark(surahNumber, verseNumber); }} hitSlop={12}>
             <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={18} color={bookmarked ? colors.gold : colors.textMuted} />
+          </Pressable>
+          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onDismiss(); }} hitSlop={12}>
+            <Ionicons name="close-circle-outline" size={18} color={colors.textMuted} />
           </Pressable>
         </View>
       </View>
-      <Text
-        numberOfLines={4}
-        style={[styles.vodText, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push({ pathname: "/surah/[id]", params: { id: String(surahNumber), verse: String(verseNumber) } });
+        }}
       >
-        {verse.text}
-      </Text>
-    </Pressable>
+        <Text
+          numberOfLines={4}
+          style={[styles.vodText, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}
+        >
+          {verse.text}
+        </Text>
+        <Text style={[styles.vodTapHint, { color: colors.gold }]}>اضغط للقراءة ←</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -267,6 +276,7 @@ export default function QuranScreen() {
   const [pins, setPins] = useState<number[]>([]);
   const [dueCount, setDueCount] = useState(0);
   const [reviewBannerDismissed, setReviewBannerDismissed] = useState(false);
+  const [vodDismissed, setVodDismissed] = useState(false);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
@@ -398,13 +408,14 @@ export default function QuranScreen() {
         </Pressable>
       )}
 
-      {showFilters && showVerseOfDay && (
+      {showFilters && showVerseOfDay && !vodDismissed && (
         <View style={styles.vodContainer}>
           <VerseOfDayWidget
             surahNumber={vodData.surahNumber}
             verseNumber={vodData.verseNumber}
             colors={colors}
             arabicFont={arabicFontFamily}
+            onDismiss={() => setVodDismissed(true)}
           />
         </View>
       )}
@@ -525,6 +536,7 @@ const styles = StyleSheet.create({
   reviewBannerText: { fontFamily: "Inter_600SemiBold", fontSize: 13, textAlign: "right", flex: 1 },
   vodContainer: { paddingHorizontal: 16, marginBottom: 10 },
   vodWidget: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
+  vodTapHint: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "right", marginTop: 4 },
   vodTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   vodBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   vodBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },

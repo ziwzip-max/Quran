@@ -14,7 +14,7 @@ import {
   ScrollView,
   Modal,
 } from "react-native";
-import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -88,6 +88,47 @@ function TajweedText({
   );
 }
 
+function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
+  surahNum: number; verseNum: number;
+  colors: ReturnType<typeof useSettings>["colors"];
+  arabicFont: string | undefined;
+}) {
+  const [tafsir, setTafsir] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const verseText = SURAHS.find(s => s.number === surahNum)?.verses.find(v => v.number === verseNum)?.text ?? "";
+
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+    setTafsir(null);
+    fetch(`https://api.alquran.cloud/v1/ayah/${surahNum}:${verseNum}/ar.muyassar`)
+      .then(r => r.json())
+      .then(d => { setTafsir(d?.data?.text ?? null); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [surahNum, verseNum]);
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+      <Text style={{ fontSize: 22, textAlign: "right", lineHeight: 40, color: colors.textPrimary, fontFamily: arabicFont }}>
+        {verseText}
+      </Text>
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+      {loading
+        ? <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
+        : error
+          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير</Text>
+          : <Text style={{ fontSize: 16, textAlign: "right", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
+              {tafsir}
+            </Text>
+      }
+      <Text style={{ fontSize: 11, textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular" }}>
+        التفسير الميسر — موقع الكويت
+      </Text>
+    </ScrollView>
+  );
+}
+
 function VerseItem({
   verse,
   surahNum,
@@ -108,6 +149,7 @@ function VerseItem({
   overrideText,
   masteryLevel,
   isNavigatedTo,
+  onTafsir,
 }: {
   verse: Verse;
   surahNum: number;
@@ -128,6 +170,7 @@ function VerseItem({
   overrideText?: string;
   masteryLevel: MasteryLevel;
   isNavigatedTo: boolean;
+  onTafsir: () => void;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -217,6 +260,9 @@ function VerseItem({
               <Text style={[styles.tajweedHintText, { color: colors.tealLight }]}>اضغط الكلمة الملونة</Text>
             </View>
           )}
+          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }} hitSlop={10}>
+            <Ionicons name="book-outline" size={20} color={colors.textMuted} />
+          </Pressable>
           <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
             {isAudioLoading
               ? <ActivityIndicator size="small" color={colors.gold} />
@@ -274,7 +320,7 @@ export default function SurahScreen() {
     setPlaybackRate, setRepeatMode,
   } = useSettings();
   const {
-    play, stop, pause, resume,
+    play, stop, pause, resume, playNext,
     currentKey, currentSurahNum: audioSurahNum, currentVerseNum: audioVerseNum,
     isLoading: audioLoading, isPlaying: audioIsPlaying,
     playbackPosition, playbackDuration,
@@ -293,6 +339,7 @@ export default function SurahScreen() {
   const [bookmarkNavIdx, setBookmarkNavIdx] = useState(-1);
   const [navigatedVerseNum, setNavigatedVerseNum] = useState<number | null>(null);
   const [tajweedGuideVisible, setTajweedGuideVisible] = useState(false);
+  const [tafsirVerse, setTafsirVerse] = useState<{ surahNum: number; verseNum: number } | null>(null);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -377,6 +424,10 @@ export default function SurahScreen() {
       ),
     });
   }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive]);
+
+  useFocusEffect(useCallback(() => {
+    hasScrolled.current = false;
+  }, []));
 
   useEffect(() => {
     hasScrolled.current = false;
@@ -732,6 +783,7 @@ export default function SurahScreen() {
               overrideText={overrideText}
               masteryLevel={getMastery(surahNumber, item.number)}
               isNavigatedTo={navigatedVerseNum === item.number}
+              onTafsir={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTafsirVerse({ surahNum: surahNumber, verseNum: item.number }); }}
             />
           );
         }}
@@ -768,7 +820,7 @@ export default function SurahScreen() {
                 backgroundColor: colors.bgCard + "F0",
                 borderColor: colors.gold + "60",
                 right: 20,
-                bottom: Platform.OS === "web" ? 34 + 84 + 8 + 52 : insets.bottom + 84 + 8 + 52,
+                bottom: Platform.OS === "web" ? 34 + (currentKey ? 140 : 16) + 52 : insets.bottom + (currentKey ? 140 : 16) + 52,
               },
             ]}
           >
@@ -785,7 +837,7 @@ export default function SurahScreen() {
                 backgroundColor: colors.bgCard + "F0",
                 borderColor: colors.gold + "60",
                 right: 20,
-                bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
+                bottom: Platform.OS === "web" ? 34 + (currentKey ? 140 : 16) : insets.bottom + (currentKey ? 140 : 16),
               },
             ]}
           >
@@ -800,7 +852,7 @@ export default function SurahScreen() {
             styles.bookmarkRail,
             {
               top: Platform.OS === "web" ? 67 : insets.top,
-              bottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 84,
+              bottom: Platform.OS === "web" ? 34 + (currentKey ? 140 : 16) : insets.bottom + (currentKey ? 140 : 16),
               pointerEvents: "box-none" as const,
             },
           ]}
@@ -835,7 +887,7 @@ export default function SurahScreen() {
           {
             backgroundColor: colors.bgCard + "F5",
             borderColor: colors.border,
-            bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
+            bottom: Platform.OS === "web" ? 34 : insets.bottom,
           }
         ]}>
           <View style={[styles.audioBarTrack, { backgroundColor: colors.border }]}>
@@ -862,6 +914,13 @@ export default function SurahScreen() {
                   size={20}
                   color={audioIsPlaying ? colors.gold : colors.textSecondary}
                 />
+              </Pressable>
+              <Pressable
+                onPress={() => { if (audioSurahNum !== null && audioVerseNum !== null) { playNext(audioSurahNum, audioVerseNum); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } }}
+                hitSlop={12}
+                style={[styles.audioBarBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+              >
+                <Ionicons name="play-skip-forward" size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
             <View style={styles.audioBarInfo}>
@@ -898,11 +957,10 @@ export default function SurahScreen() {
             ))}
             <View style={[styles.audioChipDivider, { backgroundColor: colors.border }]} />
             {([
-              { value: 0 as const, label: "بلا" },
-              { value: 1 as const, label: "٢×" },
-              { value: 3 as const, label: "٤×" },
-              { value: 5 as const, label: "٦×" },
-              { value: 10 as const, label: "١١×" },
+              { value: 0 as const, label: "—" },
+              { value: 3 as const, label: "×٣" },
+              { value: 5 as const, label: "×٥" },
+              { value: 10 as const, label: "×١٠" },
             ]).map((item) => {
               const isActive = repeatMode === item.value;
               return (
@@ -933,6 +991,33 @@ export default function SurahScreen() {
         visible={tajweedPopup !== null}
         onClose={() => setTajweedPopup(null)}
       />
+
+      <Modal
+        visible={tafsirVerse !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTafsirVerse(null)}
+      >
+        <Pressable style={styles.tafsirOverlay} onPress={() => setTafsirVerse(null)}>
+          <View style={[styles.tafsirSheet, { backgroundColor: colors.bgCard, borderColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
+            <View style={[styles.tafsirHeader, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={() => setTafsirVerse(null)} hitSlop={12}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </Pressable>
+              <Text style={[styles.tafsirTitle, { color: colors.textPrimary }]}>التفسير الميسر</Text>
+              <View style={{ width: 22 }} />
+            </View>
+            {tafsirVerse !== null && (
+              <TafsirContent
+                surahNum={tafsirVerse.surahNum}
+                verseNum={tafsirVerse.verseNum}
+                colors={colors}
+                arabicFont={arabicFontFamily}
+              />
+            )}
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={tajweedGuideVisible}
@@ -1453,5 +1538,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "right",
     lineHeight: 32,
+  },
+  tafsirOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  tafsirSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderTopWidth: 1,
+    maxHeight: "75%",
+  },
+  tafsirHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  tafsirTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 17,
+    textAlign: "center",
   },
 });
