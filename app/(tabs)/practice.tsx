@@ -522,6 +522,18 @@ function FlashcardMode({
   );
 }
 
+type MasteryFilter = "الكل" | 1 | 2 | 3;
+const MASTERY_FILTERS: { key: MasteryFilter; label: string }[] = [
+  { key: "الكل", label: "الكل" },
+  { key: 1, label: "مبتدئ" },
+  { key: 2, label: "محفوظ" },
+  { key: 3, label: "متقن" },
+];
+
+function getBlockMinMastery(block: VerseBlock, getMastery: (s: number, v: number) => number): number {
+  return Math.min(...block.verses.map(v => getMastery(block.surahNumber, v.number)));
+}
+
 export default function PracticeScreen() {
   const insets = useSafeAreaInsets();
   const { blocks } = useBookmarks();
@@ -530,6 +542,7 @@ export default function PracticeScreen() {
   const [selected, setSelected] = useState<VerseBlock[]>([]);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [mode, setMode] = useState<PracticeMode>("عرض");
+  const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>("الكل");
 
   const buttonScale = useRef(new Animated.Value(1)).current;
 
@@ -540,21 +553,30 @@ export default function PracticeScreen() {
     [blocks, getMastery]
   );
 
+  const filteredBlocks = useMemo(() => {
+    if (masteryFilter === "الكل") return wellLearnedBlocks;
+    return blocks.filter(block => {
+      const minLevel = getBlockMinMastery(block, getMastery);
+      return minLevel === masteryFilter;
+    });
+  }, [blocks, wellLearnedBlocks, getMastery, masteryFilter]);
+
   const draw = useCallback(() => {
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.92, duration: 80, useNativeDriver: true }),
       Animated.timing(buttonScale, { toValue: 1, duration: 120, useNativeDriver: true }),
     ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelected(pickTwoBlocks(wellLearnedBlocks));
+    setSelected(pickTwoBlocks(filteredBlocks));
     setHasDrawn(true);
-  }, [wellLearnedBlocks]);
+  }, [filteredBlocks]);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 90;
 
   const noBookmarks = blocks.length === 0;
   const noneQualified = blocks.length > 0 && wellLearnedBlocks.length === 0;
+  const filterEmpty = !noBookmarks && !noneQualified && filteredBlocks.length === 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
@@ -564,7 +586,7 @@ export default function PracticeScreen() {
             <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>آيات الصلاة</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>آياتك الجاهزة للتلاوة في الصلاة</Text>
           </View>
-          {!noBookmarks && !noneQualified && (
+          {!noBookmarks && !noneQualified && !filterEmpty && (
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Pressable
                 onPress={draw}
@@ -577,6 +599,38 @@ export default function PracticeScreen() {
           )}
         </View>
       </View>
+
+      {!noBookmarks && !noneQualified && (
+        <View style={styles.filterBarContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBarScroll}>
+            {MASTERY_FILTERS.map(({ key, label }) => {
+              const isActive = masteryFilter === key;
+              return (
+                <Pressable
+                  key={String(key)}
+                  onPress={() => {
+                    setMasteryFilter(key);
+                    setHasDrawn(false);
+                    setSelected([]);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isActive ? colors.gold + "20" : colors.bgSurface,
+                      borderColor: isActive ? colors.gold : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.filterChipText, { color: isActive ? colors.gold : colors.textMuted }]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {!noBookmarks && !noneQualified && hasDrawn && (
         <View style={[styles.modeBarContainer, { backgroundColor: colors.bgDark }]}>
@@ -598,8 +652,8 @@ export default function PracticeScreen() {
         </View>
       )}
 
-      {mode === "بطاقات" && hasDrawn && !noBookmarks && !noneQualified ? (
-        <FlashcardMode blocks={wellLearnedBlocks} colors={colors} arabicFont={arabicFontFamily} />
+      {mode === "بطاقات" && hasDrawn && !noBookmarks && !noneQualified && !filterEmpty ? (
+        <FlashcardMode blocks={filteredBlocks} colors={colors} arabicFont={arabicFontFamily} />
       ) : (
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 70 }]}
@@ -611,6 +665,14 @@ export default function PracticeScreen() {
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                 أضف آيات للحفظ من صفحة "محفوظاتي" لتتمكن من التلاوة في الصلاة.
+              </Text>
+            </View>
+          ) : filterEmpty ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="filter-outline" size={52} color={colors.textMuted} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد مجموعات بهذا المستوى</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                جرّب اختيار مستوى آخر أو اختر "الكل" لعرض جميع المجموعات.
               </Text>
             </View>
           ) : noneQualified ? (
@@ -626,9 +688,9 @@ export default function PracticeScreen() {
               <View style={[styles.infoBox, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
                 <Ionicons name="information-circle" size={16} color={colors.tealLight} />
                 <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                  {wellLearnedBlocks.length === 1
-                    ? "مجموعة واحدة وصلت لمستوى الإتقان"
-                    : `${wellLearnedBlocks.length} مجموعات وصلت لمستوى الإتقان • مجموعتان للتلاوة`}
+                  {filteredBlocks.length === 1
+                    ? "مجموعة واحدة متاحة"
+                    : `${filteredBlocks.length} مجموعات متاحة • مجموعتان للتلاوة`}
                 </Text>
               </View>
 
@@ -670,6 +732,24 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   title: { fontSize: 24, fontFamily: "Inter_700Bold" },
   subtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3 },
+  filterBarContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  filterBarScroll: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
   modeBarContainer: {
     paddingHorizontal: 20,
     marginBottom: 12,
