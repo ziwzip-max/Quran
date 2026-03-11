@@ -12,6 +12,7 @@ interface AudioContextValue {
   isPlaying: boolean;
   playbackPosition: number;
   playbackDuration: number;
+  isSurahMode: boolean;
   play: (surahNum: number, verseNum: number) => Promise<void>;
   stop: () => Promise<void>;
   pause: () => Promise<void>;
@@ -61,6 +62,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => { continuousPlayRef.current = continuousPlay; }, [continuousPlay]);
 
   const playInternalRef = useRef<((surahNum: number, verseNum: number) => Promise<void>) | null>(null);
+  const playSurahInternalRef = useRef<((surahNum: number) => Promise<void>) | null>(null);
 
   const stop = useCallback(async () => {
     if (soundRef.current) {
@@ -99,6 +101,86 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
   }, []);
+
+  const playSurahInternal = useCallback(async (surahNum: number) => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch {}
+      soundRef.current = null;
+    }
+
+    const surahKey = `surah:${surahNum}`;
+    setCurrentKey(surahKey);
+    setCurrentSurahNum(surahNum);
+    setCurrentVerseNum(null);
+    currentSurahNumRef.current = surahNum;
+    currentVerseNumRef.current = null;
+    setIsLoading(true);
+    setPlaybackPosition(0);
+    setPlaybackDuration(0);
+
+    try {
+      const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
+      const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+      const surahPadded = padNum(surahNum, 3);
+      const url = reciterEntry?.surahUrl?.replace("{SSS}", surahPadded) ?? "";
+
+      if (!url) {
+        setIsLoading(false);
+        setCurrentKey(null);
+        return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true }
+      );
+
+      if (playbackRateRef.current !== 1.0) {
+        try { await sound.setRateAsync(playbackRateRef.current, true); } catch {}
+      }
+
+      soundRef.current = sound;
+      setIsLoading(false);
+      setIsPlaying(true);
+
+      sound.setOnPlaybackStatusUpdate(async (status) => {
+        if (!status.isLoaded) return;
+        setPlaybackPosition(status.positionMillis ?? 0);
+        if (status.durationMillis) setPlaybackDuration(status.durationMillis);
+
+        if (status.didJustFinish) {
+          setPlaybackPosition(0);
+          const rMode = repeatModeRef.current;
+          const sNum = currentSurahNumRef.current;
+
+          if (rMode > 0 && repeatCounterRef.current < rMode - 1) {
+            repeatCounterRef.current += 1;
+            try { await sound.replayAsync(); } catch {}
+          } else if (continuousPlayRef.current && sNum !== null && sNum < 114) {
+            repeatCounterRef.current = 0;
+            if (playSurahInternalRef.current) {
+              await playSurahInternalRef.current(sNum + 1);
+            }
+          } else {
+            repeatCounterRef.current = 0;
+            setIsPlaying(false);
+            setCurrentKey(null);
+            try { sound.unloadAsync(); } catch {}
+            soundRef.current = null;
+          }
+        }
+      });
+    } catch {
+      setIsLoading(false);
+      setIsPlaying(false);
+      setCurrentKey(null);
+    }
+  }, []);
+
+  playSurahInternalRef.current = playSurahInternal;
 
   const playInternal = useCallback(async (surahNum: number, verseNum: number) => {
     if (soundRef.current) {
@@ -191,35 +273,68 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   playInternalRef.current = playInternal;
 
   const play = useCallback(async (surahNum: number, verseNum: number) => {
-    const key = `${surahNum}:${verseNum}`;
-    if (currentKey === key && isPlaying) {
-      await pause();
-      return;
+    const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
+    const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+    const isSurah = !!reciterEntry?.surahUrl;
+
+    if (isSurah) {
+      const surahKey = `surah:${surahNum}`;
+      if (currentKey === surahKey && isPlaying) {
+        await pause();
+        return;
+      }
+      if (currentKey === surahKey && !isPlaying) {
+        await resume();
+        return;
+      }
+      repeatCounterRef.current = 0;
+      await playSurahInternal(surahNum);
+    } else {
+      const key = `${surahNum}:${verseNum}`;
+      if (currentKey === key && isPlaying) {
+        await pause();
+        return;
+      }
+      if (currentKey === key && !isPlaying) {
+        await resume();
+        return;
+      }
+      repeatCounterRef.current = 0;
+      await playInternal(surahNum, verseNum);
     }
-    if (currentKey === key && !isPlaying) {
-      await resume();
-      return;
-    }
-    repeatCounterRef.current = 0;
-    await playInternal(surahNum, verseNum);
-  }, [currentKey, isPlaying, pause, resume, playInternal]);
+  }, [currentKey, isPlaying, pause, resume, playInternal, playSurahInternal]);
 
   const playNext = useCallback(async (surahNum: number, verseNum: number) => {
     repeatCounterRef.current = 0;
-    const surah = SURAHS.find((s) => s.number === surahNum);
-    if (!surah) return;
-    const nextIdx = surah.verses.findIndex((v) => v.number === verseNum) + 1;
-    if (nextIdx < surah.verses.length) {
-      await playInternal(surahNum, surah.verses[nextIdx].number);
-    } else if (surahNum < 114) {
-      await playInternal(surahNum + 1, 1);
+    const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
+    const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+    const isSurah = !!reciterEntry?.surahUrl;
+
+    if (isSurah) {
+      if (surahNum < 114) {
+        await playSurahInternal(surahNum + 1);
+      }
+    } else {
+      const surah = SURAHS.find((s) => s.number === surahNum);
+      if (!surah) return;
+      const nextIdx = surah.verses.findIndex((v) => v.number === verseNum) + 1;
+      if (nextIdx < surah.verses.length) {
+        await playInternal(surahNum, surah.verses[nextIdx].number);
+      } else if (surahNum < 114) {
+        await playInternal(surahNum + 1, 1);
+      }
     }
-  }, [playInternal]);
+  }, [playInternal, playSurahInternal]);
+
+  const rid = reciterId ?? DEFAULT_RECITER_ID;
+  const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+  const isSurahMode = !!reciterEntry?.surahUrl;
 
   return (
     <AudioCtx.Provider value={{
       currentKey, currentSurahNum, currentVerseNum,
       isLoading, isPlaying, playbackPosition, playbackDuration,
+      isSurahMode,
       play, stop, pause, resume, playNext,
     }}>
       {children}

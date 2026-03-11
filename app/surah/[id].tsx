@@ -24,6 +24,7 @@ import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
+import { RECITERS_LIST } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
@@ -317,13 +318,13 @@ export default function SurahScreen() {
   const {
     colors, arabicFontFamily, hideVerseNumbers,
     highlightActiveVerse, lineSpacingValue, showTajweed, qiraa, repeatMode, playbackRate,
-    setPlaybackRate, setRepeatMode,
+    setPlaybackRate, setRepeatMode, reciterId,
   } = useSettings();
   const {
     play, stop, pause, resume, playNext,
     currentKey, currentSurahNum: audioSurahNum, currentVerseNum: audioVerseNum,
     isLoading: audioLoading, isPlaying: audioIsPlaying,
-    playbackPosition, playbackDuration,
+    playbackPosition, playbackDuration, isSurahMode,
   } = useAudio();
   const { getMastery } = useMastery();
 
@@ -380,6 +381,7 @@ export default function SurahScreen() {
 
   useEffect(() => {
     if (!surah || !currentKey) return;
+    if (currentKey.startsWith("surah:")) return;
     const keyParts = currentKey.split(":");
     const keySurah = parseInt(keyParts[0], 10);
     const keyVerse = parseInt(keyParts[1], 10);
@@ -391,6 +393,9 @@ export default function SurahScreen() {
     }, 100);
     return () => clearTimeout(timer);
   }, [currentKey, surah, surahNumber]);
+
+  const currentReciterEntry = RECITERS_LIST.find((r) => r.id === reciterId);
+  const isSurahMissing = isSurahMode && (currentReciterEntry?.missingSurahs?.includes(surahNumber) ?? false);
 
   const increaseFont = useCallback(() => setFontSize((f) => Math.min(f + FONT_STEP, MAX_FONT)), []);
   const decreaseFont = useCallback(() => setFontSize((f) => Math.max(f - FONT_STEP, MIN_FONT)), []);
@@ -590,6 +595,16 @@ export default function SurahScreen() {
               <Text style={[styles.qiraaBadgeText, { color: colors.gold }]}>رواية قالون</Text>
             </View>
           )}
+          {isSurahMode && currentKey === `surah:${surahNumber}` && audioIsPlaying && (
+            <View style={[styles.qiraaBadge, { backgroundColor: colors.teal + "25", borderColor: colors.teal + "50" }]}>
+              <Text style={[styles.qiraaBadgeText, { color: colors.tealLight }]}>◉ يُشغَّل</Text>
+            </View>
+          )}
+          {isSurahMissing && (
+            <View style={[styles.qiraaBadge, { backgroundColor: colors.error + "20", borderColor: colors.error + "40" }]}>
+              <Text style={[styles.qiraaBadgeText, { color: colors.error }]}>غير متوفر</Text>
+            </View>
+          )}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {showTajweed && (
@@ -757,7 +772,10 @@ export default function SurahScreen() {
         }}
         renderItem={({ item, index }) => {
           const verseKey = `${surahNumber}:${item.number}`;
-          const isCurrentAudio = currentKey === verseKey;
+          const surahAudioKey = `surah:${surahNumber}`;
+          const isCurrentAudio = isSurahMode
+            ? currentKey === surahAudioKey
+            : currentKey === verseKey;
           const stripBismillah = item.number === 1 && surahNumber !== 1 && surahNumber !== 9;
           const overrideText = qiraa === "qaloon" && qaloonVerses[item.number - 1]
             ? qaloonVerses[item.number - 1]
@@ -773,9 +791,9 @@ export default function SurahScreen() {
               lineSpacingValue={lineSpacingValue}
               isActive={highlightActiveVerse && activeIndex === index}
               hideNumbers={hideVerseNumbers}
-              isCurrentAudio={isCurrentAudio}
-              isAudioLoading={isCurrentAudio && audioLoading}
-              onPlayAudio={() => play(surahNumber, item.number)}
+              isCurrentAudio={isCurrentAudio && !isSurahMode}
+              isAudioLoading={isCurrentAudio && audioLoading && !isSurahMode}
+              onPlayAudio={isSurahMissing ? () => {} : () => play(surahNumber, item.number)}
               stripBismillah={stripBismillah}
               showTajweed={showTajweed}
               isLandscape={isLandscape}
@@ -916,7 +934,16 @@ export default function SurahScreen() {
                 />
               </Pressable>
               <Pressable
-                onPress={() => { if (audioSurahNum !== null && audioVerseNum !== null) { playNext(audioSurahNum, audioVerseNum); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } }}
+                onPress={() => {
+                  if (audioSurahNum !== null) {
+                    if (isSurahMode) {
+                      playNext(audioSurahNum, 1);
+                    } else if (audioVerseNum !== null) {
+                      playNext(audioSurahNum, audioVerseNum);
+                    }
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                }}
                 hitSlop={12}
                 style={[styles.audioBarBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
               >
@@ -925,7 +952,8 @@ export default function SurahScreen() {
             </View>
             <View style={styles.audioBarInfo}>
               <Text style={[styles.audioBarRef, { color: colors.textPrimary }]} numberOfLines={1}>
-                {SURAHS.find(s => s.number === audioSurahNum)?.nameArabic ?? ""} • {audioVerseNum}
+                {SURAHS.find(s => s.number === audioSurahNum)?.nameArabic ?? ""}
+                {isSurahMode ? "" : ` • ${audioVerseNum}`}
               </Text>
               {repeatMode > 0 && (
                 <Text style={[styles.audioBarRepeat, { color: colors.gold }]}>تكرار ×{repeatMode}</Text>

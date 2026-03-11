@@ -79,7 +79,7 @@ export const violetTheme: ThemeColors = {
 };
 
 export type ThemeName = "dark" | "light" | "sepia" | "violet";
-export type ArabicFontName = "system" | "naskh" | "amiri" | "scheherazade" | "lateef" | "reemkufi";
+export type ArabicFontName = "system" | "naskh" | "amiri" | "amiriquran" | "scheherazade" | "lateef" | "reemkufi";
 export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
 export type PlaybackRate = 0.75 | 1.0 | 1.25;
@@ -96,6 +96,7 @@ export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",
   amiri: "Amiri_400Regular",
+  amiriquran: "AmiriQuran_400Regular",
   scheherazade: "ScheherazadeNew_400Regular",
   lateef: "Lateef_400Regular",
   reemkufi: "ReemKufi_400Regular",
@@ -104,17 +105,21 @@ export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
 export interface ReciterEntry {
   id: string;
   labelAr: string;
-  folder: string;
+  folder?: string;
+  surahUrl?: string;
+  missingSurahs?: number[];
 }
 
 export const RECITERS_LIST: ReciterEntry[] = [
-  { id: "alafasy",  labelAr: "مشاري راشد العفاسي",       folder: "Alafasy_128kbps" },
-  { id: "sudais",   labelAr: "عبد الرحمن السديس",         folder: "Abdurrahmaan_As-Sudais_192kbps" },
-  { id: "shaatree", labelAr: "أبو بكر الشاطري",           folder: "Abu_Bakr_Ash-Shaatree_128kbps" },
-  { id: "dussary",  labelAr: "ياسر الدوسري",              folder: "Yasser_Ad-Dussary_128kbps" },
-  { id: "ayyoub",   labelAr: "محمد أيوب",                 folder: "Muhammad_Ayyoub_128kbps" },
-  { id: "husary",   labelAr: "محمود خليل الحصري",         folder: "Husary_128kbps" },
-  { id: "jibreel",  labelAr: "محمد جبريل",                folder: "Muhammad_Jibreel_128kbps" },
+  { id: "alafasy",  labelAr: "مشاري راشد العفاسي",  folder: "Alafasy_128kbps" },
+  { id: "sudais",   labelAr: "عبد الرحمن السديس",    folder: "Abdurrahmaan_As-Sudais_192kbps" },
+  { id: "shaatree", labelAr: "أبو بكر الشاطري",      folder: "Abu_Bakr_Ash-Shaatree_128kbps" },
+  { id: "dussary",  labelAr: "ياسر الدوسري",         folder: "Yasser_Ad-Dussary_128kbps" },
+  { id: "ayyoub",   labelAr: "محمد أيوب",            folder: "Muhammad_Ayyoub_128kbps" },
+  { id: "husary",   labelAr: "محمود خليل الحصري",    folder: "Husary_128kbps" },
+  { id: "jibreel",  labelAr: "محمد جبريل",           folder: "Muhammad_Jibreel_128kbps" },
+  { id: "kurdi",    labelAr: "رعد محمد الكردي",      surahUrl: "https://server6.mp3quran.net/kurdi/{SSS}.mp3" },
+  { id: "sobhi",    labelAr: "إسلام صبحي",           surahUrl: "https://server14.mp3quran.net/islam/Rewayat-Hafs-A-n-Assem/{SSS}.mp3", missingSurahs: [4,7,9,37,39,40,45,65] },
 ];
 
 export const DEFAULT_RECITER_ID = "alafasy";

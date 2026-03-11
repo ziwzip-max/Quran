@@ -27,13 +27,13 @@ constants/
   qaloonData.ts            # Texte arabe selon la riwaya Qaloon
   quranMeta.ts             # Métadonnées (type, juz, mots, lettres)
   themes.ts                # 4 thèmes: sombre, sepia (parchmin), ocean, desert
-  duaaData.ts              # 35+ du'as classiques par catégorie
+  duaaData.ts              # 66+ du'as classiques par catégorie
   verseOfDayList.ts        # ~70 versets sélectionnés pour le Verset du Jour
 
 contexts/
   BookmarksContext.tsx     # Signets + blocs consécutifs
   MasteryContext.tsx       # Niveaux L0-L3 + spaced repetition
-  AudioContext.tsx         # Lecture audio (7 récitateurs) + pause/resume
+  AudioContext.tsx         # Lecture audio (9 récitateurs) + pause/resume + mode surah
   SettingsContext.tsx      # Thème, police, récitateur, options lecture
 ```
 

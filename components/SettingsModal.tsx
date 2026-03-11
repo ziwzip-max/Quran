@@ -53,12 +53,13 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   ];
 
   const fonts: { key: ArabicFontName; sample: string; label: string; fontFamily?: string }[] = [
-    { key: "system",        sample: "بِسْمِ ٱللَّهِ", label: "افتراضي",  fontFamily: undefined },
-    { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ",      fontFamily: "NotoNaskhArabic_400Regular" },
-    { key: "amiri",         sample: "بِسْمِ ٱللَّهِ", label: "أميري",    fontFamily: "Amiri_400Regular" },
-    { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",   fontFamily: "ScheherazadeNew_400Regular" },
-    { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",     fontFamily: "Lateef_400Regular" },
-    { key: "reemkufi",      sample: "بِسْمِ ٱللَّهِ", label: "ريم كوفي", fontFamily: "ReemKufi_400Regular" },
+    { key: "system",        sample: "بِسْمِ ٱللَّهِ", label: "افتراضي",     fontFamily: undefined },
+    { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ",         fontFamily: "NotoNaskhArabic_400Regular" },
+    { key: "amiri",         sample: "بِسْمِ ٱللَّهِ", label: "أميري",       fontFamily: "Amiri_400Regular" },
+    { key: "amiriquran",    sample: "بِسْمِ ٱللَّهِ", label: "أميري قرآن",  fontFamily: "AmiriQuran_400Regular" },
+    { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",      fontFamily: "ScheherazadeNew_400Regular" },
+    { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",        fontFamily: "Lateef_400Regular" },
+    { key: "reemkufi",      sample: "بِسْمِ ٱللَّهِ", label: "ريم كوفي",    fontFamily: "ReemKufi_400Regular" },
   ];
 
   const spacings: { key: LineSpacingName; label: string }[] = [
@@ -368,10 +369,17 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 onPress={() => { setReciterId(r.id); setReciterPickerVisible(false); }}
                 style={[s.reciterItem, { borderColor: colors.border }, reciterId === r.id && { backgroundColor: colors.gold + "12", borderColor: colors.gold + "40" }]}
               >
-                <Text style={[s.reciterItemLabel, { color: reciterId === r.id ? colors.gold : colors.textPrimary }]}>
-                  {r.labelAr}
-                </Text>
-                {reciterId === r.id && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                <View style={{ flexDirection: "column", alignItems: "flex-end", flex: 1, gap: 2 }}>
+                  <Text style={[s.reciterItemLabel, { color: reciterId === r.id ? colors.gold : colors.textPrimary }]}>
+                    {r.labelAr}
+                  </Text>
+                  {r.surahUrl && (
+                    <Text style={{ fontSize: 10, color: colors.textMuted, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+                      ◉ تلاوة سورة كاملة
+                    </Text>
+                  )}
+                </View>
+                {reciterId === r.id && <Ionicons name="checkmark-circle" size={20} color={colors.gold} style={{ marginLeft: 8 }} />}
               </Pressable>
             ))}
             <View style={{ height: 20 }} />

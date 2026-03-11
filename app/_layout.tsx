@@ -10,6 +10,7 @@ import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new";
 import { Lateef_400Regular } from "@expo-google-fonts/lateef";
 import { ReemKufi_400Regular } from "@expo-google-fonts/reem-kufi";
+import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -60,6 +61,7 @@ export default function RootLayout() {
     ScheherazadeNew_400Regular,
     Lateef_400Regular,
     ReemKufi_400Regular,
+    AmiriQuran_400Regular,
   });
 
   useEffect(() => {
