@@ -181,10 +181,12 @@ function VerseItem({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
+    const toArabicNumerals = (n: number) =>
+      String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
     const rawText = overrideText ?? verse.text;
-    const ref = `${surahNameArabic} ${surahNum}:${verse.number}`;
+    const ref = `${surahNameArabic} ${toArabicNumerals(surahNum)}:${toArabicNumerals(verse.number)}`;
     await Clipboard.setStringAsync(`${rawText}\n\n${ref}`);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
