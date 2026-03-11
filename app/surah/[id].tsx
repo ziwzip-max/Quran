@@ -18,6 +18,7 @@ import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "exp
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
@@ -151,6 +152,7 @@ function VerseItem({
   masteryLevel,
   isNavigatedTo,
   onTafsir,
+  surahNameArabic,
 }: {
   verse: Verse;
   surahNum: number;
@@ -172,9 +174,20 @@ function VerseItem({
   masteryLevel: MasteryLevel;
   isNavigatedTo: boolean;
   onTafsir: () => void;
+  surahNameArabic: string;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const rawText = overrideText ?? verse.text;
+    const ref = `${surahNameArabic} ${surahNum}:${verse.number}`;
+    await Clipboard.setStringAsync(`${rawText}\n\n${ref}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleToggle = () => {
     Animated.sequence([
@@ -261,6 +274,9 @@ function VerseItem({
               <Text style={[styles.tajweedHintText, { color: colors.tealLight }]}>اضغط الكلمة الملونة</Text>
             </View>
           )}
+          <Pressable onPress={handleCopy} hitSlop={10}>
+            <Ionicons name={copied ? "checkmark-circle" : "copy-outline"} size={20} color={copied ? colors.gold : colors.textMuted} />
+          </Pressable>
           <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }} hitSlop={10}>
             <Ionicons name="book-outline" size={20} color={colors.textMuted} />
           </Pressable>
@@ -879,6 +895,7 @@ export default function SurahScreen() {
               masteryLevel={getMastery(surahNumber, item.number)}
               isNavigatedTo={navigatedVerseNum === item.number}
               onTafsir={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTafsirVerse({ surahNum: surahNumber, verseNum: item.number }); }}
+              surahNameArabic={surah.nameArabic}
             />
           );
         }}
