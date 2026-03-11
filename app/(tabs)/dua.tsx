@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -371,9 +371,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 22,
-    textAlign: "right",
+    textAlign: "center",
   },
   addBtn: {
+    position: "absolute",
+    left: 16,
     width: 38,
     height: 38,
     borderRadius: 19,

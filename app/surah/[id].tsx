@@ -24,7 +24,7 @@ import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { RECITERS_LIST } from "@/constants/themes";
+import { RECITERS_LIST, getFontSizeMultiplier } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
@@ -316,7 +316,7 @@ export default function SurahScreen() {
 
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const {
-    colors, arabicFontFamily, hideVerseNumbers,
+    colors, arabicFontFamily, arabicFont: arabicFontKey, hideVerseNumbers,
     highlightActiveVerse, lineSpacingValue, showTajweed, setShowTajweed, qiraa, repeatMode, playbackRate,
     arabicFontSize, setArabicFontSize,
     setPlaybackRate, setRepeatMode, reciterId,
@@ -339,6 +339,7 @@ export default function SurahScreen() {
   fontSizeRef.current = fontSize;
   const setArabicFontSizeRef = useRef(setArabicFontSize);
   setArabicFontSizeRef.current = setArabicFontSize;
+  const effectiveFontSize = fontSize * getFontSizeMultiplier(arabicFontKey);
   const [isImmersive, setIsImmersive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoExpanded, setInfoExpanded] = useState(false);
@@ -862,7 +863,7 @@ export default function SurahScreen() {
               surahNum={surahNumber}
               isBookmarked={isBookmarked(surahNumber, item.number)}
               onToggle={() => toggleBookmark(surahNumber, item.number)}
-              fontSize={fontSize}
+              fontSize={effectiveFontSize}
               arabicFont={arabicFontFamily}
               lineSpacingValue={lineSpacingValue}
               isActive={highlightActiveVerse && activeIndex === index}

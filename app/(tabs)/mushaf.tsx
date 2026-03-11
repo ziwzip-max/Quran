@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useSettings } from "@/contexts/SettingsContext";
+import { getFontSizeMultiplier } from "@/constants/themes";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import {
@@ -135,9 +136,6 @@ function getItemLayout(_: unknown, index: number) {
   };
 }
 
-function toArabicDigits(n: number): string {
-  return n.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
-}
 
 function HighlightedText({
   text, query, baseStyle, highlightBg, highlightColor,
@@ -179,7 +177,7 @@ function SurahHeaderItem({
       <View style={shStyles.content}>
         <Text style={[shStyles.nameAr, { color: colors.gold }]}>{surah.nameArabic}</Text>
         <Text style={[shStyles.meta, { color: colors.textSecondary }]}>
-          {typeLabel} • {toArabicDigits(surah.versesCount)} آية • الجزء {ARABIC_JUZ[juz - 1]}
+          {typeLabel} • {surah.versesCount} آية • الجزء {ARABIC_JUZ[juz - 1]}
         </Text>
       </View>
       <View style={[shStyles.ornamentLine, { backgroundColor: colors.gold + "30" }]} />
@@ -287,12 +285,14 @@ const hmStyles = StyleSheet.create({
 });
 
 function VerseItem({
-  item, colors, arabicFont, mastery, searchQuery,
+  item, colors, arabicFont, arabicFontKey, arabicFontSize, mastery, searchQuery,
   onLongPress,
 }: {
   item: Extract<MushafItem, { type: "verse" }>;
   colors: ReturnType<typeof useSettings>["colors"];
   arabicFont?: string;
+  arabicFontKey: string;
+  arabicFontSize: number;
   mastery: number;
   searchQuery: string;
   onLongPress: () => void;
@@ -300,77 +300,55 @@ function VerseItem({
   const dotColor = MASTERY_COLORS[mastery] ?? MASTERY_COLORS[0];
   const isHighlighted = searchQuery.trim().length > 0 &&
     item.text.includes(searchQuery.trim());
+  const effectiveSize = arabicFontSize * getFontSizeMultiplier(arabicFontKey);
+  const lineH = effectiveSize * 2.0;
 
   return (
     <Pressable
       onLongPress={onLongPress}
       style={({ pressed }) => [
         vStyles.container,
-        {
-          backgroundColor: isHighlighted
-            ? colors.gold + "12"
-            : "transparent",
-          borderColor: isHighlighted ? colors.gold + "40" : "transparent",
-          opacity: pressed ? 0.7 : 1,
-        },
+        isHighlighted && { backgroundColor: colors.gold + "15" },
+        { opacity: pressed ? 0.7 : 1 },
       ]}
     >
-      <View style={vStyles.row}>
-        {mastery > 0 && (
-          <View style={[vStyles.masteryDot, { backgroundColor: dotColor }]} />
-        )}
-        <View style={[vStyles.numCircle, { borderColor: colors.gold + "60", backgroundColor: colors.bgCard }]}>
-          <Text style={[vStyles.numText, { color: colors.gold }]}>
-            {toArabicDigits(item.verseNumber)}
-          </Text>
-        </View>
-      </View>
+      {mastery > 0 && (
+        <View style={[vStyles.masteryDot, { backgroundColor: dotColor }]} />
+      )}
       <HighlightedText
-        text={item.text}
+        text={item.text + "  "}
         query={searchQuery}
-        baseStyle={[vStyles.verseText, { color: colors.textPrimary, fontFamily: arabicFont }]}
+        baseStyle={[vStyles.verseText, { color: colors.textPrimary, fontFamily: arabicFont, fontSize: effectiveSize, lineHeight: lineH }]}
         highlightBg={colors.gold + "40"}
         highlightColor={colors.textPrimary}
       />
+      <Text style={[vStyles.verseNum, { color: colors.gold, fontSize: effectiveSize * 0.7, lineHeight: lineH }]}>
+        {"﴿"}{item.verseNumber}{"﴾"}
+      </Text>
     </Pressable>
   );
 }
 
 const vStyles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-    marginHorizontal: 8,
-    marginVertical: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 2,
   },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    marginBottom: 4,
-    justifyContent: "space-between",
-  },
-  numCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  numText: { fontSize: 11, fontWeight: "600" as const },
   masteryDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    marginLeft: 6,
+    position: "absolute",
+    left: 8,
+    top: 10,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   verseText: {
-    fontSize: 19,
-    lineHeight: 34,
-    textAlign: "right",
+    textAlign: "justify",
     writingDirection: "rtl",
+  },
+  verseNum: {
+    fontWeight: "600" as const,
+    textAlign: "center",
   },
 });
 
@@ -428,7 +406,7 @@ function JumpModal({
                   style={[jmpStyles.surahRow, { borderBottomColor: colors.border }]}
                 >
                   <View style={[jmpStyles.surahNum, { backgroundColor: colors.bgSurface }]}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{toArabicDigits(item.number)}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.number}</Text>
                   </View>
                   <View style={{ flex: 1, marginHorizontal: 12 }}>
                     <Text style={[jmpStyles.surahNameAr, { color: colors.textPrimary }]}>{item.nameArabic}</Text>
@@ -543,7 +521,7 @@ const jmpStyles = StyleSheet.create({
 
 export default function MushafScreen() {
   const insets = useSafeAreaInsets();
-  const { colors, arabicFontFamily } = useSettings();
+  const { colors, arabicFontFamily, arabicFont: arabicFontKey, arabicFontSize } = useSettings();
   const { masteryMap } = useMastery();
   const listRef = useRef<FlatList>(null);
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
@@ -660,7 +638,7 @@ export default function MushafScreen() {
   const handleVerseAction = useCallback((surahNumber: number, verseNumber: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      `${SURAHS.find(s => s.number === surahNumber)?.nameArabic ?? ""} — آية ${toArabicDigits(verseNumber)}`,
+      `${SURAHS.find(s => s.number === surahNumber)?.nameArabic ?? ""} — آية ${verseNumber}`,
       undefined,
       [
         { text: "إلغاء", style: "cancel" },
@@ -692,6 +670,8 @@ export default function MushafScreen() {
           item={item}
           colors={colors}
           arabicFont={arabicFontFamily}
+          arabicFontKey={arabicFontKey}
+          arabicFontSize={arabicFontSize}
           mastery={mastery}
           searchQuery={searchQuery}
           onLongPress={() => handleVerseAction(item.surahNumber, item.verseNumber)}
@@ -699,7 +679,7 @@ export default function MushafScreen() {
       );
     }
     return null;
-  }, [colors, arabicFontFamily, masteryMap, searchQuery, handleVerseAction]);
+  }, [colors, arabicFontFamily, arabicFontKey, arabicFontSize, masteryMap, searchQuery, handleVerseAction]);
 
   const onScrollEndDrag = useCallback((e: any) => {
     const offset = e.nativeEvent.contentOffset.y;
@@ -715,7 +695,7 @@ export default function MushafScreen() {
 
   const searchMatchLabel = useMemo(() => {
     if (matchIndices.length === 0) return "لا نتائج";
-    return `${toArabicDigits(currentMatchIdx + 1)} من ${toArabicDigits(matchIndices.length)}`;
+    return `${currentMatchIdx + 1} / ${matchIndices.length}`;
   }, [matchIndices, currentMatchIdx]);
 
   return (

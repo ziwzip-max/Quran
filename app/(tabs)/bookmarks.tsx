@@ -92,38 +92,15 @@ function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: 
   );
 }
 
-function WeeklyChart({ data, colors }: { data: number[], colors: any }) {
-  const days = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
-  const max = Math.max(...data, 5);
-  
-  return (
-    <View style={statsStyles.chartContainer}>
-      <Text style={[statsStyles.chartTitle, { color: colors.textPrimary }]}>نشاط المراجعة (آخر ٧ أيام)</Text>
-      <View style={statsStyles.chartBars}>
-        {data.map((val, i) => {
-          const height = (val / max) * 60;
-          return (
-            <View key={i} style={statsStyles.chartColumn}>
-              <View style={[statsStyles.chartBarFill, { height, backgroundColor: colors.tealLight }]} />
-              <Text style={[statsStyles.chartDay, { color: colors.textMuted }]}>{days[i]}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 function StatsPanel({
-  colors, totalVerses, masteryCounts, completeSurahs, streak, dailyActivity
+  colors, totalVerses, masteryCounts, completeSurahs, streak,
 }: {
   colors: ReturnType<typeof useSettings>["colors"];
   totalVerses: number; masteryCounts: number[];
   completeSurahs: number; streak: number;
-  dailyActivity: number[];
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(totalVerses === 0);
-  const animation = useRef(new Animated.Value(totalVerses === 0 ? 0 : 1)).current;
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const animation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -135,7 +112,7 @@ function StatsPanel({
 
   const heightInterpolate = animation.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 320],
+    outputRange: [0, 220],
   });
 
   const masteredCount = masteryCounts[3] + masteryCounts[2];
@@ -181,9 +158,6 @@ function StatsPanel({
         <Text style={[statsStyles.sectionTitle, { color: colors.textPrimary }]}>مستوى الإتقان</Text>
         <MasteryBreakdown counts={masteryCounts} total={totalVerses} colors={colors} />
         
-        <View style={[statsStyles.sectionDivider, { backgroundColor: colors.border }]} />
-        
-        <WeeklyChart data={dailyActivity} colors={colors} />
       </Animated.View>
     </View>
   );
@@ -208,12 +182,6 @@ const statsStyles = StyleSheet.create({
   labelItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   labelDot: { width: 8, height: 8, borderRadius: 4 },
   labelText: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  chartContainer: { gap: 10 },
-  chartTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  chartBars: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 80, paddingHorizontal: 10 },
-  chartColumn: { alignItems: "center", gap: 6, flex: 1 },
-  chartBarFill: { width: 20, borderRadius: 4 },
-  chartDay: { fontSize: 10, fontFamily: "Inter_500Medium" },
 });
 
 const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
@@ -397,27 +365,12 @@ export default function BookmarksScreen() {
   const { colors, arabicFontFamily } = useSettings();
   const { masteryMap: mastery } = useMastery();
   const [reviews, setReviews] = useState<Record<string, number>>({});
-  const [dailyActivity, setDailyActivity] = useState<number[]>(new Array(7).fill(0));
   const [streak, setStreak] = useState(0);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
   const loadStats = useCallback(async () => {
     try {
-      const activityStored = await AsyncStorage.getItem("al_hifz_daily_counts");
-      if (activityStored) {
-        const counts = JSON.parse(activityStored);
-        const last7Days = [];
-        const now = new Date();
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(now.getDate() - i);
-          const key = d.toISOString().split("T")[0];
-          last7Days.push(counts[key] || 0);
-        }
-        setDailyActivity(last7Days);
-      }
-
       const streakStored = await AsyncStorage.getItem("al_hifz_streak");
       if (streakStored) {
         setStreak(parseInt(streakStored, 10) || 0);
@@ -486,7 +439,6 @@ export default function BookmarksScreen() {
           masteryCounts={masteryCounts}
           completeSurahs={completeSurahs}
           streak={streak}
-          dailyActivity={dailyActivity}
         />
       )}
 
@@ -523,9 +475,9 @@ export default function BookmarksScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  title: { fontSize: 26, fontFamily: "Inter_700Bold" },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, alignItems: "center" },
+  title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "center" },
+  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center" },
   listContent: { paddingHorizontal: 16 },
   surahSection: { borderRadius: 16, overflow: "hidden", borderWidth: 1 },
   surahHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 14 },

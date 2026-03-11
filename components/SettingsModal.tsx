@@ -56,17 +56,15 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     { key: "dark",   label: "ليلي",    icon: "moon" },
     { key: "light",  label: "نهاري",   icon: "sunny" },
     { key: "sepia",  label: "عتيق",    icon: "leaf-outline" },
-    { key: "violet", label: "بنفسجي",  icon: "planet-outline" },
+    { key: "violet", label: "أبيض",  icon: "contrast-outline" },
   ];
 
-  const fonts: { key: ArabicFontName; sample: string; label: string; fontFamily?: string }[] = [
+  const fonts: { key: ArabicFontName; sample: string; label: string; fontFamily?: string; sizeMultiplier?: number }[] = [
     { key: "system",        sample: "بِسْمِ ٱللَّهِ", label: "افتراضي",     fontFamily: undefined },
     { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ",         fontFamily: "NotoNaskhArabic_400Regular" },
-    { key: "amiri",         sample: "بِسْمِ ٱللَّهِ", label: "أميري",       fontFamily: "Amiri_400Regular" },
     { key: "amiriquran",    sample: "بِسْمِ ٱللَّهِ", label: "أميري قرآن",  fontFamily: "AmiriQuran_400Regular" },
     { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",      fontFamily: "ScheherazadeNew_400Regular" },
-    { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",        fontFamily: "Lateef_400Regular" },
-    { key: "tajawal",       sample: "بِسْمِ ٱللَّهِ", label: "تجول",        fontFamily: "Tajawal_400Regular" },
+    { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",        fontFamily: "Lateef_400Regular", sizeMultiplier: 1.2 },
   ];
 
   const spacings: { key: LineSpacingName; label: string }[] = [
@@ -221,7 +219,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     style={[s.fontBtn, arabicFont === f.key && s.fontBtnActive]}
                   >
                     <View style={s.fontBtnInner}>
-                      <Text style={[s.fontSample, f.fontFamily ? { fontFamily: f.fontFamily } : {}, arabicFont === f.key && { color: colors.gold }]}>
+                      <Text style={[s.fontSample, f.fontFamily ? { fontFamily: f.fontFamily } : {}, f.sizeMultiplier ? { fontSize: 20 * f.sizeMultiplier } : {}, arabicFont === f.key && { color: colors.gold }]}>
                         {f.sample}
                       </Text>
                       <Text style={[s.fontLabel, arabicFont === f.key && { color: colors.gold }]}>{f.label}</Text>

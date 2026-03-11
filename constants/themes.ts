@@ -63,23 +63,23 @@ export const sepiaTheme: ThemeColors = {
 };
 
 export const violetTheme: ThemeColors = {
-  gold: "#A87FD4",
-  goldLight: "#C09AE8",
-  teal: "#5A8AB0",
-  tealLight: "#7AAED4",
-  bgDark: "#0A0714",
-  bgCard: "#130D25",
-  bgSurface: "#1C1438",
-  textPrimary: "#E4DCF5",
-  textSecondary: "#9B8CC0",
-  textMuted: "#5A4A7A",
-  border: "#271B4A",
-  error: "#C05070",
-  success: "#5A9B8A",
+  gold: "#B8860B",
+  goldLight: "#C9A227",
+  teal: "#1A8C7A",
+  tealLight: "#26B399",
+  bgDark: "#FFFFFF",
+  bgCard: "#F5F5F5",
+  bgSurface: "#EBEBEB",
+  textPrimary: "#111111",
+  textSecondary: "#444444",
+  textMuted: "#888888",
+  border: "#DDDDDD",
+  error: "#CC2222",
+  success: "#1A7A50",
 };
 
 export type ThemeName = "dark" | "light" | "sepia" | "violet";
-export type ArabicFontName = "system" | "naskh" | "amiri" | "amiriquran" | "scheherazade" | "lateef" | "tajawal";
+export type ArabicFontName = "system" | "naskh" | "amiriquran" | "scheherazade" | "lateef";
 export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
 export type PlaybackRate = 0.75 | 1.0 | 1.25;
@@ -95,12 +95,14 @@ export const THEMES: Record<ThemeName, ThemeColors> = {
 export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",
-  amiri: "Amiri_400Regular",
   amiriquran: "AmiriQuran_400Regular",
   scheherazade: "ScheherazadeNew_400Regular",
   lateef: "Lateef_400Regular",
-  tajawal: "Tajawal_400Regular",
 };
+
+export function getFontSizeMultiplier(fontKey: string): number {
+  return fontKey === "lateef" ? 1.2 : 1.0;
+}
 
 export interface ReciterEntry {
   id: string;

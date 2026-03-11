@@ -74,7 +74,8 @@ components/
 - **تغطية**: Masquage progressif des mots
 
 ### 5. Paramètres
-- 4 thèmes + 5 couleurs d'accent + 7 polices arabes (dont Amiri Quran, Tajawal)
+- 4 thèmes: ليلي / نهاري / عتيق / أبيض (blanc pur, texte noir) + 5 couleurs d'accent
+- 5 polices arabes: افتراضي, نسخ, أميري قرآن, شهرزاد, لطيف (×1.2 multiplicateur auto)
 - Mode nuit automatique (suit le thème système)
 - Notifications SRS intelligentes avec compte des versets dus
 - Gestion du cache audio (voir taille + vider)

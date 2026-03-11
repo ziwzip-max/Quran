@@ -98,7 +98,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     loadSettings().then((p) => {
       if (p.theme) setThemeState(p.theme);
       if (p.arabicFont) {
-        const font = INVALID_FONTS.includes(p.arabicFont) ? "system" : p.arabicFont;
+        const REMOVED_FONTS = ["amiri", "tajawal"];
+        const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? "system" : p.arabicFont;
         setArabicFontState(font as ArabicFontName);
       }
       if (p.accentColor) setAccentColorState(p.accentColor);
