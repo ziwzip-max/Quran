@@ -224,6 +224,7 @@ export default function DuaScreen() {
   const [customDuas, setCustomDuas] = useState<Dua[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<DuaCategory | "الكل">("الكل");
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
@@ -252,6 +253,14 @@ export default function DuaScreen() {
     return allDuas.filter((d) => d.category === selectedCategory);
   }, [allDuas, selectedCategory]);
 
+  const countByCat = useMemo(() => {
+    const map: Record<string, number> = { "الكل": allDuas.length };
+    for (const cat of DUA_CATEGORIES) {
+      map[cat] = allDuas.filter((d) => d.category === cat).length;
+    }
+    return map;
+  }, [allDuas]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -265,31 +274,52 @@ export default function DuaScreen() {
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>الأدعية</Text>
       </View>
 
-      <View style={styles.categoryBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScrollContent}
-        >
-          {(["الكل", ...DUA_CATEGORIES] as (DuaCategory | "الكل")[]).map((cat) => (
-            <Pressable
-              key={cat}
-              onPress={() => setSelectedCategory(cat)}
-              style={[
-                styles.catChip,
-                {
-                  backgroundColor: selectedCategory === cat ? colors.gold : colors.bgCard,
-                  borderColor: selectedCategory === cat ? colors.gold : colors.border,
-                },
-              ]}
-            >
-              <Text style={[styles.catChipText, { color: selectedCategory === cat ? colors.bgDark : colors.textSecondary }]}>
-                {cat}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+      <Pressable
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCategoryModalVisible(true); }}
+        style={[styles.categoryDropdown, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+      >
+        <View style={styles.categoryDropdownLeft}>
+          <View style={[styles.categoryDot, { backgroundColor: colors.gold }]} />
+          <Text style={[styles.categoryDropdownText, { color: colors.textPrimary }]}>{selectedCategory}</Text>
+          <Text style={[styles.categoryDropdownCount, { color: colors.textMuted }]}>({filtered.length})</Text>
+        </View>
+        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+      </Pressable>
+
+      <Modal
+        visible={categoryModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCategoryModalVisible(false)}>
+          <View style={[styles.categoryPickerSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={[styles.categoryPickerHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.categoryPickerTitle, { color: colors.textPrimary }]}>اختر الفئة</Text>
+              <Pressable onPress={() => setCategoryModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.categoryPickerList}>
+              {(["الكل", ...DUA_CATEGORIES] as (DuaCategory | "الكل")[]).map((cat) => (
+                <Pressable
+                  key={cat}
+                  onPress={() => { setSelectedCategory(cat); setCategoryModalVisible(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  style={[
+                    styles.categoryPickerRow,
+                    { borderBottomColor: colors.border },
+                    selectedCategory === cat && { backgroundColor: colors.gold + "15" },
+                  ]}
+                >
+                  <Text style={[styles.categoryPickerCount, { color: colors.textMuted }]}>{countByCat[cat] ?? 0}</Text>
+                  <Text style={[styles.categoryPickerLabel, { color: selectedCategory === cat ? colors.gold : colors.textPrimary }]}>{cat}</Text>
+                  {selectedCategory === cat && <Ionicons name="checkmark" size={16} color={colors.gold} />}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={filtered}
@@ -351,14 +381,80 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  categoryBar: {
-    paddingVertical: 10,
+  categoryDropdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 14,
+    marginVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  categoryDropdownLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  categoryDropdownText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  categoryDropdownCount: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  categoryPickerSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    maxHeight: "70%",
+  },
+  categoryPickerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  categoryScrollContent: {
-    flexDirection: "row-reverse",
+  categoryPickerTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+  },
+  categoryPickerList: {
+    paddingBottom: 34,
+  },
+  categoryPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     paddingHorizontal: 16,
-    gap: 8,
+    paddingVertical: 14,
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  categoryPickerLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    flex: 1,
+    textAlign: "right",
+  },
+  categoryPickerCount: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    minWidth: 30,
+    textAlign: "left",
   },
   catChip: {
     paddingHorizontal: 14,

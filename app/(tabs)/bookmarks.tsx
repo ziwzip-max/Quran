@@ -8,7 +8,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -158,17 +158,28 @@ function BlockItem({
             </View>
           )}
         </View>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            for (let vn = block.startVerse; vn <= block.endVerse; vn++) {
-              onRemoveVerse(vn);
-            }
-          }}
-          hitSlop={8}
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
-        </Pressable>
+        <View style={styles.blockHeaderActions}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({ pathname: "/surah/[id]", params: { id: String(block.surahNumber), verse: String(block.startVerse) } });
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="book-outline" size={16} color={colors.tealLight} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              for (let vn = block.startVerse; vn <= block.endVerse; vn++) {
+                onRemoveVerse(vn);
+              }
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
       </View>
       {block.verses.map((verse) => {
         const mastery = getMastery(block.surahNumber, verse.number);
@@ -186,9 +197,16 @@ function BlockItem({
             >
               <View style={[styles.masteryDot, { backgroundColor: dotColor }]} />
             </Pressable>
-            <View style={[styles.verseNumBadge, { backgroundColor: colors.bgCard }]}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({ pathname: "/surah/[id]", params: { id: String(block.surahNumber), verse: String(verse.number) } });
+              }}
+              hitSlop={6}
+              style={[styles.verseNumBadge, { backgroundColor: colors.bgCard }]}
+            >
               <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
-            </View>
+            </Pressable>
             <Text style={[styles.verseText, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
               {verse.text}
             </Text>
@@ -394,6 +412,7 @@ const styles = StyleSheet.create({
   blocksContainer: { borderTopWidth: 1, paddingVertical: 10, paddingHorizontal: 14, gap: 12 },
   blockItem: { borderRadius: 12, padding: 12, gap: 10 },
   blockHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  blockHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   blockHeaderLeft: { flex: 1, gap: 4 },
   blockRange: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
   reviewBadge: {

@@ -290,10 +290,8 @@ export default function SurahScreen() {
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
-  const [jumpStep, setJumpStep] = useState<0 | 1 | 2 | 3>(0);
   const [bookmarkNavIdx, setBookmarkNavIdx] = useState(-1);
   const [navigatedVerseNum, setNavigatedVerseNum] = useState<number | null>(null);
-  const [progressExpanded, setProgressExpanded] = useState(false);
   const [tajweedGuideVisible, setTajweedGuideVisible] = useState(false);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
@@ -381,22 +379,25 @@ export default function SurahScreen() {
   }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive]);
 
   useEffect(() => {
+    hasScrolled.current = false;
+  }, [verseParam]);
+
+  useEffect(() => {
     if (!surah || !verseParam || hasScrolled.current) return;
     const targetVerse = parseInt(verseParam, 10);
     if (isNaN(targetVerse)) return;
     const index = surah.verses.findIndex((v) => v.number === targetVerse);
     if (index < 0) return;
-    const timer1 = setTimeout(() => {
+    const doScroll = () => {
       flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+      setNavigatedVerseNum(targetVerse);
       hasScrolled.current = true;
-    }, 400);
-    const timer2 = setTimeout(() => {
-      if (!hasScrolled.current) {
-        flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
-        hasScrolled.current = true;
-      }
-    }, 800);
-    return () => { clearTimeout(timer1); clearTimeout(timer2); };
+      setTimeout(() => setNavigatedVerseNum(null), 2000);
+    };
+    const timer1 = setTimeout(doScroll, 400);
+    const timer2 = setTimeout(() => { if (!hasScrolled.current) doScroll(); }, 800);
+    const timer3 = setTimeout(() => { if (!hasScrolled.current) doScroll(); }, 1200);
+    return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
   }, [surah, verseParam]);
 
   useEffect(() => {
@@ -512,26 +513,6 @@ export default function SurahScreen() {
     [surah, surahNumber, isBookmarked]
   );
 
-  const masteryStats = useMemo(() => {
-    const counts: [number, number, number, number] = [0, 0, 0, 0];
-    surah.verses.forEach((v) => {
-      const lvl = getMastery(surahNumber, v.number);
-      counts[lvl]++;
-    });
-    const total = surah.versesCount;
-    const mastered = counts[2] + counts[3];
-    return { counts, total, mastered, pct: Math.round((mastered / total) * 100) };
-  }, [surah, surahNumber, getMastery]);
-
-  const upcomingReviewVerses = useMemo(() =>
-    surah.verses
-      .filter((v) => {
-        const lvl = getMastery(surahNumber, v.number);
-        return lvl > 0 && lvl < 3;
-      })
-      .slice(0, 5),
-    [surah, surahNumber, getMastery]
-  );
 
   const navigateToBookmark = useCallback((bIdx: number) => {
     if (bookmarkedIndices.length === 0) return;
@@ -621,92 +602,26 @@ export default function SurahScreen() {
         </Pressable>
       )}
 
-      <Pressable
-        onPress={() => setProgressExpanded((p) => !p)}
-        style={[styles.progressPanel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-      >
-        <View style={styles.progressPanelTop}>
-          <Text style={[styles.progressPct, { color: masteryStats.pct > 0 ? colors.gold : colors.textMuted }]}>
-            {masteryStats.pct}% محفوظ
-          </Text>
-          <Ionicons
-            name={progressExpanded ? "chevron-up" : "chevron-down"}
-            size={14}
-            color={colors.textMuted}
-          />
-        </View>
-        <View style={[styles.progressBarRow, { backgroundColor: colors.border }]}>
-          {masteryStats.counts[3] > 0 && (
-            <View style={{ flex: masteryStats.counts[3], backgroundColor: "#27AE60", borderRadius: 3 }} />
-          )}
-          {masteryStats.counts[2] > 0 && (
-            <View style={{ flex: masteryStats.counts[2], backgroundColor: "#C9A227", borderRadius: 3 }} />
-          )}
-          {masteryStats.counts[1] > 0 && (
-            <View style={{ flex: masteryStats.counts[1], backgroundColor: "#E67E22", borderRadius: 3 }} />
-          )}
-          {masteryStats.counts[0] > 0 && (
-            <View style={{ flex: masteryStats.counts[0], backgroundColor: colors.bgCard, borderRadius: 3 }} />
-          )}
-        </View>
-        {progressExpanded && (
-          <View style={styles.progressDetail}>
-            <View style={styles.progressLegendRow}>
-              {[
-                { label: "لم يُبدأ", color: "#4A5880", count: masteryStats.counts[0] },
-                { label: "في التعلم", color: "#E67E22", count: masteryStats.counts[1] },
-                { label: "محفوظ", color: "#C9A227", count: masteryStats.counts[2] },
-                { label: "مُتقن", color: "#27AE60", count: masteryStats.counts[3] },
-              ].map((item) => (
-                <View key={item.label} style={styles.progressLegendItem}>
-                  <View style={[styles.progressLegendDot, { backgroundColor: item.color }]} />
-                  <Text style={[styles.progressLegendLabel, { color: colors.textMuted }]}>
-                    {item.label}
-                  </Text>
-                  <Text style={[styles.progressLegendCount, { color: colors.textSecondary }]}>
-                    {item.count}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            {upcomingReviewVerses.length > 0 && (
-              <View style={styles.upcomingSection}>
-                <Text style={[styles.upcomingLabel, { color: colors.textMuted }]}>
-                  الآيات القادمة للمراجعة
-                </Text>
-                <View style={styles.upcomingChips}>
-                  {upcomingReviewVerses.map((v) => {
-                    const lvl = getMastery(surahNumber, v.number);
-                    const dotColor = lvl === 1 ? "#E67E22" : lvl === 2 ? "#C9A227" : "#27AE60";
-                    const vIdx = surah.verses.findIndex((sv) => sv.number === v.number);
-                    return (
-                      <Pressable
-                        key={v.number}
-                        onPress={() => {
-                          if (vIdx >= 0) {
-                            flatListRef.current?.scrollToIndex({ index: vIdx, animated: true, viewPosition: 0.3 });
-                            setNavigatedVerseNum(v.number);
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setTimeout(() => setNavigatedVerseNum(null), 1500);
-                          }
-                        }}
-                        style={[styles.upcomingChip, { backgroundColor: dotColor + "20", borderColor: dotColor + "50" }]}
-                      >
-                        <View style={[styles.progressLegendDot, { backgroundColor: dotColor }]} />
-                        <Text style={[styles.upcomingChipText, { color: dotColor }]}>آية {v.number}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-          </View>
-        )}
-      </Pressable>
-
       {infoExpanded && (
         <View style={[styles.infoPanel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          <View style={styles.infoGrid}>
+          {surahInfo?.theme ? (
+            <View style={[styles.infoThemeCard, { borderColor: colors.border, borderLeftColor: colors.gold }]}>
+              <Text style={[styles.infoThemeCardLabel, { color: colors.gold }]}>الموضوع الرئيسي</Text>
+              <Text style={[styles.infoThemeCardText, { color: colors.textPrimary }]}>{surahInfo.theme}</Text>
+            </View>
+          ) : null}
+
+          {surahInfo?.virtue ? (
+            <View style={[styles.infoVirtue, { backgroundColor: colors.gold + "12", borderColor: colors.gold + "40" }]}>
+              <Ionicons name="star" size={15} color={colors.gold} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.infoVirtueLabel, { color: colors.gold }]}>فضل السورة</Text>
+                <Text style={[styles.infoVirtueText, { color: colors.textSecondary }]}>{surahInfo.virtue}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={[styles.infoGrid, { borderTopWidth: surahInfo?.theme || surahInfo?.virtue ? 1 : 0, borderTopColor: colors.border }]}>
             <View style={[styles.infoCell, { borderColor: colors.border }]}>
               <Text style={[styles.infoCellNum, { color: colors.gold }]}>{wordCount.toLocaleString("ar")}</Text>
               <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>كلمة</Text>
@@ -726,20 +641,6 @@ export default function SurahScreen() {
               <Text style={[styles.infoCellLabel, { color: colors.textMuted }]}>الجزء</Text>
             </View>
           </View>
-
-          {surahInfo?.theme ? (
-            <View style={[styles.infoTheme, { borderTopColor: colors.border }]}>
-              <Text style={[styles.infoThemeLabel, { color: colors.textMuted }]}>الموضوع</Text>
-              <Text style={[styles.infoThemeText, { color: colors.textPrimary }]}>{surahInfo.theme}</Text>
-            </View>
-          ) : null}
-
-          {surahInfo?.virtue ? (
-            <View style={[styles.infoVirtue, { backgroundColor: colors.gold + "10", borderColor: colors.gold + "30" }]}>
-              <Ionicons name="star" size={14} color={colors.gold} />
-              <Text style={[styles.infoVirtueText, { color: colors.textSecondary }]}>{surahInfo.virtue}</Text>
-            </View>
-          ) : null}
         </View>
       )}
     </View>
@@ -793,7 +694,6 @@ export default function SurahScreen() {
             const p = Math.min(1, Math.max(0, scrollY / (totalH - viewH)));
             progressAnim.setValue(p);
           }
-          if (scrollY < 80) setJumpStep(0);
           if (positionSaveTimer.current) clearTimeout(positionSaveTimer.current);
           positionSaveTimer.current = setTimeout(() => {
             AsyncStorage.setItem(`al_hifz_pos_${surahNumber}`, String(scrollY));
@@ -854,41 +754,6 @@ export default function SurahScreen() {
         </TouchableOpacity>
       )}
 
-      {surah && surah.versesCount >= 30 && (
-        <Pressable
-          onPress={() => {
-            if (!surah) return;
-            const count = surah.verses.length;
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (jumpStep === 0 || jumpStep === 3) {
-              const idx = Math.floor(count / 3);
-              flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
-              setJumpStep(1);
-            } else if (jumpStep === 1) {
-              const idx = Math.floor(count * 2 / 3);
-              flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
-              setJumpStep(2);
-            } else if (jumpStep === 2) {
-              flatListRef.current?.scrollToIndex({ index: count - 1, animated: true, viewPosition: 0 });
-              setJumpStep(3);
-              setTimeout(() => setJumpStep(0), 1500);
-            }
-          }}
-          style={[
-            styles.jumpBtn,
-            {
-              backgroundColor: colors.bgCard + "F0",
-              borderColor: jumpStep === 3 ? colors.border : colors.gold + "80",
-              bottom: Platform.OS === "web" ? 34 + 84 + 8 : insets.bottom + 84 + 8,
-              opacity: jumpStep === 3 ? 0.4 : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.jumpBtnText, { color: colors.gold }]}>
-            {jumpStep === 0 || jumpStep === 3 ? "١/٣" : jumpStep === 1 ? "٢/٣" : "نهاية"}
-          </Text>
-        </Pressable>
-      )}
 
       {bookmarkedIndices.length > 0 && (
         <>
@@ -1218,29 +1083,41 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 11,
   },
-  infoTheme: {
+  infoThemeCard: {
     padding: 14,
     gap: 6,
-    borderTopWidth: 1,
+    borderLeftWidth: 3,
+    borderWidth: 0,
+    borderLeftColor: "transparent",
+    backgroundColor: "transparent",
   },
-  infoThemeLabel: {
-    fontFamily: "Inter_500Medium",
+  infoThemeCardLabel: {
+    fontFamily: "Inter_600SemiBold",
     fontSize: 11,
     textAlign: "right",
+    letterSpacing: 0.3,
   },
-  infoThemeText: {
-    fontSize: 15,
+  infoThemeCardText: {
+    fontSize: 16,
     textAlign: "right",
-    lineHeight: 26,
+    lineHeight: 28,
+    fontFamily: "Inter_500Medium",
   },
   infoVirtue: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 8,
-    margin: 12,
+    gap: 10,
+    marginHorizontal: 12,
+    marginBottom: 12,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
+  },
+  infoVirtueLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    textAlign: "right",
+    marginBottom: 3,
   },
   infoVirtueText: {
     flex: 1,
@@ -1344,29 +1221,9 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
   },
-  jumpBtn: {
-    position: "absolute",
-    left: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  jumpBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-    textAlign: "center",
-  },
   audioBar: {
     position: "absolute",
-    left: 72,
+    left: 12,
     right: 12,
     borderRadius: 16,
     borderWidth: 1,
@@ -1483,72 +1340,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "right",
     flex: 1,
-  },
-  progressPanel: {
-    width: "100%",
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 10,
-    marginTop: 10,
-    gap: 8,
-  },
-  progressPanelTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  progressPct: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
-    textAlign: "right",
-  },
-  progressBarRow: {
-    flexDirection: "row",
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressDetail: {
-    gap: 10,
-    marginTop: 4,
-  },
-  progressLegendRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "flex-end",
-  },
-  progressLegendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  progressLegendDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  progressLegendLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-  },
-  progressLegendCount: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
-  },
-  upcomingSection: {
-    gap: 6,
-  },
-  upcomingLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    textAlign: "right",
-  },
-  upcomingChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    justifyContent: "flex-end",
   },
   upcomingChip: {
     flexDirection: "row",
