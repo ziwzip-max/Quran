@@ -188,6 +188,98 @@ export const SURAH_INFO: Record<number, SurahInfo> = {
   114: { theme: "الاستعاذة بالله من وسواس الشيطان", virtue: "المعوذتان لا مثيل لهما في الاستعاذة" },
 };
 
+export interface HizbPosition {
+  surah: number;
+  verse: number;
+}
+
+export const HIZB_START: HizbPosition[] = [
+  { surah: 1,  verse: 1  },
+  { surah: 2,  verse: 75 },
+  { surah: 2,  verse: 142 },
+  { surah: 2,  verse: 203 },
+  { surah: 2,  verse: 253 },
+  { surah: 3,  verse: 15  },
+  { surah: 3,  verse: 93  },
+  { surah: 3,  verse: 171 },
+  { surah: 4,  verse: 24  },
+  { surah: 4,  verse: 88  },
+  { surah: 4,  verse: 148 },
+  { surah: 5,  verse: 27  },
+  { surah: 5,  verse: 82  },
+  { surah: 6,  verse: 36  },
+  { surah: 6,  verse: 111 },
+  { surah: 7,  verse: 1   },
+  { surah: 7,  verse: 88  },
+  { surah: 7,  verse: 171 },
+  { surah: 8,  verse: 41  },
+  { surah: 9,  verse: 34  },
+  { surah: 9,  verse: 93  },
+  { surah: 10, verse: 26  },
+  { surah: 11, verse: 1   },
+  { surah: 11, verse: 84  },
+  { surah: 12, verse: 53  },
+  { surah: 13, verse: 19  },
+  { surah: 15, verse: 1   },
+  { surah: 16, verse: 51  },
+  { surah: 17, verse: 1   },
+  { surah: 17, verse: 99  },
+  { surah: 18, verse: 75  },
+  { surah: 20, verse: 1   },
+  { surah: 21, verse: 1   },
+  { surah: 22, verse: 1   },
+  { surah: 23, verse: 1   },
+  { surah: 24, verse: 1   },
+  { surah: 25, verse: 1   },
+  { surah: 26, verse: 41  },
+  { surah: 27, verse: 56  },
+  { surah: 28, verse: 51  },
+  { surah: 29, verse: 46  },
+  { surah: 31, verse: 22  },
+  { surah: 33, verse: 31  },
+  { surah: 35, verse: 1   },
+  { surah: 37, verse: 1   },
+  { surah: 39, verse: 1   },
+  { surah: 40, verse: 1   },
+  { surah: 41, verse: 47  },
+  { surah: 43, verse: 24  },
+  { surah: 45, verse: 1   },
+  { surah: 47, verse: 1   },
+  { surah: 50, verse: 1   },
+  { surah: 52, verse: 1   },
+  { surah: 57, verse: 1   },
+  { surah: 59, verse: 1   },
+  { surah: 62, verse: 1   },
+  { surah: 67, verse: 1   },
+  { surah: 70, verse: 1   },
+  { surah: 78, verse: 1   },
+  { surah: 87, verse: 1   },
+];
+
+export const MANZIL_START: HizbPosition[] = [
+  { surah: 1,  verse: 1 },
+  { surah: 5,  verse: 1 },
+  { surah: 10, verse: 1 },
+  { surah: 17, verse: 1 },
+  { surah: 26, verse: 1 },
+  { surah: 37, verse: 1 },
+  { surah: 50, verse: 1 },
+];
+
+export const HIZB_LABEL_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  const ARABIC_NUMS = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠",
+    "١١", "١٢", "١٣", "١٤", "١٥", "١٦", "١٧", "١٨", "١٩", "٢٠",
+    "٢١", "٢٢", "٢٣", "٢٤", "٢٥", "٢٦", "٢٧", "٢٨", "٢٩", "٣٠",
+    "٣١", "٣٢", "٣٣", "٣٤", "٣٥", "٣٦", "٣٧", "٣٨", "٣٩", "٤٠",
+    "٤١", "٤٢", "٤٣", "٤٤", "٤٥", "٤٦", "٤٧", "٤٨", "٤٩", "٥٠",
+    "٥١", "٥٢", "٥٣", "٥٤", "٥٥", "٥٦", "٥٧", "٥٨", "٥٩", "٦٠"];
+  HIZB_START.forEach((pos, i) => {
+    map[`${pos.surah}:${pos.verse}`] = `حزب ${ARABIC_NUMS[i]}`;
+  });
+  return map;
+})();
+
 export function getSurahsByJuz(juz: number) {
   return SURAHS.filter((s) => SURAH_JUZ[s.number] === juz);
 }

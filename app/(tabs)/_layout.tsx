@@ -52,6 +52,15 @@ export default function TabLayout() {
         options={{
           title: "السُّوَر",
           tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="mushaf"
+        options={{
+          title: "المصحف",
+          tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
         }}
