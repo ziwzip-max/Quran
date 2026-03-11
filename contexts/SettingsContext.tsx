@@ -45,6 +45,8 @@ interface SettingsContextValue {
   setNotifHour: (h: number) => void;
   setNotifMinute: (m: number) => void;
   setAutoNightMode: (v: boolean) => void;
+  arabicFontSize: number;
+  setArabicFontSize: (s: number) => void;
   colors: ThemeColors;
   arabicFontFamily: string | undefined;
   lineSpacingValue: number;
@@ -88,6 +90,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [notifHour, setNotifHourState] = useState(8);
   const [notifMinute, setNotifMinuteState] = useState(0);
   const [autoNightMode, setAutoNightModeState] = useState(false);
+  const [arabicFontSize, setArabicFontSizeState] = useState(30);
 
   const systemColorScheme = useColorScheme();
 
@@ -114,6 +117,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
       if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
       if (p.autoNightMode !== undefined) setAutoNightModeState(p.autoNightMode);
+      if (p.arabicFontSize !== undefined) setArabicFontSizeState(p.arabicFontSize);
     });
   }, []);
 
@@ -134,6 +138,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
   const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
   const setAutoNightMode = (v: boolean) => { setAutoNightModeState(v); saveSettings({ autoNightMode: v }); };
+  const setArabicFontSize = (s: number) => { setArabicFontSizeState(s); saveSettings({ arabicFontSize: s }); };
 
   const effectiveTheme = useMemo<ThemeName>(() => {
     if (autoNightMode && systemColorScheme) {
@@ -157,6 +162,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
       notifEnabled, notifHour, notifMinute, autoNightMode,
+      arabicFontSize, setArabicFontSize,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
       setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
@@ -168,6 +174,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
       notifEnabled, notifHour, notifMinute, autoNightMode,
+      arabicFontSize,
       colors, arabicFontFamily, lineSpacingValue,
     ]
   );

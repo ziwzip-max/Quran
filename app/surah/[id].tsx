@@ -318,6 +318,7 @@ export default function SurahScreen() {
   const {
     colors, arabicFontFamily, hideVerseNumbers,
     highlightActiveVerse, lineSpacingValue, showTajweed, setShowTajweed, qiraa, repeatMode, playbackRate,
+    arabicFontSize, setArabicFontSize,
     setPlaybackRate, setRepeatMode, reciterId,
   } = useSettings();
   const {
@@ -333,7 +334,11 @@ export default function SurahScreen() {
   const surahNumber = parseInt(id ?? "1", 10);
   const surah = SURAHS.find((s) => s.number === surahNumber);
 
-  const [fontSize, setFontSize] = useState(30);
+  const [fontSize, setFontSize] = useState(arabicFontSize);
+  const fontSizeRef = useRef(arabicFontSize);
+  fontSizeRef.current = fontSize;
+  const setArabicFontSizeRef = useRef(setArabicFontSize);
+  setArabicFontSizeRef.current = setArabicFontSize;
   const [isImmersive, setIsImmersive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoExpanded, setInfoExpanded] = useState(false);
@@ -400,9 +405,6 @@ export default function SurahScreen() {
   const currentReciterEntry = RECITERS_LIST.find((r) => r.id === reciterId);
   const isSurahMissing = isSurahMode && (currentReciterEntry?.missingSurahs?.includes(surahNumber) ?? false);
 
-  const increaseFont = useCallback(() => setFontSize((f) => Math.min(f + FONT_STEP, MAX_FONT)), []);
-  const decreaseFont = useCallback(() => setFontSize((f) => Math.max(f - FONT_STEP, MIN_FONT)), []);
-
   const toggleImmersive = useCallback(() => {
     setIsImmersive((prev) => !prev);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -425,24 +427,6 @@ export default function SurahScreen() {
       headerBackTitle: "القرآن",
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 }}>
-          {surahNumber > 1 && (
-            <Pressable
-              onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber - 1) } })}
-              hitSlop={10}
-              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-            >
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
-          {surahNumber < 114 && (
-            <Pressable
-              onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber + 1) } })}
-              hitSlop={10}
-              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-            >
-              <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
           {Platform.OS !== "web" && (
             <Pressable
               onPress={handleDownload}
@@ -462,23 +446,18 @@ export default function SurahScreen() {
           >
             <Ionicons name="color-palette-outline" size={16} color={showTajweed ? colors.gold : colors.textSecondary} />
           </Pressable>
-          <Pressable onPress={decreaseFont} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_700Bold" }}>ا-</Text>
-          </Pressable>
-          <Pressable onPress={increaseFont} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_700Bold" }}>ا+</Text>
-          </Pressable>
-          <Pressable onPress={toggleImmersive} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-            <Ionicons name="expand-outline" size={16} color={colors.textSecondary} />
-          </Pressable>
         </View>
       ),
     });
-  }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive, showTajweed, setShowTajweed, handleDownload]);
+  }, [surah, navigation, colors, isImmersive, showTajweed, setShowTajweed, handleDownload]);
 
   useFocusEffect(useCallback(() => {
     hasScrolled.current = false;
   }, []));
+
+  useFocusEffect(useCallback(() => {
+    setFontSize(arabicFontSize);
+  }, [arabicFontSize]));
 
   useEffect(() => {
     hasScrolled.current = false;
@@ -577,7 +556,9 @@ export default function SurahScreen() {
       },
       onPanResponderRelease: (_, gestureState) => {
         setSwipeIndicator(s => ({ ...s, visible: false }));
-        if (!isPinchRef.current) {
+        if (isPinchRef.current) {
+          setArabicFontSizeRef.current(fontSizeRef.current);
+        } else {
           const { dx, dy } = gestureState;
           if (Math.abs(dx) > 80 && Math.abs(dy) < 60) {
             if (dx < 0 && surahNumber < 114) {

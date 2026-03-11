@@ -32,6 +32,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
     reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
     notifEnabled, notifHour, notifMinute,
+    arabicFontSize, setArabicFontSize,
     setTheme, setArabicFont, setAccentColor, setLineSpacing,
     setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
     setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
@@ -39,6 +40,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     autoNightMode, setAutoNightMode,
     colors, arabicFontFamily,
   } = useSettings();
+
+  const MIN_FONT_SIZE = 18;
+  const MAX_FONT_SIZE = 48;
+  const FONT_STEP = 2;
   const insets = useSafeAreaInsets();
   const s = makeStyles(colors);
 
@@ -224,6 +229,30 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     {arabicFont === f.key && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
                   </Pressable>
                 ))}
+              </View>
+
+              <Text style={s.sectionTitle}>حجم الخط</Text>
+              <View style={s.fontSizeRow}>
+                <Pressable
+                  onPress={() => setArabicFontSize(Math.max(MIN_FONT_SIZE, arabicFontSize - FONT_STEP))}
+                  style={[s.fontSizeBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+                  disabled={arabicFontSize <= MIN_FONT_SIZE}
+                >
+                  <Text style={[s.fontSizeBtnText, { color: arabicFontSize <= MIN_FONT_SIZE ? colors.textMuted : colors.textPrimary }]}>−</Text>
+                </Pressable>
+                <View style={[s.fontSizeDisplay, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+                  <Text style={[s.fontSizeValue, { color: colors.gold, fontFamily: arabicFontFamily ?? undefined }]}>
+                    بِسْمِ
+                  </Text>
+                  <Text style={[s.fontSizeNumber, { color: colors.textSecondary }]}>{arabicFontSize}</Text>
+                </View>
+                <Pressable
+                  onPress={() => setArabicFontSize(Math.min(MAX_FONT_SIZE, arabicFontSize + FONT_STEP))}
+                  style={[s.fontSizeBtn, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+                  disabled={arabicFontSize >= MAX_FONT_SIZE}
+                >
+                  <Text style={[s.fontSizeBtnText, { color: arabicFontSize >= MAX_FONT_SIZE ? colors.textMuted : colors.textPrimary }]}>+</Text>
+                </Pressable>
               </View>
 
               <Text style={s.sectionTitle}>تباعد الأسطر</Text>
@@ -552,6 +581,24 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     fontBtnInner: { flexDirection: "row", alignItems: "center", gap: 14 },
     fontSample: { fontSize: 20, color: colors.textPrimary },
     fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "Inter_400Regular" },
+    fontSizeRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 20,
+    },
+    fontSizeBtn: {
+      width: 46, height: 46, borderRadius: 12,
+      borderWidth: 1, alignItems: "center", justifyContent: "center",
+    },
+    fontSizeBtnText: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 26 },
+    fontSizeDisplay: {
+      flex: 1, height: 46, borderRadius: 12, borderWidth: 1,
+      flexDirection: "row-reverse", alignItems: "center",
+      justifyContent: "space-between", paddingHorizontal: 14,
+    },
+    fontSizeValue: { fontSize: 20 },
+    fontSizeNumber: { fontSize: 13, fontFamily: "Inter_500Medium" },
     reciterPickerRow: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
