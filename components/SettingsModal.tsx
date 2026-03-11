@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/contexts/SettingsContext";
+import * as FileSystem from "expo-file-system/legacy";
 import {
   ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
   PlaybackRate, RepeatMode,
@@ -35,6 +36,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
     setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
     setNotifEnabled, setNotifHour, setNotifMinute,
+    autoNightMode, setAutoNightMode,
     colors, arabicFontFamily,
   } = useSettings();
   const insets = useSafeAreaInsets();
@@ -59,7 +61,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     { key: "amiriquran",    sample: "بِسْمِ ٱللَّهِ", label: "أميري قرآن",  fontFamily: "AmiriQuran_400Regular" },
     { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",      fontFamily: "ScheherazadeNew_400Regular" },
     { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",        fontFamily: "Lateef_400Regular" },
-    { key: "reemkufi",      sample: "بِسْمِ ٱللَّهِ", label: "ريم كوفي",    fontFamily: "ReemKufi_400Regular" },
+    { key: "tajawal",       sample: "بِسْمِ ٱللَّهِ", label: "تجول",        fontFamily: "Tajawal_400Regular" },
   ];
 
   const spacings: { key: LineSpacingName; label: string }[] = [
@@ -78,6 +80,44 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   ];
 
   const activeReciter = RECITERS_LIST.find((r) => r.id === reciterId);
+
+  const [cacheSize, setCacheSize] = useState<string>("0 MB");
+
+  React.useEffect(() => {
+    updateCacheSize();
+  }, []);
+
+  const updateCacheSize = async () => {
+    try {
+      const dir = FileSystem.cacheDirectory + "audio/";
+      const info = await FileSystem.getInfoAsync(dir);
+      if (!info.exists) {
+        setCacheSize("0 MB");
+        return;
+      }
+      // This is a rough estimation as FileSystem.getInfoAsync doesn't give folder size recursively easily in Expo
+      // We'll just say "Calculated" or use a more complex logic if needed, but for now let's try to get files
+      const files = await FileSystem.readDirectoryAsync(dir);
+      let totalSize = 0;
+      for (const file of files) {
+        const fInfo = await FileSystem.getInfoAsync(dir + file);
+        if (fInfo.exists) {
+          totalSize += fInfo.size;
+        }
+      }
+      setCacheSize((totalSize / (1024 * 1024)).toFixed(1) + " MB");
+    } catch (e) {
+      setCacheSize("0 MB");
+    }
+  };
+
+  const clearCache = async () => {
+    try {
+      const dir = FileSystem.cacheDirectory + "audio/";
+      await FileSystem.deleteAsync(dir, { idempotent: true });
+      updateCacheSize();
+    } catch (e) {}
+  };
 
   const hourDisplay = String(notifHour).padStart(2, "0");
   const minDisplay = String(notifMinute).padStart(2, "0");
@@ -115,12 +155,29 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                   <Pressable
                     key={t.key}
                     onPress={() => setTheme(t.key)}
-                    style={[s.themeBtn, theme === t.key && s.themeBtnActive]}
+                    disabled={autoNightMode}
+                    style={[
+                      s.themeBtn,
+                      theme === t.key && s.themeBtnActive,
+                      autoNightMode && { opacity: 0.5 }
+                    ]}
                   >
                     <Ionicons name={t.icon} size={20} color={theme === t.key ? colors.bgDark : colors.textSecondary} />
                     <Text style={[s.optionLabel, theme === t.key && s.optionLabelActive]}>{t.label}</Text>
                   </Pressable>
                 ))}
+              </View>
+
+              <View style={s.toggleGroup}>
+                <View style={s.toggleRow}>
+                  <Switch
+                    value={autoNightMode}
+                    onValueChange={setAutoNightMode}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={autoNightMode ? colors.gold : colors.textMuted}
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>تبديل تلقائي حسب النظام</Text>
+                </View>
               </View>
 
               <Text style={s.sectionTitle}>لون التمييز</Text>
@@ -338,6 +395,27 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     thumbColor={showVerseOfDay ? colors.gold : colors.textMuted}
                   />
                   <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>آية اليوم في الرئيسية</Text>
+                </View>
+              </View>
+
+              <Text style={s.sectionTitle}>التخزين</Text>
+              <View style={[s.toggleGroup, { padding: 16 }]}>
+                <View style={{ flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" }}>
+                  <View>
+                    <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "right" }}>المساحة المستخدمة</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "right" }}>{cacheSize}</Text>
+                  </View>
+                  <Pressable
+                    onPress={clearCache}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: colors.error + "15",
+                    }}
+                  >
+                    <Text style={{ color: colors.error, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>مسح الكاش</Text>
+                  </Pressable>
                 </View>
               </View>
             </>

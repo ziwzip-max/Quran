@@ -197,7 +197,7 @@ function VerseItem({
 
   const textStyle = {
     fontSize,
-    lineHeight: fontSize * lineSpacingValue,
+    lineHeight: fontSize * lineSpacingValue * 1.6,
     textAlign: "right" as const,
   };
 
@@ -297,7 +297,7 @@ function VerseItem({
       ) : (
         <Text style={[
           styles.verseText,
-          { fontSize, lineHeight: fontSize * lineSpacingValue, color: colors.textPrimary },
+          { fontSize, lineHeight: fontSize * lineSpacingValue * 1.6, color: colors.textPrimary },
           arabicFont ? { fontFamily: arabicFont } : {},
         ]}>
           {displayText}
@@ -317,7 +317,7 @@ export default function SurahScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const {
     colors, arabicFontFamily, hideVerseNumbers,
-    highlightActiveVerse, lineSpacingValue, showTajweed, qiraa, repeatMode, playbackRate,
+    highlightActiveVerse, lineSpacingValue, showTajweed, setShowTajweed, qiraa, repeatMode, playbackRate,
     setPlaybackRate, setRepeatMode, reciterId,
   } = useSettings();
   const {
@@ -325,6 +325,8 @@ export default function SurahScreen() {
     currentKey, currentSurahNum: audioSurahNum, currentVerseNum: audioVerseNum,
     isLoading: audioLoading, isPlaying: audioIsPlaying,
     playbackPosition, playbackDuration, isSurahMode,
+    downloadProgress, downloadSurah,
+    sleepTimerActive, sleepTimerRemaining, setSleepTimer,
   } = useAudio();
   const { getMastery } = useMastery();
 
@@ -362,6 +364,7 @@ export default function SurahScreen() {
 
   useEffect(() => {
     if (!surahNumber || isNaN(surahNumber)) return;
+    AsyncStorage.setItem("al_hifz_last_surah", String(surahNumber));
     AsyncStorage.getItem(HISTORY_KEY).then((stored) => {
       let history: number[] = stored ? JSON.parse(stored) : [];
       history = [surahNumber, ...history.filter((n) => n !== surahNumber)].slice(0, MAX_HISTORY_ITEMS);
@@ -405,6 +408,12 @@ export default function SurahScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
+  const handleDownload = useCallback(() => {
+    if (!surah) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    downloadSurah(surahNumber);
+  }, [surah, surahNumber, downloadSurah]);
+
   useEffect(() => {
     if (!surah) return;
     navigation.setOptions({
@@ -416,6 +425,41 @@ export default function SurahScreen() {
       headerBackTitle: "القرآن",
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 }}>
+          {surahNumber > 1 && (
+            <Pressable
+              onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber - 1) } })}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+          {surahNumber < 114 && (
+            <Pressable
+              onPress={() => router.replace({ pathname: "/surah/[id]", params: { id: String(surahNumber + 1) } })}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={handleDownload}
+            hitSlop={10}
+            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+          >
+            <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowTajweed(!showTajweed);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            hitSlop={10}
+            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+          >
+            <Ionicons name="color-palette-outline" size={16} color={showTajweed ? colors.gold : colors.textSecondary} />
+          </Pressable>
           <Pressable onPress={decreaseFont} hitSlop={10} style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
             <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_700Bold" }}>ا-</Text>
           </Pressable>
@@ -428,7 +472,7 @@ export default function SurahScreen() {
         </View>
       ),
     });
-  }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive]);
+  }, [surah, navigation, colors, decreaseFont, increaseFont, toggleImmersive, isImmersive, showTajweed, setShowTajweed, handleDownload]);
 
   useFocusEffect(useCallback(() => {
     hasScrolled.current = false;
@@ -481,6 +525,8 @@ export default function SurahScreen() {
     }
   }).current;
 
+  const [swipeIndicator, setSwipeIndicator] = useState<{ text: string, visible: boolean }>({ text: "", visible: false });
+
   const panResponder = useMemo(() => {
     if (Platform.OS === "web") return null;
     return PanResponder.create({
@@ -502,8 +548,8 @@ export default function SurahScreen() {
           pinchDistanceRef.current = null;
         }
       },
-      onPanResponderMove: (evt) => {
-        const touches = evt.nativeEvent.touches;
+      onPanResponderMove: (_, gestureState) => {
+        const touches = _.nativeEvent.touches;
         if (touches.length === 2 && pinchDistanceRef.current !== null) {
           isPinchRef.current = true;
           const dx = touches[0].pageX - touches[1].pageX;
@@ -514,9 +560,21 @@ export default function SurahScreen() {
           setFontSize((prev) =>
             Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(prev * delta)))
           );
+        } else if (!isPinchRef.current) {
+          const { dx } = gestureState;
+          if (dx < -80 && surahNumber < 114) {
+             const nextName = SURAHS.find(s => s.number === surahNumber + 1)?.nameArabic;
+             setSwipeIndicator({ text: `السورة التالية: ${nextName} ←`, visible: true });
+          } else if (dx > 80 && surahNumber > 1) {
+             const prevName = SURAHS.find(s => s.number === surahNumber - 1)?.nameArabic;
+             setSwipeIndicator({ text: `→ السورة السابقة: ${prevName}`, visible: true });
+          } else {
+             setSwipeIndicator(s => s.visible ? { ...s, visible: false } : s);
+          }
         }
       },
       onPanResponderRelease: (_, gestureState) => {
+        setSwipeIndicator(s => ({ ...s, visible: false }));
         if (!isPinchRef.current) {
           const { dx, dy } = gestureState;
           if (Math.abs(dx) > 80 && Math.abs(dy) < 60) {
@@ -580,6 +638,20 @@ export default function SurahScreen() {
     setTimeout(() => setNavigatedVerseNum(null), 1500);
   }, [bookmarkedIndices]);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const sleepTimerOptions = [
+    { label: "إيقاف", value: null },
+    { label: "١٥ د", value: 15 },
+    { label: "٣٠ د", value: 30 },
+    { label: "٤٥ د", value: 45 },
+    { label: "٦٠ د", value: 60 },
+  ];
+
   const headerComponent = (
     <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <View style={styles.surahHeaderTop}>
@@ -600,7 +672,19 @@ export default function SurahScreen() {
               <Text style={[styles.qiraaBadgeText, { color: colors.tealLight }]}>◉ يُشغَّل</Text>
             </View>
           )}
-          {isSurahMissing && (
+          {sleepTimerActive && sleepTimerRemaining !== null && (
+            <View style={[styles.qiraaBadge, { backgroundColor: colors.bgSurface, borderColor: colors.border, flexDirection: "row", alignItems: "center" }]}>
+              <Ionicons name="moon-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={[styles.qiraaBadgeText, { color: colors.textSecondary }]}>{formatTime(sleepTimerRemaining)}</Text>
+            </View>
+          )}
+          {swipeIndicator.visible && (
+        <View style={styles.swipeIndicator}>
+          <Text style={styles.swipeIndicatorText}>{swipeIndicator.text}</Text>
+        </View>
+      )}
+
+      {isSurahMissing && (
             <View style={[styles.qiraaBadge, { backgroundColor: colors.error + "20", borderColor: colors.error + "40" }]}>
               <Text style={[styles.qiraaBadgeText, { color: colors.error }]}>غير متوفر</Text>
             </View>
@@ -730,6 +814,15 @@ export default function SurahScreen() {
           }),
         },
       ]} />
+
+      {downloadProgress && downloadProgress.surahNum === surahNumber && (
+        <View style={[styles.downloadBar, { backgroundColor: colors.bgSurface, borderBottomColor: colors.border }]}>
+          <View style={[styles.downloadProgress, { width: `${downloadProgress.percent}%`, backgroundColor: colors.gold }]} />
+          <Text style={[styles.downloadText, { color: colors.textPrimary }]}>
+            جاري التحميل... {Math.round(downloadProgress.percent)}%
+          </Text>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -984,26 +1077,24 @@ export default function SurahScreen() {
               </Pressable>
             ))}
             <View style={[styles.audioChipDivider, { backgroundColor: colors.border }]} />
-            {([
-              { value: 0 as const, label: "—" },
-              { value: 3 as const, label: "×٣" },
-              { value: 5 as const, label: "×٥" },
-              { value: 10 as const, label: "×١٠" },
-            ]).map((item) => {
-              const isActive = repeatMode === item.value;
+            {sleepTimerOptions.map((item) => {
+              const isActive = sleepTimerRemaining !== null && sleepTimerOptions.find(o => o.value === (Math.round(sleepTimerRemaining / 60)))?.value === item.value;
+              const isEffectiveActive = (item.value === null && sleepTimerRemaining === null) || (item.value !== null && sleepTimerRemaining !== null && Math.abs(sleepTimerRemaining - item.value * 60) < 30);
+
               return (
                 <Pressable
-                  key={item.value}
-                  onPress={() => { setRepeatMode(item.value); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  key={String(item.value)}
+                  onPress={() => { setSleepTimer(item.value); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                   style={[
                     styles.audioChip,
                     {
-                      backgroundColor: isActive ? colors.teal + "25" : colors.bgSurface,
-                      borderColor: isActive ? colors.tealLight : colors.border,
+                      backgroundColor: isEffectiveActive ? colors.gold + "25" : colors.bgSurface,
+                      borderColor: isEffectiveActive ? colors.gold : colors.border,
                     },
                   ]}
                 >
-                  <Text style={[styles.audioChipText, { color: isActive ? colors.tealLight : colors.textMuted }]}>
+                  <Ionicons name="moon-outline" size={12} color={isEffectiveActive ? colors.gold : colors.textMuted} style={{ marginLeft: 4 }} />
+                  <Text style={[styles.audioChipText, { color: isEffectiveActive ? colors.gold : colors.textMuted }]}>
                     {item.label}
                   </Text>
                 </Pressable>
@@ -1303,6 +1394,39 @@ const styles = StyleSheet.create({
   },
   verseSeparator: {
     height: 10,
+  },
+  downloadBar: {
+    height: 40,
+    borderBottomWidth: 1,
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  downloadProgress: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+  },
+  downloadText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+    zIndex: 1,
+  },
+  swipeIndicator: {
+    position: "absolute",
+    top: 100,
+    alignSelf: "center",
+    backgroundColor: "rgba(26, 140, 122, 0.9)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 100,
+  },
+  swipeIndicatorText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   notFound: {
     flex: 1,

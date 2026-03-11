@@ -6,68 +6,91 @@ Application mobile Expo React Native pour apprendre et mémoriser le Coran en ar
 
 - **Frontend**: Expo Router (file-based routing), React Native, TypeScript
 - **Backend**: Express.js (port 5000) — sert les assets statiques et l'API
-- **Données locales**: AsyncStorage pour la persistance des signets
+- **Données locales**: AsyncStorage pour la persistance de tous les réglages
 - **Données Coran**: Fichier TypeScript statique (`constants/quranData.ts`) avec les 114 sourates et le texte arabe
 
 ## Structure des fichiers
 
 ```
 app/
-  _layout.tsx              # Root layout, providers, fonts
+  _layout.tsx              # Root layout, providers, fonts, NotificationScheduler
   (tabs)/
     _layout.tsx            # 4 onglets: السور / محفوظاتي / المراجعة / الأدعية
-    index.tsx              # Liste des sourates + Verset du jour + recherche
-    bookmarks.tsx          # Mémorisation — sourates avec niveaux de maîtrise L0-L3
-    practice.tsx           # Révision aléatoire avec flashcards
+    index.tsx              # Liste des sourates + VOTD + recherche plein texte + filtres Juz + "continuer la lecture" + Du'a du jour
+    bookmarks.tsx          # Mémorisation — sourates avec niveaux L0-L3 + stats hebdo + graphique 7 jours
+    practice.tsx           # 5 modes: عرض / اختبار / بطاقات / إملاء (dictée) / تغطية (masquage progressif)
     dua.tsx                # Bibliothèque de du'as + ajout personnalisé
-  surah/[id].tsx           # Lecture avec audio, Tajweed, bouton saut 1/3-2/3-fin
+  surah/[id].tsx           # Lecture avec audio, Tajweed, Tafsir, navigation infinie, minuteur sommeil, téléchargement hors-ligne
 
 constants/
   quranData.ts             # 114 sourates avec texte arabe (Hafs)
   qaloonData.ts            # Texte arabe selon la riwaya Qaloon
   quranMeta.ts             # Métadonnées (type, juz, mots, lettres)
-  themes.ts                # 4 thèmes: sombre, sepia (parchmin), ocean, desert
-  duaaData.ts              # 66+ du'as classiques par catégorie
+  themes.ts                # 4 thèmes: sombre, sepia (parchmin), ocean, desert + 9 récitateurs
+  duaaData.ts              # 490+ du'as classiques par catégorie
   verseOfDayList.ts        # ~70 versets sélectionnés pour le Verset du Jour
 
 contexts/
   BookmarksContext.tsx     # Signets + blocs consécutifs
-  MasteryContext.tsx       # Niveaux L0-L3 + spaced repetition
-  AudioContext.tsx         # Lecture audio (9 récitateurs) + pause/resume + mode surah
-  SettingsContext.tsx      # Thème, police, récitateur, options lecture
+  MasteryContext.tsx       # Niveaux L0-L3 + spaced repetition + enregistrement activité quotidienne
+  AudioContext.tsx         # Lecture audio (9 récitateurs) + pause/resume + mode surah + minuteur sommeil + cache hors-ligne
+  SettingsContext.tsx      # Thème, police, récitateur, options lecture + mode nuit auto
+
+utils/
+  notifications.ts         # Notifications SRS intelligentes (expo-notifications)
+
+components/
+  SettingsModal.tsx        # Modal paramètres avec gestion du cache audio
+  ErrorBoundary.tsx        # Error boundary global
 ```
 
 ## Fonctionnalités
 
 ### 1. Lecture du Coran (القرآن)
 - Liste des 114 sourates avec numéros et noms arabes
-- Recherche par nom (arabe ou translittération)
+- Recherche par nom (arabe ou translittération) + recherche plein texte arabe dans les 6236 versets
+- Filtres Juz (1-30) et type de révélation (mecquoise/médinoise)
 - Page de lecture avec Bismillah, numéros de versets
-- Bouton marque-page par verset (or = marqué)
+- Navigation infinie entre sourates (swipe ou flèches)
+- Bouton Tajweed dans le header (sans ouvrir les paramètres)
+- Widget "continuer la lecture" sur l'écran d'accueil
 
-### 2. Mémorisation (الحفظ)
-- Versets regroupés par **blocs consécutifs** : si les versets 1, 2, 3 sont marqués, ils forment un seul bloc "الآيات 1 – 3"
-- Interface collapsible : clic sur le nom de la sourate pour révéler les versets
-- Suppression par bloc via l'icône poubelle
+### 2. Audio
+- 9 récitateurs dont 2 en mode surah complet (Raad Al-Kurdi, Islam Sobhi)
+- Minuteur de sommeil (15/30/45/60 min) avec compte à rebours visible
+- Cache hors-ligne: téléchargement par sourate, lecture sans connexion
+- Vitesse de lecture (0.75x / 1x / 1.25x), répétition, lecture continue
 
-### 3. Tirage aléatoire (التسميع)
-- Propose **2 blocs aléatoires** parmi les blocs mémorisés
-- Triés dans l'ordre coranique (numéro de sourate puis verset)
-- Bouton "تسميع جديد" pour régénérer
+### 3. Mémorisation (الحفظ)
+- Versets regroupés par blocs consécutifs avec niveaux L0-L3
+- Statistiques: graphique 7 jours, barre de maîtrise, streak
+- Révision par répétition espacée (SRS)
 
-## Logique des blocs consécutifs
+### 4. Pratique (5 modes)
+- **عرض**: Affichage des versets suggérés
+- **اختبار**: Révélation mot par mot
+- **بطاقات**: Flashcards avec animation de retournement
+- **إملاء**: Dictée — taper le verset et vérification mot par mot
+- **تغطية**: Masquage progressif des mots
 
-Dans `BookmarksContext.tsx`, la fonction `computeBlocks()`:
-1. Regroupe les versets marqués par sourate
-2. Trie les numéros de versets
-3. Détecte les séquences consécutives (verset n et n+1)
-4. Chaque séquence devient un `VerseBlock` avec startVerse/endVerse
+### 5. Paramètres
+- 4 thèmes + 5 couleurs d'accent + 7 polices arabes (dont Amiri Quran, Tajawal)
+- Mode nuit automatique (suit le thème système)
+- Notifications SRS intelligentes avec compte des versets dus
+- Gestion du cache audio (voir taille + vider)
 
-## Design
-
-- Thème sombre islamique : fond `#0A0E1A`, or `#C9A227`, teal `#1A8C7A`
-- Interface 100% en arabe
-- Police Inter pour les textes latins, taille 20-24px pour le texte arabe
+## AsyncStorage Keys
+- `al_hifz_settings` — tous les réglages
+- `al_hifz_bookmarks` — signets
+- `al_hifz_mastery` — niveaux de maîtrise
+- `al_hifz_reviews` — dates de révision
+- `al_hifz_pos_{n}` — position de scroll par sourate
+- `al_hifz_last_surah` — dernière sourate visitée
+- `al_hifz_pins` — sourates épinglées
+- `al_hifz_today` — stats du jour
+- `al_hifz_streak` — série de jours actifs
+- `al_hifz_dua_custom` — du'as personnalisés
+- `al_hifz_daily_counts` — activité quotidienne (JSON {date: count})
 
 ## Workflows
 

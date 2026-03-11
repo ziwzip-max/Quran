@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ThemeColors, ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
@@ -26,6 +27,7 @@ interface SettingsContextValue {
   notifEnabled: boolean;
   notifHour: number;
   notifMinute: number;
+  autoNightMode: boolean;
   setTheme: (t: ThemeName) => void;
   setArabicFont: (f: ArabicFontName) => void;
   setAccentColor: (a: AccentColorName) => void;
@@ -42,6 +44,7 @@ interface SettingsContextValue {
   setNotifEnabled: (v: boolean) => void;
   setNotifHour: (h: number) => void;
   setNotifMinute: (m: number) => void;
+  setAutoNightMode: (v: boolean) => void;
   colors: ThemeColors;
   arabicFontFamily: string | undefined;
   lineSpacingValue: number;
@@ -65,7 +68,7 @@ async function saveSettings(patch: object) {
   } catch {}
 }
 
-const INVALID_FONTS: string[] = ["cairo", "tajawal"];
+const INVALID_FONTS: string[] = ["cairo"];
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>("dark");
@@ -84,6 +87,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [notifEnabled, setNotifEnabledState] = useState(false);
   const [notifHour, setNotifHourState] = useState(8);
   const [notifMinute, setNotifMinuteState] = useState(0);
+  const [autoNightMode, setAutoNightModeState] = useState(false);
+
+  const systemColorScheme = useColorScheme();
 
   useEffect(() => {
     loadSettings().then((p) => {
@@ -107,6 +113,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
       if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
       if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
+      if (p.autoNightMode !== undefined) setAutoNightModeState(p.autoNightMode);
     });
   }, []);
 
@@ -126,12 +133,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setNotifEnabled = (v: boolean) => { setNotifEnabledState(v); saveSettings({ notifEnabled: v }); };
   const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
   const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
+  const setAutoNightMode = (v: boolean) => { setAutoNightModeState(v); saveSettings({ autoNightMode: v }); };
+
+  const effectiveTheme = useMemo<ThemeName>(() => {
+    if (autoNightMode && systemColorScheme) {
+      return systemColorScheme === "dark" ? "dark" : "light";
+    }
+    return theme;
+  }, [autoNightMode, systemColorScheme, theme]);
 
   const colors = useMemo<ThemeColors>(() => {
-    const base = THEMES[theme] ?? THEMES.dark;
+    const base = THEMES[effectiveTheme] ?? THEMES.dark;
     const accent = ACCENT_COLORS[accentColor];
     return { ...base, gold: accent.primary, goldLight: accent.light };
-  }, [theme, accentColor]);
+  }, [effectiveTheme, accentColor]);
 
   const arabicFontFamily = ARABIC_FONTS[arabicFont];
   const lineSpacingValue = LINE_SPACING[lineSpacing];
@@ -141,18 +156,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
-      notifEnabled, notifHour, notifMinute,
+      notifEnabled, notifHour, notifMinute, autoNightMode,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
       setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
-      setNotifEnabled, setNotifHour, setNotifMinute,
+      setNotifEnabled, setNotifHour, setNotifMinute, setAutoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
     }),
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
       reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
-      notifEnabled, notifHour, notifMinute,
+      notifEnabled, notifHour, notifMinute, autoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
     ]
   );

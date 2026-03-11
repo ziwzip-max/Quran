@@ -9,7 +9,7 @@ import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic
 import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new";
 import { Lateef_400Regular } from "@expo-google-fonts/lateef";
-import { ReemKufi_400Regular } from "@expo-google-fonts/reem-kufi";
+import { Tajawal_400Regular } from "@expo-google-fonts/tajawal";
 import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -21,10 +21,20 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { BookmarksProvider } from "@/contexts/BookmarksContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
-import { MasteryProvider } from "@/contexts/MasteryContext";
+import { MasteryProvider, useMastery } from "@/contexts/MasteryContext";
 import { AudioProvider } from "@/contexts/AudioContext";
+import { scheduleSmartNotification, countDueVerses } from "@/utils/notifications";
 
 SplashScreen.preventAutoHideAsync();
+
+function NotificationScheduler() {
+  const { notifEnabled, notifHour, notifMinute } = useSettings();
+  const { masteryMap } = useMastery();
+  useEffect(() => {
+    scheduleSmartNotification(notifEnabled, notifHour, notifMinute, countDueVerses(masteryMap));
+  }, [notifEnabled, notifHour, notifMinute, masteryMap]);
+  return null;
+}
 
 function RootLayoutNav() {
   const { colors } = useSettings();
@@ -60,7 +70,7 @@ export default function RootLayout() {
     Amiri_400Regular,
     ScheherazadeNew_400Regular,
     Lateef_400Regular,
-    ReemKufi_400Regular,
+    Tajawal_400Regular,
     AmiriQuran_400Regular,
   });
 
@@ -81,6 +91,7 @@ export default function RootLayout() {
               <BookmarksProvider>
                 <MasteryProvider>
                   <AudioProvider>
+                    <NotificationScheduler />
                     <RootLayoutNav />
                   </AudioProvider>
                 </MasteryProvider>

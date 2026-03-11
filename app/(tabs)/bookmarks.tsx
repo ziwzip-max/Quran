@@ -46,10 +46,10 @@ function isDueForReview(blockId: string, reviews: Record<string, number>, master
 
 export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 };
 
-function StatBar({ value, total, color }: { value: number; total: number; color: string }) {
+function StatBar({ value, total, color, flex }: { value: number; total: number; color: string; flex?: number }) {
   const pct = total > 0 ? value / total : 0;
   return (
-    <View style={barStyles.container}>
+    <View style={[barStyles.container, flex !== undefined ? { flex } : {}]}>
       <View style={[barStyles.track, { backgroundColor: color + "20" }]}>
         <View style={[barStyles.fill, { flex: pct, backgroundColor: color }]} />
         <View style={{ flex: 1 - pct }} />
@@ -58,63 +58,162 @@ function StatBar({ value, total, color }: { value: number; total: number; color:
   );
 }
 
-const barStyles = StyleSheet.create({
-  container: { height: 6, borderRadius: 3, overflow: "hidden", flex: 1 },
-  track: { flex: 1, flexDirection: "row", borderRadius: 3 },
-  fill: { borderRadius: 3 },
-});
+function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: number, colors: any }) {
+  const labels = ["غير مبدوء", "قيد الحفظ", "متوسط", "متقن"];
+  return (
+    <View style={statsStyles.breakdownContainer}>
+      <View style={statsStyles.breakdownBar}>
+        {counts.map((count, i) => {
+          if (count === 0 && total > 0) return null;
+          const pct = total > 0 ? (count / total) * 100 : 0;
+          return (
+            <View 
+              key={i} 
+              style={[
+                statsStyles.breakdownSegment, 
+                { flex: count, backgroundColor: MASTERY_DOT_COLORS[i] },
+                i === 0 ? { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 } : {},
+                i === 3 ? { borderTopRightRadius: 6, borderBottomRightRadius: 6 } : {}
+              ]} 
+            />
+          );
+        })}
+        {total === 0 && <View style={[statsStyles.breakdownSegment, { flex: 1, backgroundColor: colors.border, borderRadius: 6 }]} />}
+      </View>
+      <View style={statsStyles.breakdownLabels}>
+        {labels.map((label, i) => (
+          <View key={i} style={statsStyles.labelItem}>
+            <View style={[statsStyles.labelDot, { backgroundColor: MASTERY_DOT_COLORS[i] }]} />
+            <Text style={[statsStyles.labelText, { color: colors.textSecondary }]}>{label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function WeeklyChart({ data, colors }: { data: number[], colors: any }) {
+  const days = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
+  const max = Math.max(...data, 5);
+  
+  return (
+    <View style={statsStyles.chartContainer}>
+      <Text style={[statsStyles.chartTitle, { color: colors.textPrimary }]}>نشاط المراجعة (آخر ٧ أيام)</Text>
+      <View style={statsStyles.chartBars}>
+        {data.map((val, i) => {
+          const height = (val / max) * 60;
+          return (
+            <View key={i} style={statsStyles.chartColumn}>
+              <View style={[statsStyles.chartBarFill, { height, backgroundColor: colors.tealLight }]} />
+              <Text style={[statsStyles.chartDay, { color: colors.textMuted }]}>{days[i]}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 function StatsPanel({
-  colors, totalVerses, masteredCount, inProgressCount, completeSurahs,
+  colors, totalVerses, masteryCounts, completeSurahs, streak, dailyActivity
 }: {
   colors: ReturnType<typeof useSettings>["colors"];
-  totalVerses: number; masteredCount: number;
-  inProgressCount: number; completeSurahs: number;
+  totalVerses: number; masteryCounts: number[];
+  completeSurahs: number; streak: number;
+  dailyActivity: number[];
 }) {
-  const notStarted = totalVerses - masteredCount - inProgressCount;
+  const [isCollapsed, setIsCollapsed] = useState(totalVerses === 0);
+  const animation = useRef(new Animated.Value(totalVerses === 0 ? 0 : 1)).current;
+
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: isCollapsed ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isCollapsed]);
+
+  const heightInterpolate = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 320],
+  });
+
+  const masteredCount = masteryCounts[3] + masteryCounts[2];
+  const inProgressCount = masteryCounts[1];
+
   return (
     <View style={[statsStyles.panel, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-      <View style={statsStyles.topRow}>
-        <View style={statsStyles.statBlock}>
-          <Text style={[statsStyles.statNum, { color: colors.textPrimary }]}>{totalVerses}</Text>
-          <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>محفوظة</Text>
+      <Pressable 
+        onPress={() => setIsCollapsed(!isCollapsed)}
+        style={statsStyles.panelHeader}
+      >
+        <View style={statsStyles.headerLeft}>
+          <Ionicons name="stats-chart" size={18} color={colors.tealLight} />
+          <Text style={[statsStyles.panelTitle, { color: colors.textPrimary }]}>الإحصائيات</Text>
         </View>
-        <View style={[statsStyles.divider, { backgroundColor: colors.border }]} />
-        <View style={statsStyles.statBlock}>
-          <Text style={[statsStyles.statNum, { color: "#27AE60" }]}>{masteredCount}</Text>
-          <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>مُتقنة</Text>
+        <Ionicons 
+          name={isCollapsed ? "chevron-down" : "chevron-up"} 
+          size={18} 
+          color={colors.textMuted} 
+        />
+      </Pressable>
+
+      <Animated.View style={{ height: heightInterpolate, overflow: "hidden" }}>
+        <View style={statsStyles.topRow}>
+          <View style={statsStyles.statBlock}>
+            <Text style={[statsStyles.statNum, { color: colors.textPrimary }]}>{totalVerses}</Text>
+            <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>محفوظة</Text>
+          </View>
+          <View style={[statsStyles.divider, { backgroundColor: colors.border }]} />
+          <View style={statsStyles.statBlock}>
+            <Text style={[statsStyles.statNum, { color: colors.gold }]}>{streak}</Text>
+            <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>يوم متواصل</Text>
+          </View>
+          <View style={[statsStyles.divider, { backgroundColor: colors.border }]} />
+          <View style={statsStyles.statBlock}>
+            <Text style={[statsStyles.statNum, { color: colors.gold }]}>{completeSurahs}</Text>
+            <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>سورة كاملة</Text>
+          </View>
         </View>
-        <View style={[statsStyles.divider, { backgroundColor: colors.border }]} />
-        <View style={statsStyles.statBlock}>
-          <Text style={[statsStyles.statNum, { color: "#E67E22" }]}>{inProgressCount}</Text>
-          <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>قيد الحفظ</Text>
-        </View>
-        <View style={[statsStyles.divider, { backgroundColor: colors.border }]} />
-        <View style={statsStyles.statBlock}>
-          <Text style={[statsStyles.statNum, { color: colors.gold }]}>{completeSurahs}</Text>
-          <Text style={[statsStyles.statLabel, { color: colors.textMuted }]}>سورة كاملة</Text>
-        </View>
-      </View>
-      {totalVerses > 0 && (
-        <View style={statsStyles.barsRow}>
-          <View style={statsStyles.barItem}><StatBar value={notStarted} total={totalVerses} color={colors.textMuted} /></View>
-          <View style={statsStyles.barItem}><StatBar value={inProgressCount} total={totalVerses} color="#E67E22" /></View>
-          <View style={statsStyles.barItem}><StatBar value={masteredCount} total={totalVerses} color="#27AE60" /></View>
-        </View>
-      )}
+
+        <View style={[statsStyles.sectionDivider, { backgroundColor: colors.border }]} />
+        
+        <Text style={[statsStyles.sectionTitle, { color: colors.textPrimary }]}>مستوى الإتقان</Text>
+        <MasteryBreakdown counts={masteryCounts} total={totalVerses} colors={colors} />
+        
+        <View style={[statsStyles.sectionDivider, { backgroundColor: colors.border }]} />
+        
+        <WeeklyChart data={dailyActivity} colors={colors} />
+      </Animated.View>
     </View>
   );
 }
 
 const statsStyles = StyleSheet.create({
-  panel: { borderRadius: 16, padding: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 14, gap: 12 },
-  topRow: { flexDirection: "row", alignItems: "center" },
+  panel: { borderRadius: 16, padding: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 14, overflow: "hidden" },
+  panelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  panelTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
+  topRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   statBlock: { flex: 1, alignItems: "center", gap: 3 },
-  statNum: { fontFamily: "Inter_700Bold", fontSize: 18 },
-  statLabel: { fontFamily: "Inter_400Regular", fontSize: 10, textAlign: "center" },
-  divider: { width: 1, height: 34, marginHorizontal: 4 },
-  barsRow: { flexDirection: "row", gap: 6, alignItems: "center" },
-  barItem: { flex: 1 },
+  statNum: { fontFamily: "Inter_700Bold", fontSize: 20 },
+  statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "center" },
+  divider: { width: 1, height: 30, marginHorizontal: 4 },
+  sectionDivider: { height: 1, marginVertical: 12, opacity: 0.5 },
+  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, marginBottom: 10 },
+  breakdownContainer: { gap: 10 },
+  breakdownBar: { height: 12, flexDirection: "row", backgroundColor: "#f0f0f020", borderRadius: 6, overflow: "hidden" },
+  breakdownSegment: { height: "100%" },
+  breakdownLabels: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "center" },
+  labelItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  labelDot: { width: 8, height: 8, borderRadius: 4 },
+  labelText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  chartContainer: { gap: 10 },
+  chartTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  chartBars: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 80, paddingHorizontal: 10 },
+  chartColumn: { alignItems: "center", gap: 6, flex: 1 },
+  chartBarFill: { width: 20, borderRadius: 4 },
+  chartDay: { fontSize: 10, fontFamily: "Inter_500Medium" },
 });
 
 const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
@@ -298,12 +397,40 @@ export default function BookmarksScreen() {
   const { colors, arabicFontFamily } = useSettings();
   const { masteryMap: mastery } = useMastery();
   const [reviews, setReviews] = useState<Record<string, number>>({});
+  const [dailyActivity, setDailyActivity] = useState<number[]>(new Array(7).fill(0));
+  const [streak, setStreak] = useState(0);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
+  const loadStats = useCallback(async () => {
+    try {
+      const activityStored = await AsyncStorage.getItem("al_hifz_daily_counts");
+      if (activityStored) {
+        const counts = JSON.parse(activityStored);
+        const last7Days = [];
+        const now = new Date();
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(now.getDate() - i);
+          const key = d.toISOString().split("T")[0];
+          last7Days.push(counts[key] || 0);
+        }
+        setDailyActivity(last7Days);
+      }
+
+      const streakStored = await AsyncStorage.getItem("al_hifz_streak");
+      if (streakStored) {
+        setStreak(parseInt(streakStored, 10) || 0);
+      }
+    } catch (e) {
+      console.error("Failed to load stats", e);
+    }
+  }, []);
+
   useFocusEffect(useCallback(() => {
     loadReviews().then(setReviews);
-  }, []));
+    loadStats();
+  }, [loadStats]));
 
   const markReviewed = useCallback((blockId: string) => {
     setReviews((prev) => {
@@ -315,23 +442,22 @@ export default function BookmarksScreen() {
 
   const totalVerses = blocks.reduce((sum, b) => sum + b.verses.length, 0);
 
-  const { masteredCount, inProgressCount, completeSurahs } = useMemo(() => {
-    let mastered = 0;
-    let inProgress = 0;
+  const { masteryCounts, completeSurahs } = useMemo(() => {
+    const counts = [0, 0, 0, 0]; // L0, L1, L2, L3
     for (const block of blocks) {
       for (const verse of block.verses) {
         const key = `${block.surahNumber}:${verse.number}`;
-        const level = mastery[key] ?? 0;
-        if (level >= 2) mastered++;
-        else if (level === 1) inProgress++;
+        const level = (mastery[key] ?? 0) as 0 | 1 | 2 | 3;
+        counts[level]++;
       }
     }
+    
     let complete = 0;
     for (const surah of SURAHS) {
       const allBookmarked = surah.verses.every((v) => bookmarks[`${surah.number}:${v.number}`]);
       if (allBookmarked && surah.verses.length > 0) complete++;
     }
-    return { masteredCount: mastered, inProgressCount: inProgress, completeSurahs: complete };
+    return { masteryCounts: counts, completeSurahs: complete };
   }, [blocks, mastery, bookmarks]);
 
   if (!isLoaded) {
@@ -357,9 +483,10 @@ export default function BookmarksScreen() {
         <StatsPanel
           colors={colors}
           totalVerses={totalVerses}
-          masteredCount={masteredCount}
-          inProgressCount={inProgressCount}
+          masteryCounts={masteryCounts}
           completeSurahs={completeSurahs}
+          streak={streak}
+          dailyActivity={dailyActivity}
         />
       )}
 

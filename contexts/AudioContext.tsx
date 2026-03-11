@@ -3,6 +3,7 @@ import { Audio } from "expo-av";
 import { useSettings } from "@/contexts/SettingsContext";
 import { RECITERS_LIST, DEFAULT_RECITER_ID } from "@/constants/themes";
 import { SURAHS } from "@/constants/quranData";
+import * as FileSystem from "expo-file-system/legacy";
 
 interface AudioContextValue {
   currentKey: string | null;
@@ -13,6 +14,12 @@ interface AudioContextValue {
   playbackPosition: number;
   playbackDuration: number;
   isSurahMode: boolean;
+  downloadProgress: { surahNum: number; percent: number } | null;
+  downloadSurah: (surahNum: number) => Promise<void>;
+  sleepTimer: number | null;
+  sleepTimerActive: boolean;
+  sleepTimerRemaining: number | null;
+  setSleepTimer: (minutes: number | null) => void;
   play: (surahNum: number, verseNum: number) => Promise<void>;
   stop: () => Promise<void>;
   pause: () => Promise<void>;
@@ -37,6 +44,40 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
+
+  const [downloadProgress, setDownloadProgress] = useState<{ surahNum: number; percent: number } | null>(null);
+
+  const [sleepTimer, setSleepTimerValue] = useState<number | null>(null);
+  const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
+  const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (sleepTimer !== null) {
+      setSleepTimerRemaining(sleepTimer * 60);
+      if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
+      sleepTimerIntervalRef.current = setInterval(() => {
+        setSleepTimerRemaining((prev) => {
+          if (prev === null || prev <= 0) {
+            if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
+            stop();
+            setSleepTimerValue(null);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
+      setSleepTimerRemaining(null);
+    }
+    return () => {
+      if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
+    };
+  }, [sleepTimer]);
+
+  const setSleepTimer = useCallback((minutes: number | null) => {
+    setSleepTimerValue(minutes);
+  }, []);
 
   useEffect(() => {
     Audio.setAudioModeAsync({
@@ -125,16 +166,38 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
       const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
       const surahPadded = padNum(surahNum, 3);
-      const url = reciterEntry?.surahUrl?.replace("{SSS}", surahPadded) ?? "";
+      const remoteUrl = reciterEntry?.surahUrl?.replace("{SSS}", surahPadded) ?? "";
 
-      if (!url) {
+      if (!remoteUrl) {
         setIsLoading(false);
         setCurrentKey(null);
         return;
       }
 
+      const cacheKey = `${rid}_${surahPadded}`;
+      const localUri = FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3";
+      const info = await FileSystem.getInfoAsync(localUri);
+      let uri = remoteUrl;
+
+      if (info.exists) {
+        uri = localUri;
+      } else {
+        // Optional: Trigger background download if not exists
+        (async () => {
+          try {
+            const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory + "audio/");
+            if (!dirInfo.exists) {
+              await FileSystem.makeDirectoryAsync(FileSystem.cacheDirectory + "audio/", { intermediates: true });
+            }
+            await FileSystem.downloadAsync(remoteUrl, localUri);
+          } catch (e) {
+            console.error("Background download failed", e);
+          }
+        })();
+      }
+
       const { sound } = await Audio.Sound.createAsync(
-        { uri: url },
+        { uri },
         { shouldPlay: true }
       );
 
@@ -205,10 +268,32 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
       const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
       const folder = reciterEntry?.folder ?? "Alafasy_128kbps";
-      const url = `https://everyayah.com/data/${folder}/${padNum(surahNum, 3)}${padNum(verseNum, 3)}.mp3`;
+      const surahPadded = padNum(surahNum, 3);
+      const versePadded = padNum(verseNum, 3);
+      const remoteUrl = `https://everyayah.com/data/${folder}/${surahPadded}${versePadded}.mp3`;
+
+      const cacheKey = `${rid}_${surahPadded}${versePadded}`;
+      const localUri = FileSystem.cacheDirectory + "audio/" + cacheKey + ".mp3";
+      const info = await FileSystem.getInfoAsync(localUri);
+      let uri = remoteUrl;
+
+      if (info.exists) {
+        uri = localUri;
+      } else {
+        // Background download
+        (async () => {
+          try {
+            const dirInfo = await FileSystem.getInfoAsync(FileSystem.cacheDirectory + "audio/");
+            if (!dirInfo.exists) {
+              await FileSystem.makeDirectoryAsync(FileSystem.cacheDirectory + "audio/", { intermediates: true });
+            }
+            await FileSystem.downloadAsync(remoteUrl, localUri);
+          } catch (e) {}
+        })();
+      }
 
       const { sound } = await Audio.Sound.createAsync(
-        { uri: url },
+        { uri },
         { shouldPlay: true }
       );
 
@@ -326,6 +411,61 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   }, [playInternal, playSurahInternal]);
 
+  const downloadSurah = useCallback(async (surahNum: number) => {
+    const rid = reciterIdRef.current ?? DEFAULT_RECITER_ID;
+    const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
+    if (!reciterEntry) return;
+
+    const surahPadded = padNum(surahNum, 3);
+    const dir = FileSystem.cacheDirectory + "audio/";
+    const dirInfo = await FileSystem.getInfoAsync(dir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    }
+
+    if (reciterEntry.surahUrl) {
+      const remoteUrl = reciterEntry.surahUrl.replace("{SSS}", surahPadded);
+      const localUri = dir + `${rid}_${surahPadded}.mp3`;
+      setDownloadProgress({ surahNum, percent: 0 });
+      try {
+        const downloadResumable = FileSystem.createDownloadResumable(
+          remoteUrl,
+          localUri,
+          {},
+          (downloadProgress) => {
+            const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+            setDownloadProgress({ surahNum, percent: progress * 100 });
+          }
+        );
+        await downloadResumable.downloadAsync();
+      } catch (e) {
+        console.error("Download failed", e);
+      } finally {
+        setDownloadProgress(null);
+      }
+    } else {
+      const surah = SURAHS.find((s) => s.number === surahNum);
+      if (!surah) return;
+      const folder = reciterEntry.folder ?? "Alafasy_128kbps";
+      setDownloadProgress({ surahNum, percent: 0 });
+      let completed = 0;
+      for (const v of surah.verses) {
+        const versePadded = padNum(v.number, 3);
+        const remoteUrl = `https://everyayah.com/data/${folder}/${surahPadded}${versePadded}.mp3`;
+        const localUri = dir + `${rid}_${surahPadded}${versePadded}.mp3`;
+        const info = await FileSystem.getInfoAsync(localUri);
+        if (!info.exists) {
+          try {
+            await FileSystem.downloadAsync(remoteUrl, localUri);
+          } catch (e) {}
+        }
+        completed++;
+        setDownloadProgress({ surahNum, percent: (completed / surah.verses.length) * 100 });
+      }
+      setDownloadProgress(null);
+    }
+  }, []);
+
   const rid = reciterId ?? DEFAULT_RECITER_ID;
   const reciterEntry = RECITERS_LIST.find((r) => r.id === rid);
   const isSurahMode = !!reciterEntry?.surahUrl;
@@ -335,6 +475,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       currentKey, currentSurahNum, currentVerseNum,
       isLoading, isPlaying, playbackPosition, playbackDuration,
       isSurahMode,
+      downloadProgress,
+      downloadSurah,
+      sleepTimer,
+      sleepTimerActive: sleepTimer !== null,
+      sleepTimerRemaining,
+      setSleepTimer,
       play, stop, pause, resume, playNext,
     }}>
       {children}

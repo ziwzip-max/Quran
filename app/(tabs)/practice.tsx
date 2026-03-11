@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   PanResponder,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +17,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 
-type PracticeMode = "عرض" | "اختبار" | "بطاقات";
+type PracticeMode = "عرض" | "اختبار" | "بطاقات" | "إملاء" | "تغطية";
 
 function pickTwoBlocks(blocks: VerseBlock[]): VerseBlock[] {
   if (blocks.length === 0) return [];
@@ -181,6 +182,206 @@ function WordTestCard({
           );
         })}
       </View>
+    </View>
+  );
+}
+
+function ProgressiveMaskingCard({
+  block, index, colors, arabicFont,
+}: {
+  block: VerseBlock; index: number;
+  colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
+}) {
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const words = useMemo(() => {
+    return block.verses.flatMap(v => v.text.trim().split(/\s+/));
+  }, [block]);
+
+  const totalWords = words.length;
+
+  useEffect(() => {
+    if (hiddenCount > 0 && hiddenCount < totalWords) {
+      const timer = setTimeout(() => {
+        setHiddenCount(prev => Math.min(prev + 1, totalWords));
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [hiddenCount, totalWords]);
+
+  const startMasking = () => {
+    if (hiddenCount === 0) {
+      setHiddenCount(1);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  };
+
+  const revealAll = () => {
+    setHiddenCount(0);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const hideNext = () => {
+    setHiddenCount(prev => Math.min(prev + 1, totalWords));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  return (
+    <View style={[styles.blockCard, { backgroundColor: colors.bgCard, borderColor: colors.gold + "30" }]}>
+      <View style={[styles.blockCardHeader, { borderBottomColor: colors.border }]}>
+        <View style={[styles.indexBadge, { backgroundColor: colors.gold }]}>
+          <Text style={[styles.indexText, { color: colors.bgDark }]}>{index + 1}</Text>
+        </View>
+        <View style={styles.refInfo}>
+          <View style={styles.refSurahRow}>
+            <Text style={[styles.refSurahArabic, { color: colors.textPrimary }]}>{block.surahNameArabic}</Text>
+            <Text style={[styles.refSurahNumber, { color: colors.textMuted }]}>({block.surahNumber})</Text>
+          </View>
+        </View>
+        <View style={styles.revealHeaderRight}>
+          <Text style={[styles.wordCounter, { color: colors.textMuted }]}>{hiddenCount}/{totalWords} مخفي</Text>
+          {hiddenCount > 0 && (
+            <Pressable
+              onPress={revealAll}
+              style={[styles.revealAllBtn, { borderColor: colors.gold + "40", backgroundColor: colors.gold + "10" }]}
+            >
+              <Text style={[styles.revealAllText, { color: colors.gold }]}>كشف الكل</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+      
+      <Pressable onPress={hiddenCount === 0 ? startMasking : hideNext} style={styles.versesContainer}>
+        <View style={styles.wordRow}>
+          {words.map((word, idx) => {
+            const isHidden = idx < hiddenCount;
+            return (
+              <View
+                key={idx}
+                style={[
+                  styles.wordChip,
+                  {
+                    backgroundColor: isHidden ? colors.bgSurface : "transparent",
+                    borderColor: isHidden ? colors.border : "transparent",
+                  },
+                ]}
+              >
+                <Text style={[
+                  styles.wordChipText,
+                  { color: isHidden ? colors.bgSurface : colors.textPrimary },
+                  arabicFont ? { fontFamily: arabicFont } : {},
+                ]}>
+                  {word}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </Pressable>
+
+      {hiddenCount === 0 && (
+        <Pressable 
+          onPress={startMasking}
+          style={[styles.startMaskingBtn, { backgroundColor: colors.gold }]}
+        >
+          <Text style={[styles.startMaskingText, { color: colors.bgDark }]}>ابدأ التغطية التلقائية</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function DictationCard({
+  block, index, colors, arabicFont,
+}: {
+  block: VerseBlock; index: number;
+  colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
+}) {
+  const [userInput, setUserInput] = useState("");
+  const [showAnswer, setShowAnswer] = useState(false);
+  
+  const originalWords = useMemo(() => {
+    return block.verses.flatMap(v => v.text.trim().split(/\s+/));
+  }, [block]);
+
+  const userWords = userInput.trim().split(/\s+/).filter(w => w.length > 0);
+
+  const correctCount = userWords.reduce((acc, word, idx) => {
+    if (idx < originalWords.length && word === originalWords[idx]) {
+      return acc + 1;
+    }
+    return acc;
+  }, 0);
+
+  return (
+    <View style={[styles.blockCard, { backgroundColor: colors.bgCard, borderColor: colors.gold + "30" }]}>
+      <View style={[styles.blockCardHeader, { borderBottomColor: colors.border }]}>
+        <View style={[styles.indexBadge, { backgroundColor: colors.gold }]}>
+          <Text style={[styles.indexText, { color: colors.bgDark }]}>{index + 1}</Text>
+        </View>
+        <View style={styles.refInfo}>
+          <View style={styles.refSurahRow}>
+            <Text style={[styles.refSurahArabic, { color: colors.textPrimary }]}>{block.surahNameArabic}</Text>
+            <Text style={[styles.refSurahNumber, { color: colors.textMuted }]}>({block.surahNumber})</Text>
+          </View>
+        </View>
+        <View style={styles.revealHeaderRight}>
+          <Text style={[styles.wordCounter, { color: colors.textMuted }]}>{correctCount}/{originalWords.length} صحيح</Text>
+        </View>
+      </View>
+
+      <TextInput
+        style={[
+          styles.dictationInput, 
+          { 
+            color: colors.textPrimary, 
+            backgroundColor: colors.bgSurface, 
+            borderColor: colors.border,
+            fontFamily: arabicFont 
+          }
+        ]}
+        placeholder="اكتب الآية هنا..."
+        placeholderTextColor={colors.textMuted}
+        multiline
+        value={userInput}
+        onChangeText={setUserInput}
+        textAlign="right"
+      />
+
+      <View style={styles.dictationFeedback}>
+        {userWords.map((word, idx) => {
+          const isCorrect = idx < originalWords.length && word === originalWords[idx];
+          return (
+            <Text 
+              key={idx} 
+              style={[
+                styles.feedbackWord, 
+                { color: isCorrect ? colors.success : colors.error },
+                arabicFont ? { fontFamily: arabicFont } : {}
+              ]}
+            >
+              {word}
+            </Text>
+          );
+        })}
+      </View>
+
+      {showAnswer && (
+        <View style={[styles.answerBox, { backgroundColor: colors.bgSurface, borderColor: colors.gold + "20" }]}>
+          <Text style={[styles.answerText, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
+            {originalWords.join(" ")}
+          </Text>
+        </View>
+      )}
+
+      <Pressable 
+        onPress={() => setShowAnswer(!showAnswer)}
+        style={[styles.showAnswerBtn, { borderColor: colors.gold }]}
+      >
+        <Text style={[styles.showAnswerText, { color: colors.gold }]}>
+          {showAnswer ? "إخفاء الإجابة" : "عرض الإجابة"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -378,16 +579,22 @@ export default function PracticeScreen() {
       </View>
 
       {!noBookmarks && !noneQualified && hasDrawn && (
-        <View style={[styles.modeBar, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          {(["عرض", "اختبار", "بطاقات"] as PracticeMode[]).map((m) => (
-            <Pressable
-              key={m}
-              onPress={() => setMode(m)}
-              style={[styles.modeBtn, mode === m && { backgroundColor: colors.gold }]}
-            >
-              <Text style={[styles.modeBtnText, { color: mode === m ? colors.bgDark : colors.textMuted }]}>{m}</Text>
-            </Pressable>
-          ))}
+        <View style={[styles.modeBarContainer, { backgroundColor: colors.bgDark }]}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.modeBarScroll}
+          >
+            {(["عرض", "اختبار", "بطاقات", "إملاء", "تغطية"] as PracticeMode[]).map((m) => (
+              <Pressable
+                key={m}
+                onPress={() => setMode(m)}
+                style={[styles.modeBtn, mode === m && { backgroundColor: colors.gold }]}
+              >
+                <Text style={[styles.modeBtnText, { color: mode === m ? colors.bgDark : colors.textMuted }]}>{m}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -435,15 +642,17 @@ export default function PracticeScreen() {
               {hasDrawn && selected.length > 0 && (
                 <View style={styles.cardsContainer}>
                   <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-                    {mode === "عرض" ? "آيات مقترحة للصلاة" : "اختبر حفظك — اكشف كلمة بكلمة"}
+                    {mode === "عرض" ? "آيات مقترحة للصلاة" : 
+                     mode === "تغطية" ? "التغطية التدريجية — اقرأ من ذاكرتك" :
+                     mode === "إملاء" ? "إملاء — اكتب الآية وتأكد من صحتها" :
+                     "اختبر حفظك — اكشف كلمة بكلمة"}
                   </Text>
-                  {selected.map((block, i) =>
-                    mode === "عرض" ? (
-                      <DisplayBlockCard key={block.id} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
-                    ) : (
-                      <WordTestCard key={block.id + "test"} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />
-                    )
-                  )}
+                  {selected.map((block, i) => {
+                    if (mode === "عرض") return <DisplayBlockCard key={block.id} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />;
+                    if (mode === "تغطية") return <ProgressiveMaskingCard key={block.id + "mask"} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />;
+                    if (mode === "إملاء") return <DictationCard key={block.id + "dict"} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />;
+                    return <WordTestCard key={block.id + "test"} block={block} index={i} colors={colors} arabicFont={arabicFontFamily} />;
+                  })}
                 </View>
               )}
             </>
@@ -461,19 +670,22 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   title: { fontSize: 24, fontFamily: "Inter_700Bold" },
   subtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3 },
-  modeBar: {
-    flexDirection: "row",
-    marginHorizontal: 20,
+  modeBarContainer: {
+    paddingHorizontal: 20,
     marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
+  },
+  modeBarScroll: {
+    flexDirection: "row",
+    backgroundColor: "transparent",
+    gap: 8,
   },
   modeBtn: {
-    flex: 1,
+    paddingHorizontal: 20,
     paddingVertical: 8,
-    borderRadius: 9,
+    borderRadius: 20,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   modeBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 8 },
@@ -523,6 +735,45 @@ const styles = StyleSheet.create({
     minWidth: 32, alignItems: "center",
   },
   wordChipText: { fontSize: 20, lineHeight: 34 },
+  startMaskingBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  startMaskingText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  dictationInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 18,
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  dictationFeedback: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 12,
+    justifyContent: "flex-start",
+  },
+  feedbackWord: { fontSize: 18 },
+  answerBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  answerText: { fontSize: 18, textAlign: "right", lineHeight: 30 },
+  showAnswerBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  showAnswerText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
   flashContainer: { flex: 1, paddingHorizontal: 16 },
   flashProgress: { alignItems: "center", paddingBottom: 12 },
   flashProgressText: { fontFamily: "Inter_400Regular", fontSize: 12 },
