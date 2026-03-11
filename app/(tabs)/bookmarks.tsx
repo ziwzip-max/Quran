@@ -163,6 +163,12 @@ function StatsPanel({
   );
 }
 
+const barStyles = StyleSheet.create({
+  container: { flex: 1 },
+  track: { flex: 1, flexDirection: "row", borderRadius: 4, overflow: "hidden" },
+  fill: { backgroundColor: "#fff" },
+});
+
 const statsStyles = StyleSheet.create({
   panel: { borderRadius: 16, padding: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 14, overflow: "hidden" },
   panelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
