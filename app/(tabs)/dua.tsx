@@ -12,15 +12,18 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { BUILT_IN_DUAS, DUA_CATEGORIES, Dua, DuaCategory } from "@/constants/duaaData";
 
 const CUSTOM_DUAS_KEY = "al_hifz_dua_custom";
+const FAVORITES_KEY = "al_hifz_dua_favorites";
 
 function DuaCard({
-  dua, colors, arabicFont, onDelete, isCustom,
+  dua, colors, arabicFont, onDelete, isCustom, isFavorite, onToggleFavorite,
 }: {
   dua: Dua;
   colors: ReturnType<typeof useSettings>["colors"];
   arabicFont: string | undefined;
   onDelete?: () => void;
   isCustom: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -38,6 +41,9 @@ function DuaCard({
     >
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
+          <Pressable onPress={() => { onToggleFavorite(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} hitSlop={10}>
+            <Ionicons name={isFavorite ? "star" : "star-outline"} size={20} color={isFavorite ? colors.gold : colors.textMuted} />
+          </Pressable>
           {isCustom && onDelete && (
             <Pressable onPress={onDelete} hitSlop={10}>
               <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
@@ -222,7 +228,9 @@ export default function DuaScreen() {
   const insets = useSafeAreaInsets();
   const { colors, arabicFontFamily } = useSettings();
   const [customDuas, setCustomDuas] = useState<Dua[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<DuaCategory | "الكل">("الكل");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
@@ -232,7 +240,22 @@ export default function DuaScreen() {
     AsyncStorage.getItem(CUSTOM_DUAS_KEY).then((stored) => {
       if (stored) setCustomDuas(JSON.parse(stored));
     });
+    AsyncStorage.getItem(FAVORITES_KEY).then((stored) => {
+      if (stored) {
+        try { setFavoriteIds(new Set(JSON.parse(stored))); } catch {}
+      }
+    });
   }, []));
+
+  const toggleFavorite = useCallback(async (id: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   const handleSaveCustomDua = useCallback(async (dua: Dua) => {
     const updated = [dua, ...customDuas];
@@ -249,9 +272,11 @@ export default function DuaScreen() {
   const allDuas = useMemo(() => [...customDuas, ...BUILT_IN_DUAS], [customDuas]);
 
   const filtered = useMemo(() => {
-    if (selectedCategory === "الكل") return allDuas;
-    return allDuas.filter((d) => d.category === selectedCategory);
-  }, [allDuas, selectedCategory]);
+    let list = allDuas;
+    if (selectedCategory !== "الكل") list = list.filter((d) => d.category === selectedCategory);
+    if (showFavoritesOnly) list = list.filter((d) => favoriteIds.has(d.id));
+    return list;
+  }, [allDuas, selectedCategory, showFavoritesOnly, favoriteIds]);
 
   const countByCat = useMemo(() => {
     const map: Record<string, number> = { "الكل": allDuas.length };
@@ -272,6 +297,36 @@ export default function DuaScreen() {
           <Ionicons name="add" size={22} color={colors.gold} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>الأدعية</Text>
+      </View>
+
+      <View style={styles.favFilterRow}>
+        <Pressable
+          onPress={() => { setShowFavoritesOnly(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          style={[
+            styles.favFilterChip,
+            {
+              backgroundColor: !showFavoritesOnly ? colors.gold + "20" : colors.bgSurface,
+              borderColor: !showFavoritesOnly ? colors.gold : colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.favFilterText, { color: !showFavoritesOnly ? colors.gold : colors.textMuted }]}>الكل</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => { setShowFavoritesOnly(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          style={[
+            styles.favFilterChip,
+            {
+              backgroundColor: showFavoritesOnly ? colors.gold + "20" : colors.bgSurface,
+              borderColor: showFavoritesOnly ? colors.gold : colors.border,
+              flexDirection: "row",
+              gap: 4,
+            },
+          ]}
+        >
+          <Ionicons name="star" size={13} color={showFavoritesOnly ? colors.gold : colors.textMuted} />
+          <Text style={[styles.favFilterText, { color: showFavoritesOnly ? colors.gold : colors.textMuted }]}>المفضلة</Text>
+        </Pressable>
       </View>
 
       <Pressable
@@ -337,12 +392,16 @@ export default function DuaScreen() {
             arabicFont={arabicFontFamily}
             isCustom={item.id.startsWith("custom_")}
             onDelete={item.id.startsWith("custom_") ? () => handleDeleteCustomDua(item.id) : undefined}
+            isFavorite={favoriteIds.has(item.id)}
+            onToggleFavorite={() => toggleFavorite(item.id)}
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="hand-left-outline" size={40} color={colors.textMuted} />
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>لا توجد أدعية في هذه الفئة</Text>
+            <Ionicons name={showFavoritesOnly ? "star-outline" : "hand-left-outline"} size={40} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              {showFavoritesOnly ? "لم تضف أدعية مفضلة بعد\nاضغط على ★ لإضافة دعاء للمفضلة" : "لا توجد أدعية في هذه الفئة"}
+            </Text>
           </View>
         }
       />
@@ -382,6 +441,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  favFilterRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+  },
+  favFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favFilterText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
   },
   categoryDropdown: {
     flexDirection: "row",
