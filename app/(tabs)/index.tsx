@@ -29,6 +29,8 @@ export const HISTORY_KEY = "al_hifz_history";
 const LAST_SURAH_KEY = "al_hifz_last_surah";
 const PINS_KEY = "al_hifz_pins";
 const REVIEWS_KEY = "al_hifz_reviews";
+const DAILY_COUNTS_KEY = "al_hifz_daily_counts";
+const STREAK_KEY = "al_hifz_streak";
 const MAX_HISTORY = 5;
 const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
@@ -62,6 +64,33 @@ function parseVerseQuery(query: string): { surahNum: number; verseNum: number } 
 function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   const dayEpoch = Math.floor(Date.now() / 86400000);
   return VOD_LIST[dayEpoch % VOD_LIST.length];
+}
+
+async function computeStreak(): Promise<number> {
+  try {
+    const stored = await AsyncStorage.getItem(DAILY_COUNTS_KEY);
+    if (!stored) return 0;
+    const counts: Record<string, number> = JSON.parse(stored);
+    const activeDays = new Set(Object.keys(counts).filter((d) => counts[d] > 0));
+    if (activeDays.size === 0) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    let streak = 0;
+    let cursor = new Date(today);
+    if (!activeDays.has(fmt(cursor))) {
+      cursor.setDate(cursor.getDate() - 1);
+      if (!activeDays.has(fmt(cursor))) return 0;
+    }
+    while (activeDays.has(fmt(cursor))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    await AsyncStorage.setItem(STREAK_KEY, String(streak));
+    return streak;
+  } catch {
+    return 0;
+  }
 }
 
 function countDueBlocks(
@@ -330,6 +359,7 @@ export default function QuranScreen() {
   const [history, setHistory] = useState<number[]>([]);
   const [pins, setPins] = useState<number[]>([]);
   const [dueCount, setDueCount] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [reviewBannerDismissed, setReviewBannerDismissed] = useState(false);
   const [vodDismissed, setVodDismissed] = useState(false);
   const [lastSurah, setLastSurah] = useState<LastSurahData | null>(null);
@@ -386,6 +416,7 @@ export default function QuranScreen() {
     loadLastSurah();
     loadPins();
     loadDueCount();
+    computeStreak().then(setStreak);
   }, [loadHistory, loadLastSurah, loadPins, loadDueCount]));
 
   const togglePin = useCallback(async (surahNumber: number) => {
@@ -490,7 +521,13 @@ export default function QuranScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={[styles.title, { color: colors.gold }]}>القرآن الكريم</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>١١٤ سورة • ٦٢٣٦ آية</Text>
+          <View style={styles.subtitleRow}>
+            <View style={[styles.streakBadge, { backgroundColor: streak > 0 ? colors.gold + "20" : colors.bgSurface, borderColor: streak > 0 ? colors.gold + "60" : colors.border }]}>
+              <Ionicons name="flame" size={13} color={streak > 0 ? colors.gold : colors.textMuted} />
+              <Text style={[styles.streakText, { color: streak > 0 ? colors.gold : colors.textMuted }]}>{streak}</Text>
+            </View>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>١١٤ سورة • ٦٢٣٦ آية</Text>
+          </View>
         </View>
         <Pressable
           onPress={() => {
@@ -688,7 +725,27 @@ const styles = StyleSheet.create({
   gearBtn: { padding: 4 },
   headerCenter: { flex: 1, alignItems: "center" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "center" },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 3, textAlign: "center" },
+  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
+  subtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 3,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  streakText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+  },
   reviewBanner: {
     flexDirection: "row", alignItems: "center",
     marginHorizontal: 16, marginBottom: 8,
