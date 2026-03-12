@@ -66,6 +66,16 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   return VOD_LIST[dayEpoch % VOD_LIST.length];
 }
 
+function utcDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+function addDaysUTC(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setUTCDate(r.getUTCDate() + n);
+  return r;
+}
+
 async function computeStreak(): Promise<number> {
   try {
     const stored = await AsyncStorage.getItem(DAILY_COUNTS_KEY);
@@ -73,18 +83,16 @@ async function computeStreak(): Promise<number> {
     const counts: Record<string, number> = JSON.parse(stored);
     const activeDays = new Set(Object.keys(counts).filter((d) => counts[d] > 0));
     if (activeDays.size === 0) return 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    const now = new Date();
     let streak = 0;
-    let cursor = new Date(today);
-    if (!activeDays.has(fmt(cursor))) {
-      cursor.setDate(cursor.getDate() - 1);
-      if (!activeDays.has(fmt(cursor))) return 0;
+    let cursor = now;
+    if (!activeDays.has(utcDateStr(cursor))) {
+      cursor = addDaysUTC(cursor, -1);
+      if (!activeDays.has(utcDateStr(cursor))) return 0;
     }
-    while (activeDays.has(fmt(cursor))) {
+    while (activeDays.has(utcDateStr(cursor))) {
       streak++;
-      cursor.setDate(cursor.getDate() - 1);
+      cursor = addDaysUTC(cursor, -1);
     }
     await AsyncStorage.setItem(STREAK_KEY, String(streak));
     return streak;
