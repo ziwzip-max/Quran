@@ -356,6 +356,8 @@ export default function SurahScreen() {
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredPosition = useRef(false);
+  const userDidScroll = useRef(false);
+  const lastAutoScrollKey = useRef<string | null>(null);
 
   const handleRuleTap = useCallback((rule: TajweedRule, word: string) => {
     setTajweedPopup({ rule, word });
@@ -393,18 +395,24 @@ export default function SurahScreen() {
 
   useEffect(() => {
     if (!surah || !currentKey) return;
+    if (!highlightActiveVerse) return;
     if (currentKey.startsWith("surah:")) return;
     const keyParts = currentKey.split(":");
     const keySurah = parseInt(keyParts[0], 10);
     const keyVerse = parseInt(keyParts[1], 10);
     if (keySurah !== surahNumber) return;
+    if (lastAutoScrollKey.current !== currentKey) {
+      userDidScroll.current = false;
+      lastAutoScrollKey.current = currentKey;
+    }
+    if (userDidScroll.current) return;
     const index = surah.verses.findIndex((v) => v.number === keyVerse);
     if (index < 0) return;
     const timer = setTimeout(() => {
       flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
     }, 100);
     return () => clearTimeout(timer);
-  }, [currentKey, surah, surahNumber]);
+  }, [currentKey, surah, surahNumber, highlightActiveVerse]);
 
   const currentReciterEntry = RECITERS_LIST.find((r) => r.id === reciterId);
   const isSurahMissing = isSurahMode && (currentReciterEntry?.missingSurahs?.includes(surahNumber) ?? false);
@@ -835,6 +843,11 @@ export default function SurahScreen() {
         viewabilityConfig={highlightActiveVerse ? viewabilityConfig : undefined}
         onViewableItemsChanged={highlightActiveVerse ? onViewableItemsChanged : undefined}
         scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          if (currentKey && !currentKey.startsWith("surah:") && highlightActiveVerse) {
+            userDidScroll.current = true;
+          }
+        }}
         onScroll={(e) => {
           const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
           const scrollY = contentOffset.y;
