@@ -31,7 +31,9 @@ const PINS_KEY = "al_hifz_pins";
 const REVIEWS_KEY = "al_hifz_reviews";
 const DAILY_COUNTS_KEY = "al_hifz_daily_counts";
 const STREAK_KEY = "al_hifz_streak";
+const SEARCH_HISTORY_KEY = "al_hifz_search_history";
 const MAX_HISTORY = 5;
+const MAX_SEARCH_HISTORY = 5;
 const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
@@ -372,6 +374,8 @@ export default function QuranScreen() {
   const [vodDismissed, setVodDismissed] = useState(false);
   const [lastSurah, setLastSurah] = useState<LastSurahData | null>(null);
   const [selectedDua, setSelectedDua] = useState<Dua | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
@@ -419,13 +423,39 @@ export default function QuranScreen() {
     } catch {}
   }, [masteryMap]);
 
+  const loadSearchHistory = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
+      if (stored) setSearchHistory(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const addSearchHistory = useCallback(async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSearchHistory((prev) => {
+      const next = [trimmed, ...prev.filter((q) => q !== trimmed)].slice(0, MAX_SEARCH_HISTORY);
+      AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const removeSearchHistory = useCallback(async (query: string) => {
+    setSearchHistory((prev) => {
+      const next = prev.filter((q) => q !== query);
+      AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   useFocusEffect(useCallback(() => {
     loadHistory();
     loadLastSurah();
     loadPins();
     loadDueCount();
+    loadSearchHistory();
     computeStreak().then(setStreak);
-  }, [loadHistory, loadLastSurah, loadPins, loadDueCount]));
+  }, [loadHistory, loadLastSurah, loadPins, loadDueCount, loadSearchHistory]));
 
   const togglePin = useCallback(async (surahNumber: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -608,6 +638,11 @@ export default function QuranScreen() {
                 placeholderTextColor={colors.textMuted}
                 value={search}
                 onChangeText={setSearch}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+                onSubmitEditing={() => {
+                  if (search.trim()) addSearchHistory(search);
+                }}
                 returnKeyType="search"
                 textAlign="right"
                 autoCorrect={false}
@@ -615,6 +650,24 @@ export default function QuranScreen() {
               />
               <Ionicons name="search" size={16} color={colors.textMuted} />
             </View>
+
+            {searchFocused && search.trim() === "" && searchHistory.length > 0 && (
+              <View style={styles.searchHistorySection}>
+                <Text style={[styles.searchHistoryLabel, { color: colors.textMuted }]}>عمليات بحث سابقة</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.searchHistoryScroll}>
+                  {searchHistory.map((q) => (
+                    <View key={q} style={[styles.searchHistoryChip, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                      <Pressable onPress={() => { setSearch(q); addSearchHistory(q); }}>
+                        <Text style={[styles.searchHistoryChipText, { color: colors.textPrimary }]}>{q}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => removeSearchHistory(q)} hitSlop={8}>
+                        <Ionicons name="close-circle" size={14} color={colors.textMuted} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {showFilters && history.length > 0 && (
               <View style={styles.historySection}>
@@ -812,6 +865,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, gap: 8,
   },
   searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 15, padding: 0 },
+  searchHistorySection: { marginHorizontal: 16, marginTop: -2, marginBottom: 6 },
+  searchHistoryLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginBottom: 6, textAlign: "right" },
+  searchHistoryScroll: { gap: 8, flexDirection: "row" },
+  searchHistoryChip: {
+    borderRadius: 20, borderWidth: 1, paddingLeft: 6, paddingRight: 10, paddingVertical: 5,
+    flexDirection: "row", alignItems: "center", gap: 5,
+  },
+  searchHistoryChipText: { fontFamily: "Inter_400Regular", fontSize: 13 },
   historySection: { marginBottom: 4 },
   historyScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
   historySectionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginRight: 4 },
