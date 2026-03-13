@@ -498,14 +498,14 @@ function JumpModal({
 const jmpStyles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 18, fontWeight: "700" as const },
+  title: { fontSize: 18, fontWeight: "700" as const, textAlign: "right" as const },
   tabs: {
     flexDirection: "row",
     margin: 12,
@@ -521,7 +521,7 @@ const jmpStyles = StyleSheet.create({
     borderColor: "transparent",
     borderRadius: 10,
   },
-  tabText: { fontSize: 14, fontWeight: "600" as const },
+  tabText: { fontSize: 14, fontWeight: "600" as const, textAlign: "right" as const },
   surahRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
