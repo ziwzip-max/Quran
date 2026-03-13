@@ -536,7 +536,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       flex: 1, alignItems: "center", paddingVertical: 10,
       borderBottomColor: "transparent", borderBottomWidth: 2,
     },
-    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "right" },
     sectionTitle: {
       fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
       textAlign: "right", marginBottom: 10, marginTop: 4,
