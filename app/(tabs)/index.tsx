@@ -564,7 +564,7 @@ export default function QuranScreen() {
               <Ionicons name="flame" size={13} color={streak > 0 ? colors.gold : colors.textMuted} />
               <Text style={[styles.streakText, { color: streak > 0 ? colors.gold : colors.textMuted }]}>{streak}</Text>
             </View>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>١١٤ سورة • ٦٢٣٦ آية</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>114 سورة • 6236 آية</Text>
           </View>
         </View>
         <Pressable

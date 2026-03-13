@@ -268,14 +268,8 @@ export const MANZIL_START: HizbPosition[] = [
 
 export const HIZB_LABEL_MAP: Record<string, string> = (() => {
   const map: Record<string, string> = {};
-  const ARABIC_NUMS = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠",
-    "١١", "١٢", "١٣", "١٤", "١٥", "١٦", "١٧", "١٨", "١٩", "٢٠",
-    "٢١", "٢٢", "٢٣", "٢٤", "٢٥", "٢٦", "٢٧", "٢٨", "٢٩", "٣٠",
-    "٣١", "٣٢", "٣٣", "٣٤", "٣٥", "٣٦", "٣٧", "٣٨", "٣٩", "٤٠",
-    "٤١", "٤٢", "٤٣", "٤٤", "٤٥", "٤٦", "٤٧", "٤٨", "٤٩", "٥٠",
-    "٥١", "٥٢", "٥٣", "٥٤", "٥٥", "٥٦", "٥٧", "٥٨", "٥٩", "٦٠"];
   HIZB_START.forEach((pos, i) => {
-    map[`${pos.surah}:${pos.verse}`] = `حزب ${ARABIC_NUMS[i]}`;
+    map[`${pos.surah}:${pos.verse}`] = `حزب ${i + 1}`;
   });
   return map;
 })();

@@ -77,9 +77,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const rates: PlaybackRate[] = [0.75, 1.0, 1.25];
   const repeats: { value: RepeatMode; label: string }[] = [
     { value: 0,  label: "—" },
-    { value: 3,  label: "×٣" },
-    { value: 5,  label: "×٥" },
-    { value: 10, label: "×١٠" },
+    { value: 3,  label: "×3" },
+    { value: 5,  label: "×5" },
+    { value: 10, label: "×10" },
   ];
 
   const activeReciter = RECITERS_LIST.find((r) => r.id === reciterId);
@@ -539,7 +539,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
     sectionTitle: {
       fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
-      textAlign: "center", marginBottom: 10, marginTop: 4,
+      textAlign: "right", marginBottom: 10, marginTop: 4,
       textTransform: "uppercase", letterSpacing: 0.5,
     },
     themeGrid: {

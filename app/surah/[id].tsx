@@ -43,8 +43,8 @@ const QALOON_BISMILLAH = QALOON_SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "
 const REPEAT_CYCLE: (0 | 3 | 5 | 10)[] = [0, 3, 5, 10];
 const SLEEP_CYCLE: (number | null)[] = [null, 15, 30, 45, 60];
 
-function toArabicIndic(n: number): string {
-  return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
+function toLatinDigits(n: number): string {
+  return String(n);
 }
 
 function TajweedText({
@@ -1127,7 +1127,6 @@ export default function SurahScreen() {
               ]}
             >
               <Ionicons name="infinite" size={14} color={continuousPlay ? colors.gold : colors.textMuted} />
-              <Text style={[styles.audioChipText, { color: continuousPlay ? colors.gold : colors.textMuted }]}>تلقائي</Text>
             </Pressable>
 
             {/* Cycling sleep timer button */}
@@ -1143,7 +1142,7 @@ export default function SurahScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               };
               const sleepLabel = isSleepOn
-                ? toArabicIndic(Math.ceil(sleepTimerRemaining! / 60)) + " د"
+                ? toLatinDigits(Math.ceil(sleepTimerRemaining! / 60)) + " د"
                 : null;
               return (
                 <Pressable
@@ -1231,7 +1230,7 @@ export default function SurahScreen() {
               الانتقال إلى آية
             </Text>
             <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 16 }}>
-              ١ – {surah.versesCount}
+              1 – {surah.versesCount}
             </Text>
             <TextInput
               value={jumpToVerseInput}

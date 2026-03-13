@@ -31,25 +31,12 @@ import {
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
 const MASTERY_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
 
-const ARABIC_DIGITS = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
-function toArabicIndic(n: number): string {
-  return String(n).replace(/\d/g, d => ARABIC_DIGITS[Number(d)]);
+function stripDiacritics(text: string): string {
+  return text.replace(/[\u064B-\u065F\u0670]/g, "");
 }
 
-const ARABIC_JUZ = [
-  "١","٢","٣","٤","٥","٦","٧","٨","٩","١٠",
-  "١١","١٢","١٣","١٤","١٥","١٦","١٧","١٨","١٩","٢٠",
-  "٢١","٢٢","٢٣","٢٤","٢٥","٢٦","٢٧","٢٨","٢٩","٣٠",
-];
-
-const ARABIC_HIZB = [
-  "١","٢","٣","٤","٥","٦","٧","٨","٩","١٠",
-  "١١","١٢","١٣","١٤","١٥","١٦","١٧","١٨","١٩","٢٠",
-  "٢١","٢٢","٢٣","٢٤","٢٥","٢٦","٢٧","٢٨","٢٩","٣٠",
-  "٣١","٣٢","٣٣","٣٤","٣٥","٣٦","٣٧","٣٨","٣٩","٤٠",
-  "٤١","٤٢","٤٣","٤٤","٤٥","٤٦","٤٧","٤٨","٤٩","٥٠",
-  "٥١","٥٢","٥٣","٥٤","٥٥","٥٦","٥٧","٥٨","٥٩","٦٠",
-];
+const LATIN_JUZ = Array.from({ length: 30 }, (_, i) => String(i + 1));
+const LATIN_HIZB = Array.from({ length: 60 }, (_, i) => String(i + 1));
 
 interface VerseEntry {
   verseNumber: number;
@@ -151,7 +138,7 @@ function SurahHeaderItem({
       <View style={shStyles.content}>
         <Text style={[shStyles.nameAr, { color: colors.gold }]}>{surah.nameArabic}</Text>
         <Text style={[shStyles.meta, { color: colors.textSecondary }]}>
-          {typeLabel} • {surah.versesCount} آية • الجزء {ARABIC_JUZ[juz - 1]}
+          {typeLabel} • {surah.versesCount} آية • الجزء {LATIN_JUZ[juz - 1]}
         </Text>
       </View>
       <View style={[shStyles.ornamentLine, { backgroundColor: colors.gold + "30" }]} />
@@ -235,7 +222,7 @@ function HizbMarkerItem({
     <View style={[hmStyles.container]}>
       <View style={[hmStyles.line, { backgroundColor: colors.teal + "30" }]} />
       <Text style={[hmStyles.text, { color: colors.tealLight }]}>
-        حزب {ARABIC_HIZB[hizbNumber - 1]}
+        حزب {LATIN_HIZB[hizbNumber - 1]}
       </Text>
       <View style={[hmStyles.line, { backgroundColor: colors.teal + "30" }]} />
     </View>
@@ -259,7 +246,7 @@ const hmStyles = StyleSheet.create({
 });
 
 function VerseRunItem({
-  item, colors, arabicFont, arabicFontKey, arabicFontSize, masteryMap, searchQuery,
+  item, colors, arabicFont, arabicFontKey, arabicFontSize, lineSpacingValue, masteryMap, searchQuery,
   onLongPress,
 }: {
   item: Extract<MushafItem, { type: "verse_run" }>;
@@ -267,15 +254,17 @@ function VerseRunItem({
   arabicFont?: string;
   arabicFontKey: string;
   arabicFontSize: number;
+  lineSpacingValue: number;
   masteryMap: Record<string, number>;
   searchQuery: string;
   onLongPress: (verseNumber: number) => void;
 }) {
   const effectiveSize = arabicFontSize * getFontSizeMultiplier(arabicFontKey);
-  const lineH = effectiveSize * 2.0;
+  const lineH = effectiveSize * lineSpacingValue * 1.6;
   const markerSize = effectiveSize * 0.6;
-  const query = searchQuery.trim();
-  const hasQuery = query.length > 0;
+  const rawQuery = searchQuery.trim();
+  const strippedQuery = stripDiacritics(rawQuery);
+  const hasQuery = strippedQuery.length > 0;
 
   const highestMastery = useMemo(() => {
     let max = 0;
@@ -312,24 +301,58 @@ function VerseRunItem({
       >
         {item.verses.map((v, i) => {
           const verseText = v.text;
-          const marker = ` ﴿${toArabicIndic(v.verseNumber)}﴾ `;
-          const isMatch = hasQuery && verseText.includes(query);
+          const marker = ` ﴿${v.verseNumber}﴾ `;
+          const strippedVerse = stripDiacritics(verseText);
+          const isMatch = hasQuery && strippedVerse.includes(strippedQuery);
 
           if (isMatch) {
-            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            const parts = verseText.split(new RegExp(`(${escaped})`, "gi"));
+            const segments: { text: string; highlight: boolean }[] = [];
+            let remaining = verseText;
+            let strippedRemaining = strippedVerse;
+            const escapedQuery = strippedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const re = new RegExp(escapedQuery, "gi");
+            let match: RegExpExecArray | null;
+            let lastIdx = 0;
+
+            while ((match = re.exec(strippedRemaining)) !== null) {
+              const matchStart = match.index;
+              const matchEnd = matchStart + match[0].length;
+
+              let origStart = 0;
+              let strippedPos = 0;
+              for (let ci = 0; ci < remaining.length && strippedPos < matchStart; ci++) {
+                if (!/[\u064B-\u065F\u0670]/.test(remaining[ci])) strippedPos++;
+                origStart = ci + 1;
+              }
+              let origEnd = origStart;
+              strippedPos = matchStart;
+              for (let ci = origStart; ci < remaining.length && strippedPos < matchEnd; ci++) {
+                if (!/[\u064B-\u065F\u0670]/.test(remaining[ci])) strippedPos++;
+                origEnd = ci + 1;
+              }
+
+              if (origStart > lastIdx) {
+                segments.push({ text: verseText.slice(lastIdx, origStart), highlight: false });
+              }
+              segments.push({ text: verseText.slice(origStart, origEnd), highlight: true });
+              lastIdx = origEnd;
+            }
+            if (lastIdx < verseText.length) {
+              segments.push({ text: verseText.slice(lastIdx), highlight: false });
+            }
+
             return (
               <React.Fragment key={v.verseNumber}>
-                {parts.map((part, pi) =>
-                  part.toLowerCase() === query.toLowerCase() ? (
+                {segments.map((seg, si) =>
+                  seg.highlight ? (
                     <Text
-                      key={`${v.verseNumber}_h_${pi}`}
+                      key={`${v.verseNumber}_h_${si}`}
                       style={{ backgroundColor: colors.gold + "40", color: colors.textPrimary, borderRadius: 3 }}
                     >
-                      {part}
+                      {seg.text}
                     </Text>
                   ) : (
-                    <Text key={`${v.verseNumber}_p_${pi}`}>{part}</Text>
+                    <Text key={`${v.verseNumber}_p_${si}`}>{seg.text}</Text>
                   )
                 )}
                 <Text style={{ color: colors.gold, fontSize: markerSize }}>{marker}</Text>
@@ -427,7 +450,7 @@ function JumpModal({
                   <View style={{ flex: 1, marginHorizontal: 12 }}>
                     <Text style={[jmpStyles.surahNameAr, { color: colors.textPrimary }]}>{item.nameArabic}</Text>
                     <Text style={[jmpStyles.surahMeta, { color: colors.textMuted }]}>
-                      {SURAH_TYPE[item.number] === "mecquoise" ? "مكية" : "مدنية"} • ج{ARABIC_JUZ[juz - 1]}
+                      {SURAH_TYPE[item.number] === "mecquoise" ? "مكية" : "مدنية"} • ج{LATIN_JUZ[juz - 1]}
                     </Text>
                   </View>
                   <Ionicons name="chevron-back" size={16} color={colors.textMuted} />
@@ -447,7 +470,7 @@ function JumpModal({
                 onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelectJuz(n); onClose(); }}
                 style={[jmpStyles.gridCell, { backgroundColor: colors.bgCard, borderColor: colors.gold + "50" }]}
               >
-                <Text style={[jmpStyles.gridNum, { color: colors.gold }]}>{ARABIC_JUZ[n - 1]}</Text>
+                <Text style={[jmpStyles.gridNum, { color: colors.gold }]}>{LATIN_JUZ[n - 1]}</Text>
                 <Text style={[jmpStyles.gridLabel, { color: colors.textMuted }]}>جزء</Text>
               </Pressable>
             ))}
@@ -462,7 +485,7 @@ function JumpModal({
                 onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelectHizb(n); onClose(); }}
                 style={[jmpStyles.gridCell, { backgroundColor: colors.bgCard, borderColor: colors.teal + "50" }]}
               >
-                <Text style={[jmpStyles.gridNum, { color: colors.tealLight }]}>{ARABIC_HIZB[n - 1]}</Text>
+                <Text style={[jmpStyles.gridNum, { color: colors.tealLight }]}>{LATIN_HIZB[n - 1]}</Text>
                 <Text style={[jmpStyles.gridLabel, { color: colors.textMuted }]}>حزب</Text>
               </Pressable>
             ))}
@@ -537,7 +560,7 @@ const jmpStyles = StyleSheet.create({
 
 export default function MushafScreen() {
   const insets = useSafeAreaInsets();
-  const { colors, arabicFontFamily, arabicFont: arabicFontKey, arabicFontSize } = useSettings();
+  const { colors, arabicFontFamily, arabicFont: arabicFontKey, arabicFontSize, lineSpacingValue } = useSettings();
   const { masteryMap } = useMastery();
   const listRef = useRef<FlatList>(null);
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
@@ -598,10 +621,10 @@ export default function MushafScreen() {
       setCurrentMatchIdx(0);
       return;
     }
-    const q = searchQuery.trim();
+    const q = stripDiacritics(searchQuery.trim());
     const matches: number[] = [];
     MUSHAF_ITEMS.forEach((item, i) => {
-      if (item.type === "verse_run" && item.verses.some(v => v.text.includes(q))) {
+      if (item.type === "verse_run" && item.verses.some(v => stripDiacritics(v.text).includes(q))) {
         matches.push(i);
       }
     });
@@ -686,6 +709,7 @@ export default function MushafScreen() {
           arabicFont={arabicFontFamily}
           arabicFontKey={arabicFontKey}
           arabicFontSize={arabicFontSize}
+          lineSpacingValue={lineSpacingValue}
           masteryMap={masteryMap}
           searchQuery={searchQuery}
           onLongPress={(verseNumber) => handleVerseAction(item.surahNumber, verseNumber)}
@@ -693,7 +717,7 @@ export default function MushafScreen() {
       );
     }
     return null;
-  }, [colors, arabicFontFamily, arabicFontKey, arabicFontSize, masteryMap, searchQuery, handleVerseAction]);
+  }, [colors, arabicFontFamily, arabicFontKey, arabicFontSize, lineSpacingValue, masteryMap, searchQuery, handleVerseAction]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
     const firstVisible = viewableItems[0]?.index;

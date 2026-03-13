@@ -71,7 +71,7 @@ export const TAJWEED_RULES: Record<TajweedRule, TajweedRuleInfo> = {
     label: "إِخْفَاء",
     shortLabel: "إخفاء",
     color: "#D97706",
-    description: "إخفاء النون الساكنة أو التنوين عند ١٥ حرفًا مع بقاء الغنة",
+    description: "إخفاء النون الساكنة أو التنوين عند 15 حرفًا مع بقاء الغنة",
     howTo: "أخفِ النون دون إدغام كامل ولا إظهار كامل، مع الغنة مقدار حركتين",
     example: "مَنْ كَانَ، جَنَّات تَجْرِي",
   },
