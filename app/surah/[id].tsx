@@ -159,8 +159,6 @@ function VerseItem({
   masteryLevel,
   isNavigatedTo,
   onTafsir,
-  isSelected,
-  onSelect,
 }: {
   verse: Verse;
   surahNum: number;
@@ -182,12 +180,15 @@ function VerseItem({
   masteryLevel: MasteryLevel;
   isNavigatedTo: boolean;
   onTafsir: () => void;
-  isSelected: boolean;
-  onSelect: () => void;
 }) {
   const { colors } = useSettings();
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.8, duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggle();
   };
@@ -200,131 +201,115 @@ function VerseItem({
       ? rawText.slice(bism.length).trimStart()
       : rawText;
 
-  const isHighlighted = isCurrentAudio && !isAudioLoading;
+  const isKaraoke = isCurrentAudio && !isAudioLoading;
+
+  const textStyle = {
+    fontSize,
+    lineHeight: fontSize * lineSpacingValue * 1.6,
+    textAlign: "right" as const,
+  };
+
   const masteryDotColor = masteryLevel === 1 ? "#E67E22" : masteryLevel === 2 ? "#C9A227" : masteryLevel === 3 ? "#27AE60" : null;
-  const arabicNum = toArabicIndic(verse.number);
-  const lineH = fontSize * lineSpacingValue * 1.6;
-
-  const containerBg = isNavigatedTo
-    ? colors.gold + "28"
-    : isHighlighted
-      ? colors.gold + "14"
-      : isActive
-        ? colors.gold + "0A"
-        : "transparent";
-
-  const borderLeftColor = isNavigatedTo
-    ? colors.gold
-    : isHighlighted
-      ? colors.gold
-      : isActive
-        ? colors.gold + "80"
-        : isBookmarked
-          ? colors.gold + "60"
-          : "transparent";
-
-  const verseNumColor = isHighlighted || isNavigatedTo
-    ? colors.gold
-    : isBookmarked
-      ? colors.gold + "CC"
-      : colors.textMuted;
 
   return (
     <View style={[
-      styles.mushafVerse,
-      isLandscape && { paddingHorizontal: 12 },
+      styles.verseContainer,
+      isLandscape && styles.verseContainerLandscape,
       {
-        backgroundColor: containerBg,
-        borderLeftColor,
-        borderLeftWidth: (isNavigatedTo || isHighlighted || isActive || isBookmarked) ? 3 : 0,
-      },
+        backgroundColor: isNavigatedTo
+          ? colors.gold + "30"
+          : isKaraoke
+            ? colors.gold + "18"
+            : isActive
+              ? colors.gold + "12"
+              : isBookmarked
+                ? colors.gold + "0D"
+                : colors.bgCard,
+        borderColor: isNavigatedTo
+          ? colors.gold
+          : isKaraoke
+            ? colors.gold + "70"
+            : isActive
+              ? colors.gold + "50"
+              : isBookmarked
+                ? colors.gold + "50"
+                : colors.border,
+        borderLeftWidth: isNavigatedTo ? 4 : isKaraoke ? 4 : isActive ? 3 : 1,
+        borderLeftColor: isNavigatedTo
+          ? colors.gold
+          : isKaraoke
+            ? colors.gold
+            : isActive
+              ? colors.gold
+              : isBookmarked ? colors.gold + "50" : colors.border,
+      }
     ]}>
-      {/* Mastery dot + Tajweed hint row */}
-      {(masteryDotColor !== null || (showTajweed && isSelected)) && (
-        <View style={styles.mushafMeta}>
-          {masteryDotColor !== null && (
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: masteryDotColor }} />
+      <View style={styles.verseHeader}>
+        <View style={styles.verseHeaderLeft}>
+          {!hideNumbers && (
+            <View style={[
+              styles.verseNumberBadge,
+              {
+                backgroundColor: isBookmarked ? colors.gold + "20" : colors.bgSurface,
+                borderColor: isBookmarked ? colors.gold + "60" : colors.border,
+              }
+            ]}>
+              <Text style={[styles.verseNumberText, { color: isBookmarked ? colors.gold : colors.textMuted }]}>
+                {verse.number}
+              </Text>
+            </View>
           )}
-          {showTajweed && isSelected && (
+          {masteryDotColor !== null && (
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: masteryDotColor }} />
+          )}
+        </View>
+        <View style={styles.verseHeaderRight}>
+          {showTajweed && (
             <View style={[styles.tajweedHintBadge, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
               <Text style={[styles.tajweedHintText, { color: colors.tealLight }]}>اضغط الكلمة الملونة</Text>
             </View>
           )}
-        </View>
-      )}
-
-      {/* Verse text */}
-      {showTajweed ? (
-        <>
-          <TajweedText
-            text={displayText}
-            style={{ fontSize, lineHeight: lineH, textAlign: "right" as const }}
-            arabicFont={arabicFont}
-            colors={colors}
-            onRuleTap={onRuleTap}
-          />
-          <Pressable onPress={onSelect} style={styles.verseNumMarker} hitSlop={8}>
-            <Text style={[styles.verseNumMarkerText, { color: verseNumColor, fontSize: Math.max(11, fontSize * 0.52) }]}>
-              ﴿{arabicNum}﴾
-            </Text>
+          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }} hitSlop={10}>
+            <Ionicons name="book-outline" size={20} color={colors.textMuted} />
           </Pressable>
-        </>
-      ) : (
-        <Text
-          style={[
-            styles.mushafVerseText,
-            { fontSize, lineHeight: lineH, color: colors.textPrimary },
-            arabicFont ? { fontFamily: arabicFont } : {},
-          ]}
-        >
-          {displayText}
-          <Text
-            onPress={onSelect}
-            style={{
-              fontSize: Math.max(11, fontSize * 0.52),
-              color: verseNumColor,
-              fontFamily: "Inter_500Medium",
-            }}
-          >
-            {" "}﴿{arabicNum}﴾
-          </Text>
-        </Text>
-      )}
-
-      {/* Inline action strip when selected */}
-      {isSelected && (
-        <View style={[styles.verseActionStrip, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          <Pressable
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPlayAudio(); }}
-            hitSlop={10}
-            style={styles.verseActionBtn}
-          >
+          <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
             {isAudioLoading
               ? <ActivityIndicator size="small" color={colors.gold} />
               : <Ionicons
                   name={isCurrentAudio ? "pause-circle" : "play-circle-outline"}
-                  size={22}
-                  color={isCurrentAudio ? colors.gold : colors.textSecondary}
+                  size={24}
+                  color={isCurrentAudio ? colors.gold : colors.textMuted}
                 />
             }
           </Pressable>
-          <View style={[styles.verseActionDivider, { backgroundColor: colors.border }]} />
-          <Pressable onPress={handleToggle} hitSlop={10} style={styles.verseActionBtn}>
-            <Ionicons
-              name={isBookmarked ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color={isBookmarked ? colors.gold : colors.textSecondary}
-            />
-          </Pressable>
-          <View style={[styles.verseActionDivider, { backgroundColor: colors.border }]} />
-          <Pressable
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }}
-            hitSlop={10}
-            style={styles.verseActionBtn}
-          >
-            <Ionicons name="book-outline" size={20} color={colors.textSecondary} />
-          </Pressable>
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Pressable onPress={handleToggle} hitSlop={12}>
+              <Ionicons
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={22}
+                color={isBookmarked ? colors.gold : colors.textMuted}
+              />
+            </Pressable>
+          </Animated.View>
         </View>
+      </View>
+
+      {showTajweed ? (
+        <TajweedText
+          text={displayText}
+          style={textStyle}
+          arabicFont={arabicFont}
+          colors={colors}
+          onRuleTap={onRuleTap}
+        />
+      ) : (
+        <Text style={[
+          styles.verseText,
+          { fontSize, lineHeight: fontSize * lineSpacingValue * 1.6, color: colors.textPrimary },
+          arabicFont ? { fontFamily: arabicFont } : {},
+        ]}>
+          {displayText}
+        </Text>
       )}
     </View>
   );
@@ -375,7 +360,6 @@ export default function SurahScreen() {
   const [tafsirVerse, setTafsirVerse] = useState<{ surahNum: number; verseNum: number } | null>(null);
   const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
   const [jumpToVerseInput, setJumpToVerseInput] = useState("");
-  const [selectedVerseNum, setSelectedVerseNum] = useState<number | null>(null);
   const flatListRef = useRef<FlatList<Verse>>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -863,7 +847,6 @@ export default function SurahScreen() {
           if (currentKey && !currentKey.startsWith("surah:") && highlightActiveVerse) {
             userDidScroll.current = true;
           }
-          setSelectedVerseNum(null);
         }}
         onScroll={(e) => {
           const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -916,11 +899,10 @@ export default function SurahScreen() {
               masteryLevel={getMastery(surahNumber, item.number)}
               isNavigatedTo={navigatedVerseNum === item.number}
               onTafsir={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTafsirVerse({ surahNum: surahNumber, verseNum: item.number }); }}
-              isSelected={selectedVerseNum === item.number}
-              onSelect={() => setSelectedVerseNum((n) => (n === item.number ? null : item.number))}
             />
           );
         }}
+        ItemSeparatorComponent={() => <View style={isLandscape ? { height: 0 } : styles.verseSeparator} />}
       />
 
       {isImmersive && (
@@ -1567,49 +1549,6 @@ const styles = StyleSheet.create({
   },
   verseSeparator: {
     height: 10,
-  },
-  mushafVerse: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  mushafMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-    marginBottom: 4,
-  },
-  mushafVerseText: {
-    textAlign: "right",
-  },
-  verseNumMarker: {
-    alignSelf: "flex-end",
-    marginTop: 4,
-    paddingHorizontal: 2,
-  },
-  verseNumMarkerText: {
-    fontFamily: "Inter_500Medium",
-    textAlign: "right",
-  },
-  verseActionStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginTop: 8,
-    alignSelf: "flex-end",
-    overflow: "hidden",
-  },
-  verseActionBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verseActionDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 22,
   },
   downloadBar: {
     height: 40,
