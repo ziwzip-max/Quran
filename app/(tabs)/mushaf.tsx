@@ -31,6 +31,11 @@ import {
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
 const MASTERY_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
 
+const ARABIC_DIGITS = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
+function toArabicIndic(n: number): string {
+  return String(n).replace(/\d/g, d => ARABIC_DIGITS[Number(d)]);
+}
+
 const ARABIC_JUZ = [
   "١","٢","٣","٤","٥","٦","٧","٨","٩","١٠",
   "١١","١٢","١٣","١٤","١٥","١٦","١٧","١٨","١٩","٢٠",
@@ -46,38 +51,51 @@ const ARABIC_HIZB = [
   "٥١","٥٢","٥٣","٥٤","٥٥","٥٦","٥٧","٥٨","٥٩","٦٠",
 ];
 
+interface VerseEntry {
+  verseNumber: number;
+  text: string;
+}
+
 type MushafItem =
   | { type: "surah_header"; surahNumber: number; key: string }
   | { type: "juz_marker"; juzNumber: number; key: string }
   | { type: "hizb_marker"; hizbNumber: number; key: string }
-  | { type: "verse"; surahNumber: number; verseNumber: number; text: string; key: string };
-
-const ITEM_HEIGHT: Record<MushafItem["type"], number> = {
-  surah_header: 108,
-  juz_marker: 46,
-  hizb_marker: 34,
-  verse: 82,
-};
+  | { type: "verse_run"; surahNumber: number; verses: VerseEntry[]; key: string };
 
 function buildMushafItems(): MushafItem[] {
   const items: MushafItem[] = [];
-  const hizbSet = new Set(HIZB_START.map((h, i) => `${h.surah}:${h.verse}:${i}`));
   const hizbLookup = new Map<string, number>();
   HIZB_START.forEach((h, i) => hizbLookup.set(`${h.surah}:${h.verse}`, i + 1));
 
-  const juzBoundarySet = new Set<string>();
   const juzLookup = new Map<string, number>();
   let prevJuz = 0;
   for (const surah of SURAHS) {
     const juz = SURAH_JUZ[surah.number];
     if (juz !== prevJuz) {
-      juzBoundarySet.add(`${surah.number}:1`);
       juzLookup.set(`${surah.number}:1`, juz);
       prevJuz = juz;
     }
   }
 
+  let currentRun: VerseEntry[] = [];
+  let currentSurah = 0;
+
+  function flushRun() {
+    if (currentRun.length > 0 && currentSurah > 0) {
+      items.push({
+        type: "verse_run",
+        surahNumber: currentSurah,
+        verses: currentRun,
+        key: `vr_${currentSurah}_${currentRun[0].verseNumber}_${currentRun[currentRun.length - 1].verseNumber}`,
+      });
+      currentRun = [];
+    }
+  }
+
   for (const surah of SURAHS) {
+    flushRun();
+    currentSurah = surah.number;
+
     items.push({
       type: "surah_header",
       surahNumber: surah.number,
@@ -87,16 +105,19 @@ function buildMushafItems(): MushafItem[] {
     for (const verse of surah.verses) {
       const posKey = `${surah.number}:${verse.number}`;
 
-      if (juzLookup.has(posKey) && verse.number === 1 && surah.number > 1) {
+      const juzNum = juzLookup.get(posKey);
+      if (juzNum !== undefined && verse.number === 1 && surah.number > 1) {
+        flushRun();
         items.push({
           type: "juz_marker",
-          juzNumber: juzLookup.get(posKey)!,
-          key: `juz_${juzLookup.get(posKey)}`,
+          juzNumber: juzNum,
+          key: `juz_${juzNum}`,
         });
       }
 
       const hizbNum = hizbLookup.get(posKey);
       if (hizbNum !== undefined && !(surah.number === 1 && verse.number === 1)) {
+        flushRun();
         items.push({
           type: "hizb_marker",
           hizbNumber: hizbNum,
@@ -104,65 +125,16 @@ function buildMushafItems(): MushafItem[] {
         });
       }
 
-      items.push({
-        type: "verse",
-        surahNumber: surah.number,
-        verseNumber: verse.number,
-        text: verse.text,
-        key: `v_${surah.number}_${verse.number}`,
-      });
+      currentRun.push({ verseNumber: verse.number, text: verse.text });
     }
   }
+  flushRun();
 
   return items;
 }
 
 const MUSHAF_ITEMS = buildMushafItems();
 
-const ITEM_OFFSETS: number[] = (() => {
-  const offsets = new Array(MUSHAF_ITEMS.length + 1);
-  offsets[0] = 0;
-  for (let i = 0; i < MUSHAF_ITEMS.length; i++) {
-    offsets[i + 1] = offsets[i] + ITEM_HEIGHT[MUSHAF_ITEMS[i].type];
-  }
-  return offsets;
-})();
-
-function getItemLayout(_: unknown, index: number) {
-  return {
-    length: ITEM_HEIGHT[MUSHAF_ITEMS[index]?.type ?? "verse"],
-    offset: ITEM_OFFSETS[index] ?? 0,
-    index,
-  };
-}
-
-
-function HighlightedText({
-  text, query, baseStyle, highlightBg, highlightColor, suffix,
-}: {
-  text: string; query: string; baseStyle: object;
-  highlightBg: string; highlightColor: string;
-  suffix?: React.ReactNode;
-}) {
-  if (!query.trim()) {
-    return <Text style={baseStyle}>{text}{suffix}</Text>;
-  }
-  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
-  return (
-    <Text style={baseStyle}>
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <Text key={i} style={{ backgroundColor: highlightBg, color: highlightColor, borderRadius: 3 }}>
-            {part}
-          </Text>
-        ) : (
-          part
-        )
-      )}
-      {suffix}
-    </Text>
-  );
-}
 
 function SurahHeaderItem({
   surahNumber, colors,
@@ -286,62 +258,106 @@ const hmStyles = StyleSheet.create({
   },
 });
 
-function VerseItem({
-  item, colors, arabicFont, arabicFontKey, arabicFontSize, mastery, searchQuery,
+function VerseRunItem({
+  item, colors, arabicFont, arabicFontKey, arabicFontSize, masteryMap, searchQuery,
   onLongPress,
 }: {
-  item: Extract<MushafItem, { type: "verse" }>;
+  item: Extract<MushafItem, { type: "verse_run" }>;
   colors: ReturnType<typeof useSettings>["colors"];
   arabicFont?: string;
   arabicFontKey: string;
   arabicFontSize: number;
-  mastery: number;
+  masteryMap: Record<string, number>;
   searchQuery: string;
-  onLongPress: () => void;
+  onLongPress: (verseNumber: number) => void;
 }) {
-  const dotColor = MASTERY_COLORS[mastery] ?? MASTERY_COLORS[0];
-  const isHighlighted = searchQuery.trim().length > 0 &&
-    item.text.includes(searchQuery.trim());
   const effectiveSize = arabicFontSize * getFontSizeMultiplier(arabicFontKey);
   const lineH = effectiveSize * 2.0;
+  const markerSize = effectiveSize * 0.6;
+  const query = searchQuery.trim();
+  const hasQuery = query.length > 0;
+
+  const highestMastery = useMemo(() => {
+    let max = 0;
+    for (const v of item.verses) {
+      const m = (masteryMap[`${item.surahNumber}:${v.verseNumber}`] as number) ?? 0;
+      if (m > max) max = m;
+    }
+    return max;
+  }, [item.surahNumber, item.verses, masteryMap]);
+
+  const dotColor = MASTERY_COLORS[highestMastery] ?? MASTERY_COLORS[0];
 
   return (
     <Pressable
-      onLongPress={onLongPress}
+      onLongPress={() => onLongPress(item.verses[0].verseNumber)}
       style={({ pressed }) => [
-        vStyles.container,
-        isHighlighted && { backgroundColor: colors.gold + "15" },
+        vrStyles.container,
         { opacity: pressed ? 0.7 : 1 },
       ]}
     >
-      {mastery > 0 && (
-        <View style={[vStyles.masteryDot, { backgroundColor: dotColor }]} />
+      {highestMastery > 0 && (
+        <View style={[vrStyles.masteryDot, { backgroundColor: dotColor }]} />
       )}
-      <HighlightedText
-        text={item.text}
-        query={searchQuery}
-        baseStyle={[vStyles.verseText, { color: colors.textPrimary, fontFamily: arabicFont, fontSize: effectiveSize, lineHeight: lineH }]}
-        highlightBg={colors.gold + "40"}
-        highlightColor={colors.textPrimary}
-        suffix={
-          <Text style={{ color: colors.gold, fontSize: effectiveSize * 0.65 }}>
-            {" ﴾"}{item.verseNumber}{"﴿"}
-          </Text>
-        }
-      />
+      <Text
+        style={[
+          vrStyles.verseText,
+          {
+            color: colors.textPrimary,
+            fontFamily: arabicFont,
+            fontSize: effectiveSize,
+            lineHeight: lineH,
+          },
+        ]}
+      >
+        {item.verses.map((v, i) => {
+          const verseText = v.text;
+          const marker = ` ﴿${toArabicIndic(v.verseNumber)}﴾ `;
+          const isMatch = hasQuery && verseText.includes(query);
+
+          if (isMatch) {
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const parts = verseText.split(new RegExp(`(${escaped})`, "gi"));
+            return (
+              <React.Fragment key={v.verseNumber}>
+                {parts.map((part, pi) =>
+                  part.toLowerCase() === query.toLowerCase() ? (
+                    <Text
+                      key={`${v.verseNumber}_h_${pi}`}
+                      style={{ backgroundColor: colors.gold + "40", color: colors.textPrimary, borderRadius: 3 }}
+                    >
+                      {part}
+                    </Text>
+                  ) : (
+                    <Text key={`${v.verseNumber}_p_${pi}`}>{part}</Text>
+                  )
+                )}
+                <Text style={{ color: colors.gold, fontSize: markerSize }}>{marker}</Text>
+              </React.Fragment>
+            );
+          }
+
+          return (
+            <React.Fragment key={v.verseNumber}>
+              {verseText}
+              <Text style={{ color: colors.gold, fontSize: markerSize }}>{marker}</Text>
+            </React.Fragment>
+          );
+        })}
+      </Text>
     </Pressable>
   );
 }
 
-const vStyles = StyleSheet.create({
+const vrStyles = StyleSheet.create({
   container: {
     paddingHorizontal: 18,
-    paddingVertical: 2,
+    paddingVertical: 6,
   },
   masteryDot: {
     position: "absolute",
     left: 8,
-    top: 10,
+    top: 12,
     width: 6,
     height: 6,
     borderRadius: 3,
@@ -585,7 +601,7 @@ export default function MushafScreen() {
     const q = searchQuery.trim();
     const matches: number[] = [];
     MUSHAF_ITEMS.forEach((item, i) => {
-      if (item.type === "verse" && item.text.includes(q)) {
+      if (item.type === "verse_run" && item.verses.some(v => v.text.includes(q))) {
         matches.push(i);
       }
     });
@@ -662,36 +678,31 @@ export default function MushafScreen() {
     if (item.type === "hizb_marker") {
       return <HizbMarkerItem hizbNumber={item.hizbNumber} colors={colors} />;
     }
-    if (item.type === "verse") {
-      const masteryKey = `${item.surahNumber}:${item.verseNumber}`;
-      const mastery = (masteryMap[masteryKey] as number) ?? 0;
+    if (item.type === "verse_run") {
       return (
-        <VerseItem
+        <VerseRunItem
           item={item}
           colors={colors}
           arabicFont={arabicFontFamily}
           arabicFontKey={arabicFontKey}
           arabicFontSize={arabicFontSize}
-          mastery={mastery}
+          masteryMap={masteryMap}
           searchQuery={searchQuery}
-          onLongPress={() => handleVerseAction(item.surahNumber, item.verseNumber)}
+          onLongPress={(verseNumber) => handleVerseAction(item.surahNumber, verseNumber)}
         />
       );
     }
     return null;
   }, [colors, arabicFontFamily, arabicFontKey, arabicFontSize, masteryMap, searchQuery, handleVerseAction]);
 
-  const onScrollEndDrag = useCallback((e: any) => {
-    const offset = e.nativeEvent.contentOffset.y;
-    let cumulative = 0;
-    for (let i = 0; i < MUSHAF_ITEMS.length; i++) {
-      cumulative += ITEM_HEIGHT[MUSHAF_ITEMS[i].type];
-      if (cumulative >= offset) {
-        savePosition(i);
-        break;
-      }
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+    const firstVisible = viewableItems[0]?.index;
+    if (typeof firstVisible === "number") {
+      savePosition(firstVisible);
     }
-  }, [savePosition]);
+  }).current;
+
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const searchMatchLabel = useMemo(() => {
     if (matchIndices.length === 0) return "لا نتائج";
@@ -765,12 +776,12 @@ export default function MushafScreen() {
         data={MUSHAF_ITEMS}
         keyExtractor={item => item.key}
         renderItem={renderItem}
-        getItemLayout={getItemLayout}
-        onScrollEndDrag={onScrollEndDrag}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         removeClippedSubviews
         windowSize={5}
-        maxToRenderPerBatch={20}
-        initialNumToRender={30}
+        maxToRenderPerBatch={15}
+        initialNumToRender={20}
         updateCellsBatchingPeriod={100}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomPadding + 90 }}
