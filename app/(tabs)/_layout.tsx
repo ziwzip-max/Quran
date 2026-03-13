@@ -27,7 +27,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontFamily: "Inter_500Medium",
           fontSize: 11,
-          textAlign: "center",
+          textAlign: "right",
           width: "100%",
         },
         tabBarBackground: () =>

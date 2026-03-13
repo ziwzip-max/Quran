@@ -20,7 +20,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS, Surah } from "@/constants/quranData";
-import { SURAH_TYPE, SURAH_JUZ, JUZ_NAMES } from "@/constants/quranMeta";
+import { SURAH_TYPE, SURAH_JUZ } from "@/constants/quranMeta";
 import { VOD_LIST } from "@/constants/verseOfDayList";
 import { BUILT_IN_DUAS, Dua } from "@/constants/duaaData";
 import { SettingsModal } from "@/components/SettingsModal";

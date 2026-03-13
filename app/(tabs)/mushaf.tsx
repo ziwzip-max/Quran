@@ -23,7 +23,6 @@ import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import {
   HIZB_START,
-  JUZ_NAMES,
   SURAH_JUZ,
   SURAH_TYPE,
 } from "@/constants/quranMeta";
@@ -186,7 +185,7 @@ function JuzMarkerItem({
       <View style={[jmStyles.line, { backgroundColor: colors.gold + "40" }]} />
       <View style={[jmStyles.badge, { backgroundColor: colors.bgDark, borderColor: colors.gold + "80" }]}>
         <Text style={[jmStyles.text, { color: colors.gold }]}>
-          {JUZ_NAMES[juzNumber - 1]}
+          جزء {juzNumber}
         </Text>
       </View>
       <View style={[jmStyles.line, { backgroundColor: colors.gold + "40" }]} />
@@ -594,7 +593,7 @@ export default function MushafScreen() {
           if (typeof itemIndex === "number" && itemIndex > 0) {
             setTimeout(() => {
               listRef.current?.scrollToIndex({ index: itemIndex, animated: false, viewPosition: 0 });
-              if (juzNum) showToast(`استؤنف من ${JUZ_NAMES[juzNum - 1]}`);
+              if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
             }, 600);
           }
         } catch {}

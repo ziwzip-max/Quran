@@ -561,7 +561,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       borderColor: colors.border, backgroundColor: colors.bgSurface,
     },
     optionBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "center" },
+    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "right" },
     optionLabelActive: { color: colors.bgDark, fontFamily: "Inter_700Bold" },
     accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-end" },
     accentCircleWrap: { alignItems: "center", justifyContent: "center" },
