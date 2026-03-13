@@ -97,3 +97,11 @@ components/
 
 - `Start Backend`: `npm run server:dev` → port 5000
 - `Start Frontend`: `npm run expo:dev` → port 8081 (avec HMR)
+
+## Dev Preview Setup
+
+En mode développement, le backend Express (port 5000) proxie automatiquement
+toutes les requêtes web vers Metro bundler (port 8081) via `http-proxy-middleware`.
+Ceci permet de voir l'application web React Native directement dans le panneau
+de prévisualisation Replit (port 5000 → 8081). En production, le backend sert
+les fichiers statiques du build Expo (`static-build/`) sans proxy.

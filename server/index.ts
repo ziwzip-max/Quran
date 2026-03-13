@@ -1,5 +1,6 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
@@ -169,6 +170,7 @@ function configureExpoAndLanding(app: express.Application) {
   );
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
+  const isDev = process.env.NODE_ENV !== "production";
 
   log("Serving static Expo files with dynamic manifest routing");
 
@@ -187,6 +189,9 @@ function configureExpoAndLanding(app: express.Application) {
     }
 
     if (req.path === "/") {
+      if (isDev) {
+        return next();
+      }
       return serveLandingPage({
         req,
         res,
@@ -200,6 +205,25 @@ function configureExpoAndLanding(app: express.Application) {
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
+
+  if (isDev) {
+    const metroProxy = createProxyMiddleware({
+      target: "http://localhost:8081",
+      changeOrigin: true,
+      ws: true,
+      on: {
+        error: (_err, _req, res) => {
+          if (res && !("headersSent" in res && (res as Response).headersSent)) {
+            (res as Response).status(502).send("Metro bundler not ready — please wait.");
+          }
+        },
+      },
+    });
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.path.startsWith("/api")) return next();
+      return metroProxy(req, res, next);
+    });
+  }
 
   log("Expo routing: Checking expo-platform header on / and /manifest");
 }
