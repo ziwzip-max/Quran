@@ -426,7 +426,7 @@ export default function QuranScreen() {
   const loadSearchHistory = useCallback(async () => {
     try {
       const stored = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
-      if (stored) setSearchHistory(JSON.parse(stored));
+      if (stored) setSearchHistory((JSON.parse(stored) as string[]).slice(0, MAX_SEARCH_HISTORY));
     } catch {}
   }, []);
 
