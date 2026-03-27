@@ -20,7 +20,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS, Surah } from "@/constants/quranData";
-import { SURAH_TYPE, SURAH_JUZ } from "@/constants/quranMeta";
+import { SURAH_TYPE } from "@/constants/quranMeta";
 import { VOD_LIST } from "@/constants/verseOfDayList";
 import { BUILT_IN_DUAS, Dua } from "@/constants/duaaData";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -29,8 +29,6 @@ export const HISTORY_KEY = "al_hifz_history";
 const LAST_SURAH_KEY = "al_hifz_last_surah";
 const PINS_KEY = "al_hifz_pins";
 const REVIEWS_KEY = "al_hifz_reviews";
-const DAILY_COUNTS_KEY = "al_hifz_daily_counts";
-const STREAK_KEY = "al_hifz_streak";
 const SEARCH_HISTORY_KEY = "al_hifz_search_history";
 const MAX_HISTORY = 5;
 const MAX_SEARCH_HISTORY = 5;
@@ -39,7 +37,6 @@ const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
 
 type SearchMode = "surahs" | "verse";
-type JuzFilter = number | "كل";
 
 interface VerseResult {
   surahNumber: number;
@@ -68,41 +65,6 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   return VOD_LIST[dayEpoch % VOD_LIST.length];
 }
 
-function utcDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
-
-function addDaysUTC(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setUTCDate(r.getUTCDate() + n);
-  return r;
-}
-
-async function computeStreak(): Promise<number> {
-  try {
-    const stored = await AsyncStorage.getItem(DAILY_COUNTS_KEY);
-    if (!stored) return 0;
-    const counts: Record<string, number> = JSON.parse(stored);
-    const activeDays = new Set(Object.keys(counts).filter((d) => counts[d] > 0));
-    if (activeDays.size === 0) return 0;
-    const now = new Date();
-    let streak = 0;
-    let cursor = now;
-    if (!activeDays.has(utcDateStr(cursor))) {
-      cursor = addDaysUTC(cursor, -1);
-      if (!activeDays.has(utcDateStr(cursor))) return 0;
-    }
-    while (activeDays.has(utcDateStr(cursor))) {
-      streak++;
-      cursor = addDaysUTC(cursor, -1);
-    }
-    await AsyncStorage.setItem(STREAK_KEY, String(streak));
-    return streak;
-  } catch {
-    return 0;
-  }
-}
-
 function countDueBlocks(
   masteryMap: Record<string, number>,
   reviews: Record<string, number>
@@ -120,28 +82,6 @@ function countDueBlocks(
   return count;
 }
 
-function JuzChip({ label, selected, onPress, colors }: {
-  label: string; selected: boolean;
-  onPress: () => void;
-  colors: ReturnType<typeof useSettings>["colors"];
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.filterChip,
-        {
-          backgroundColor: selected ? colors.gold : colors.bgCard,
-          borderColor: selected ? colors.gold : colors.border,
-        }
-      ]}
-    >
-      <Text style={[styles.filterChipText, { color: selected ? colors.bgDark : colors.textSecondary }]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: ReturnType<typeof useSettings>["colors"] }) {
   return (
@@ -356,20 +296,15 @@ function VerseResultCard({ result, colors, arabicFont }: { result: VerseResult; 
   );
 }
 
-const JUZ_LABELS: JuzFilter[] = ["كل", ...Array.from({ length: 30 }, (_, i) => i + 1)];
-
 export default function QuranScreen() {
   const insets = useSafeAreaInsets();
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
   const [search, setSearch] = useState("");
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [revFilter, setRevFilter] = useState<"الكل" | "مكية" | "مدنية">("الكل");
-  const [juzFilter, setJuzFilter] = useState<JuzFilter>("كل");
   const [history, setHistory] = useState<number[]>([]);
   const [pins, setPins] = useState<number[]>([]);
   const [dueCount, setDueCount] = useState(0);
-  const [streak, setStreak] = useState(0);
   const [reviewBannerDismissed, setReviewBannerDismissed] = useState(false);
   const [vodDismissed, setVodDismissed] = useState(false);
   const [lastSurah, setLastSurah] = useState<LastSurahData | null>(null);
@@ -454,7 +389,6 @@ export default function QuranScreen() {
     loadPins();
     loadDueCount();
     loadSearchHistory();
-    computeStreak().then(setStreak);
   }, [loadHistory, loadLastSurah, loadPins, loadDueCount, loadSearchHistory]));
 
   const togglePin = useCallback(async (surahNumber: number) => {
@@ -480,14 +414,7 @@ export default function QuranScreen() {
     const q = search.trim();
 
     if (q === "") {
-      let surahs = SURAHS.filter((s) => {
-        const matchesRev = revFilter === "الكل" || 
-          (revFilter === "مكية" && SURAH_TYPE[s.number] === "mecquoise") ||
-          (revFilter === "مدنية" && SURAH_TYPE[s.number] === "médinoise");
-        const matchesJuz = juzFilter === "كل" || SURAH_JUZ[s.number] === juzFilter;
-        return matchesRev && matchesJuz;
-      });
-      return { mode: "surahs", filteredSurahs: surahs, verseResults: [] };
+      return { mode: "surahs", filteredSurahs: SURAHS, verseResults: [] };
     }
 
     const parsed = parseVerseQuery(q);
@@ -541,7 +468,7 @@ export default function QuranScreen() {
       (s) => s.nameTranslit.toLowerCase().includes(q.toLowerCase())
     );
     return { mode: "surahs", filteredSurahs: matched, verseResults: [] };
-  }, [search, revFilter, juzFilter]);
+  }, [search]);
 
   const showFilters = search.trim() === "";
 
@@ -552,21 +479,13 @@ export default function QuranScreen() {
   const showBanner = dueCount > 0 && !reviewBannerDismissed && showFilters;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+      <View style={[styles.innerContainer, { paddingTop: topPadding }]}>
       <View style={styles.header}>
         <Pressable onPress={() => setSettingsVisible(true)} style={styles.gearBtn} hitSlop={10}>
           <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
         </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.title, { color: colors.gold }]}>القرآن الكريم</Text>
-          <View style={styles.subtitleRow}>
-            <View style={[styles.streakBadge, { backgroundColor: streak > 0 ? colors.gold + "20" : colors.bgSurface, borderColor: streak > 0 ? colors.gold + "60" : colors.border }]}>
-              <Ionicons name="flame" size={13} color={streak > 0 ? colors.gold : colors.textMuted} />
-              <Text style={[styles.streakText, { color: streak > 0 ? colors.gold : colors.textMuted }]}>{streak}</Text>
-            </View>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>114 سورة • 6236 آية</Text>
-          </View>
-        </View>
+        <View style={{ flex: 1 }} />
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -691,33 +610,6 @@ export default function QuranScreen() {
               </View>
             )}
 
-            {showFilters && (
-              <View style={styles.filtersSection}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-                  {["الكل", "مكية", "مدنية"].map((label) => (
-                    <JuzChip
-                      key={label}
-                      label={label}
-                      selected={revFilter === label}
-                      onPress={() => setRevFilter(label as any)}
-                      colors={colors}
-                    />
-                  ))}
-                </ScrollView>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterScroll, { marginTop: 8 }]}>
-                  {JUZ_LABELS.map((label) => (
-                    <JuzChip
-                      key={String(label)}
-                      label={label === "كل" ? "كل الأجزاء" : `جزء ${label}`}
-                      selected={juzFilter === label}
-                      onPress={() => setJuzFilter(label)}
-                      colors={colors}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
             {verseResults.length > 0 && (
               <View style={styles.verseResultsSection}>
                 <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>نتائج من الآيات</Text>
@@ -776,37 +668,20 @@ export default function QuranScreen() {
       </Modal>
 
       <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, alignItems: "center" },
+  innerContainer: {
+    flex: 1,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 640 : undefined,
+  },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   gearBtn: { padding: 4 },
-  headerCenter: { flex: 1, alignItems: "flex-end" },
-  title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "right" },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "right" },
-  subtitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 3,
-  },
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  streakText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-  },
   reviewBanner: {
     flexDirection: "row", alignItems: "center",
     marginHorizontal: 16, marginBottom: 8,
@@ -843,7 +718,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10, borderRadius: 12, gap: 8,
   },
   continueBtnText: { fontFamily: "Inter_700Bold", fontSize: 14 },
-  filtersSection: { marginBottom: 12 },
   sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", marginHorizontal: 18, marginBottom: 8, textAlign: "right" },
   verseResultsSection: { paddingHorizontal: 16, marginBottom: 12 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 20 },
@@ -890,10 +764,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 6,
   },
   pinChipText: { fontFamily: "Inter_500Medium", fontSize: 14 },
-  lengthFilterSection: { marginBottom: 6 },
-  filterScroll: { paddingHorizontal: 16, gap: 7 },
-  filterChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
-  filterChipText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   listContent: { paddingHorizontal: 16 },
   card: { borderRadius: 14, borderWidth: 1 },
   cardInner: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 14 },
