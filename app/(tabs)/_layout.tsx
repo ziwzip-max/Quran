@@ -57,11 +57,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="mushaf"
+        name="practice"
         options={{
-          title: "المصحف",
+          title: "آيات الصلاة",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
+            <Ionicons name="moon-outline" size={size} color={color} />
           ),
         }}
       />
@@ -75,11 +75,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="practice"
+        name="mushaf"
         options={{
-          title: "آيات الصلاة",
+          title: "المصحف",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="moon-outline" size={size} color={color} />
+            <Ionicons name="book-outline" size={size} color={color} />
           ),
         }}
       />
