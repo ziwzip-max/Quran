@@ -23,7 +23,6 @@ import { SURAHS, Surah } from "@/constants/quranData";
 import { SURAH_TYPE } from "@/constants/quranMeta";
 import { VOD_LIST } from "@/constants/verseOfDayList";
 import { BUILT_IN_DUAS, Dua } from "@/constants/duaaData";
-import { SettingsModal } from "@/components/SettingsModal";
 
 export const HISTORY_KEY = "al_hifz_history";
 const LAST_SURAH_KEY = "al_hifz_last_surah";
@@ -301,7 +300,6 @@ export default function QuranScreen() {
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
   const [search, setSearch] = useState("");
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [history, setHistory] = useState<number[]>([]);
   const [pins, setPins] = useState<number[]>([]);
   const [dueCount, setDueCount] = useState(0);
@@ -482,9 +480,6 @@ export default function QuranScreen() {
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
       <View style={[styles.innerContainer, { paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => setSettingsVisible(true)} style={styles.gearBtn} hitSlop={10}>
-          <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
-        </Pressable>
         <View style={{ flex: 1 }} />
         <Pressable
           onPress={() => {
@@ -667,7 +662,6 @@ export default function QuranScreen() {
         </Pressable>
       </Modal>
 
-      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       </View>
     </View>
   );
