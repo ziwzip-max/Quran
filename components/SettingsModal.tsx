@@ -8,23 +8,28 @@ import {
   ScrollView,
   Platform,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useMastery } from "@/contexts/MasteryContext";
 import * as FileSystem from "expo-file-system/legacy";
 import {
   ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
   PlaybackRate, RepeatMode,
   ACCENT_COLORS, RECITERS_LIST,
 } from "@/constants/themes";
+import { exportUserData, importUserData } from "@/utils/dataManager";
 
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-type SettingsTab = "المظهر" | "النص" | "التلاوة" | "القراءة";
+type SettingsTab = "المظهر" | "النص" | "التلاوة" | "القراءة" | "البيانات";
 
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const {
@@ -39,7 +44,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setNotifEnabled, setNotifHour, setNotifMinute,
     autoNightMode, setAutoNightMode,
     colors, arabicFontFamily,
+    reloadFromStorage: reloadSettings,
   } = useSettings();
+  const { reloadFromStorage: reloadBookmarks } = useBookmarks();
+  const { reloadFromStorage: reloadMastery } = useMastery();
 
   const MIN_FONT_SIZE = 18;
   const MAX_FONT_SIZE = 48;
@@ -49,8 +57,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("المظهر");
   const [reciterPickerVisible, setReciterPickerVisible] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [dataStatus, setDataStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const tabs: SettingsTab[] = ["المظهر", "النص", "التلاوة", "القراءة"];
+  const tabs: SettingsTab[] = ["المظهر", "النص", "التلاوة", "القراءة", "البيانات"];
 
   const themes: { key: ThemeName; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: "dark",   label: "ليلي",    icon: "moon" },
@@ -117,6 +128,45 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       await FileSystem.deleteAsync(dir, { idempotent: true });
       updateCacheSize();
     } catch {}
+  };
+
+  const handleExport = async () => {
+    setDataStatus(null);
+    setExportLoading(true);
+    try {
+      await exportUserData();
+      setDataStatus({ type: "success", msg: "تم تصدير البيانات بنجاح" });
+    } catch {
+      setDataStatus({ type: "error", msg: "فشل التصدير، حاول مجدداً" });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setDataStatus(null);
+    setImportLoading(true);
+    try {
+      const reloadAll = async () => {
+        await Promise.all([reloadSettings(), reloadBookmarks(), reloadMastery()]);
+      };
+      const result = await importUserData(reloadAll);
+      if (result.success) {
+        setDataStatus({ type: "success", msg: "تم استيراد البيانات بنجاح" });
+      } else if (result.error === "cancelled") {
+        setDataStatus(null);
+      } else if (result.error === "invalid_format") {
+        setDataStatus({ type: "error", msg: "الملف غير صالح أو تالف" });
+      } else if (result.error === "no_data") {
+        setDataStatus({ type: "error", msg: "لم يتم العثور على بيانات في الملف" });
+      } else {
+        setDataStatus({ type: "error", msg: "حدث خطأ أثناء الاستيراد" });
+      }
+    } catch {
+      setDataStatus({ type: "error", msg: "حدث خطأ أثناء الاستيراد" });
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   const hourDisplay = String(notifHour).padStart(2, "0");
@@ -445,6 +495,91 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             </>
           )}
 
+          {activeTab === "البيانات" && (
+            <>
+              <Text style={s.sectionTitle}>النسخ الاحتياطي</Text>
+              <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "right", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                  يمكنك تصدير جميع بياناتك (الآيات المحفوظة، مستوى الحفظ، الإعدادات) كملف JSON لنقلها أو حفظها.
+                </Text>
+
+                <Pressable
+                  onPress={handleExport}
+                  disabled={exportLoading || importLoading}
+                  style={[
+                    dataActionBtn,
+                    { backgroundColor: colors.gold + "18", borderColor: colors.gold + "40" },
+                    (exportLoading || importLoading) && { opacity: 0.6 },
+                  ]}
+                >
+                  {exportLoading ? (
+                    <ActivityIndicator size="small" color={colors.gold} />
+                  ) : (
+                    <Ionicons name="cloud-download-outline" size={20} color={colors.gold} />
+                  )}
+                  <Text style={{ color: colors.gold, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                    تصدير البيانات
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Text style={s.sectionTitle}>استيراد البيانات</Text>
+              <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "right", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                  استيراد نسخة احتياطية سابقة. سيتم استبدال البيانات الحالية بالكامل.
+                </Text>
+
+                <Pressable
+                  onPress={handleImport}
+                  disabled={exportLoading || importLoading}
+                  style={[
+                    dataActionBtn,
+                    { backgroundColor: colors.bgSurface, borderColor: colors.border },
+                    (exportLoading || importLoading) && { opacity: 0.6 },
+                  ]}
+                >
+                  {importLoading ? (
+                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                  ) : (
+                    <Ionicons name="cloud-upload-outline" size={20} color={colors.textPrimary} />
+                  )}
+                  <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                    استيراد من ملف
+                  </Text>
+                </Pressable>
+
+                {dataStatus && (
+                  <View style={[
+                    dataStatusBox,
+                    {
+                      backgroundColor: dataStatus.type === "success"
+                        ? colors.gold + "15"
+                        : colors.error + "15",
+                      borderColor: dataStatus.type === "success"
+                        ? colors.gold + "40"
+                        : colors.error + "40",
+                    }
+                  ]}>
+                    <Ionicons
+                      name={dataStatus.type === "success" ? "checkmark-circle-outline" : "alert-circle-outline"}
+                      size={18}
+                      color={dataStatus.type === "success" ? colors.gold : colors.error}
+                    />
+                    <Text style={{
+                      color: dataStatus.type === "success" ? colors.gold : colors.error,
+                      fontFamily: "Inter_500Medium",
+                      fontSize: 13,
+                      flex: 1,
+                      textAlign: "right",
+                    }}>
+                      {dataStatus.msg}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+
           <View style={{ height: 20 }} />
         </ScrollView>
       </View>
@@ -650,3 +785,22 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     reciterItemLabel: { fontSize: 16 },
   });
 }
+
+const dataActionBtn: import("react-native").ViewStyle = {
+  flexDirection: "row-reverse",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  paddingVertical: 14,
+  borderRadius: 12,
+  borderWidth: 1,
+};
+
+const dataStatusBox: import("react-native").ViewStyle = {
+  flexDirection: "row-reverse",
+  alignItems: "center",
+  gap: 8,
+  padding: 12,
+  borderRadius: 10,
+  borderWidth: 1,
+};

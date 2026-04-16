@@ -12,6 +12,7 @@ interface MasteryContextValue {
   recordDailyReview: (count?: number) => void;
   masteryMap: Record<string, MasteryLevel>;
   isLoaded: boolean;
+  reloadFromStorage: () => Promise<void>;
 }
 
 const MasteryContext = createContext<MasteryContextValue | null>(null);
@@ -26,13 +27,18 @@ export function MasteryProvider({ children }: { children: ReactNode }) {
   const [masteryMap, setMasteryMap] = useState<Record<string, MasteryLevel>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const reloadFromStorage = useCallback(async () => {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try { setMasteryMap(JSON.parse(stored)); } catch {}
+    } else {
+      setMasteryMap({});
+    }
+    setIsLoaded(true);
+  }, []);
+
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored) {
-        try { setMasteryMap(JSON.parse(stored)); } catch {}
-      }
-      setIsLoaded(true);
-    });
+    reloadFromStorage();
   }, []);
 
   const persist = (map: Record<string, MasteryLevel>) => {
@@ -81,8 +87,8 @@ export function MasteryProvider({ children }: { children: ReactNode }) {
   }, [recordDailyReview]);
 
   const value = useMemo(
-    () => ({ getMastery, setMastery, cycleMastery, recordDailyReview, masteryMap, isLoaded }),
-    [getMastery, setMastery, cycleMastery, recordDailyReview, masteryMap, isLoaded]
+    () => ({ getMastery, setMastery, cycleMastery, recordDailyReview, masteryMap, isLoaded, reloadFromStorage }),
+    [getMastery, setMastery, cycleMastery, recordDailyReview, masteryMap, isLoaded, reloadFromStorage]
   );
 
   return <MasteryContext.Provider value={value}>{children}</MasteryContext.Provider>;

@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useMemo,
+  useCallback,
   ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -41,6 +42,7 @@ interface BookmarksContextValue {
   toggleBookmark: (surahNumber: number, verseNumber: number) => void;
   isBookmarked: (surahNumber: number, verseNumber: number) => boolean;
   isLoaded: boolean;
+  reloadFromStorage: () => Promise<void>;
 }
 
 const BookmarksContext = createContext<BookmarksContextValue | null>(null);
@@ -127,13 +129,18 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const reloadFromStorage = useCallback(async () => {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try { setBookmarks(JSON.parse(stored)); } catch {}
+    } else {
+      setBookmarks({});
+    }
+    setIsLoaded(true);
+  }, []);
+
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored) {
-        setBookmarks(JSON.parse(stored));
-      }
-      setIsLoaded(true);
-    });
+    reloadFromStorage();
   }, []);
 
   const toggleBookmark = (surahNumber: number, verseNumber: number) => {
@@ -165,8 +172,9 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
       toggleBookmark,
       isBookmarked,
       isLoaded,
+      reloadFromStorage,
     }),
-    [bookmarks, blocks, surahGroups, isLoaded]
+    [bookmarks, blocks, surahGroups, isLoaded, reloadFromStorage]
   );
 
   return (

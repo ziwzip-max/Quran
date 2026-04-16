@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -50,6 +50,7 @@ interface SettingsContextValue {
   colors: ThemeColors;
   arabicFontFamily: string | undefined;
   lineSpacingValue: number;
+  reloadFromStorage: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -94,32 +95,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const systemColorScheme = useColorScheme();
 
+  const applySettings = useCallback((p: Record<string, any>) => {
+    if (p.theme) setThemeState(p.theme);
+    if (p.arabicFont) {
+      const REMOVED_FONTS = ["amiri", "tajawal"];
+      const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? "system" : p.arabicFont;
+      setArabicFontState(font as ArabicFontName);
+    }
+    if (p.accentColor) setAccentColorState(p.accentColor);
+    if (p.lineSpacing) setLineSpacingState(p.lineSpacing);
+    if (p.hideVerseNumbers !== undefined) setHideVerseNumbersState(p.hideVerseNumbers);
+    if (p.showVerseOfDay !== undefined) setShowVerseOfDayState(p.showVerseOfDay);
+    if (p.highlightActiveVerse !== undefined) setHighlightActiveVerseState(p.highlightActiveVerse);
+    if (p.reciterId) setReciterIdState(p.reciterId);
+    else if (p.reciter) setReciterIdState(p.reciter === "alafasy" ? "alafasy" : DEFAULT_RECITER_ID);
+    if (p.playbackRate !== undefined) setPlaybackRateState(p.playbackRate);
+    if (p.repeatMode !== undefined) setRepeatModeState(p.repeatMode);
+    if (p.showTajweed !== undefined) setShowTajweedState(p.showTajweed);
+    if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
+    if (p.qiraa) setQiraaState(p.qiraa);
+    if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
+    if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
+    if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
+    if (p.autoNightMode !== undefined) setAutoNightModeState(p.autoNightMode);
+    if (p.arabicFontSize !== undefined) setArabicFontSizeState(p.arabicFontSize);
+  }, []);
+
+  const reloadFromStorage = useCallback(async () => {
+    const p = await loadSettings();
+    applySettings(p);
+  }, [applySettings]);
+
   useEffect(() => {
-    loadSettings().then((p) => {
-      if (p.theme) setThemeState(p.theme);
-      if (p.arabicFont) {
-        const REMOVED_FONTS = ["amiri", "tajawal"];
-        const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? "system" : p.arabicFont;
-        setArabicFontState(font as ArabicFontName);
-      }
-      if (p.accentColor) setAccentColorState(p.accentColor);
-      if (p.lineSpacing) setLineSpacingState(p.lineSpacing);
-      if (p.hideVerseNumbers !== undefined) setHideVerseNumbersState(p.hideVerseNumbers);
-      if (p.showVerseOfDay !== undefined) setShowVerseOfDayState(p.showVerseOfDay);
-      if (p.highlightActiveVerse !== undefined) setHighlightActiveVerseState(p.highlightActiveVerse);
-      if (p.reciterId) setReciterIdState(p.reciterId);
-      else if (p.reciter) setReciterIdState(p.reciter === "alafasy" ? "alafasy" : DEFAULT_RECITER_ID);
-      if (p.playbackRate !== undefined) setPlaybackRateState(p.playbackRate);
-      if (p.repeatMode !== undefined) setRepeatModeState(p.repeatMode);
-      if (p.showTajweed !== undefined) setShowTajweedState(p.showTajweed);
-      if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
-      if (p.qiraa) setQiraaState(p.qiraa);
-      if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
-      if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
-      if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
-      if (p.autoNightMode !== undefined) setAutoNightModeState(p.autoNightMode);
-      if (p.arabicFontSize !== undefined) setArabicFontSizeState(p.arabicFontSize);
-    });
+    loadSettings().then(applySettings);
   }, []);
 
   const setTheme = (t: ThemeName) => { setThemeState(t); saveSettings({ theme: t }); };
@@ -169,6 +177,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
       setNotifEnabled, setNotifHour, setNotifMinute, setAutoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
+      reloadFromStorage,
     }),
     [
       theme, arabicFont, accentColor, lineSpacing,
@@ -177,6 +186,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize,
       colors, arabicFontFamily, lineSpacingValue,
+      reloadFromStorage,
     ]
   );
 
