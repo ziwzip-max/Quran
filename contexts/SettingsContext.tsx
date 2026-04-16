@@ -74,7 +74,7 @@ async function saveSettings(patch: object) {
 const INVALID_FONTS: string[] = ["cairo"];
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>("dark");
+  const [theme, setThemeState] = useState<ThemeName>("light");
   const [arabicFont, setArabicFontState] = useState<ArabicFontName>("system");
   const [accentColor, setAccentColorState] = useState<AccentColorName>("or");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacingName>("normal");

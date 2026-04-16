@@ -1,10 +1,12 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SettingsModal } from "@/components/SettingsModal";
+import { SURAHS } from "@/constants/quranData";
+import * as Haptics from "expo-haptics";
 
 export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
@@ -81,7 +83,26 @@ export default function TabLayout() {
           name="dua"
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="heart-outline" size={size} color={color} />
+              <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
+                <Ionicons name="hand-left-outline" size={size - 2} color={color} />
+                <Ionicons name="hand-right-outline" size={size - 2} color={color} />
+              </View>
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="shuffle"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const random = SURAHS[Math.floor(Math.random() * SURAHS.length)];
+              router.push({ pathname: "/surah/[id]", params: { id: String(random.number) } });
+            },
+          }}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="shuffle-outline" size={size} color={color} />
             ),
           }}
         />

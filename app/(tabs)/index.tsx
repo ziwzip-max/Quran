@@ -479,20 +479,6 @@ export default function QuranScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
       <View style={[styles.innerContainer, { paddingTop: topPadding }]}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }} />
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const random = SURAHS[Math.floor(Math.random() * SURAHS.length)];
-            router.push({ pathname: "/surah/[id]", params: { id: String(random.number) } });
-          }}
-          hitSlop={10}
-          style={styles.gearBtn}
-        >
-          <Ionicons name="shuffle-outline" size={22} color={colors.textMuted} />
-        </Pressable>
-      </View>
 
       <FlatList
         data={mode === "surahs" ? filteredSurahs : []}
