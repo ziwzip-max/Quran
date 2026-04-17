@@ -121,6 +121,28 @@ function buildMushafItems(): MushafItem[] {
 
 const MUSHAF_ITEMS = buildMushafItems();
 
+function estimateItemHeight(item: MushafItem): number {
+  if (item.type === "surah_header") return 108;
+  if (item.type === "juz_marker") return 46;
+  if (item.type === "hizb_marker") return 34;
+  if (item.type === "verse_run") {
+    const totalChars = item.verses.reduce((acc, v) => acc + v.text.length + 6, 0);
+    const lines = Math.max(Math.ceil(totalChars / 38), 1);
+    return lines * 48 + 12;
+  }
+  return 50;
+}
+
+const ITEM_HEIGHTS = MUSHAF_ITEMS.map(estimateItemHeight);
+const ITEM_OFFSETS: number[] = [];
+(function buildOffsets() {
+  let cum = 0;
+  for (let i = 0; i < MUSHAF_ITEMS.length; i++) {
+    ITEM_OFFSETS.push(cum);
+    cum += ITEM_HEIGHTS[i];
+  }
+})();
+
 
 function SurahHeaderItem({
   surahNumber, colors,
@@ -385,7 +407,7 @@ const vrStyles = StyleSheet.create({
     borderRadius: 3,
   },
   verseText: {
-    textAlign: "justify",
+    textAlign: "right",
     writingDirection: "rtl",
   },
 });
@@ -592,7 +614,7 @@ export default function MushafScreen() {
           const { itemIndex, juzNum } = JSON.parse(stored);
           if (typeof itemIndex === "number" && itemIndex > 0) {
             setTimeout(() => {
-              listRef.current?.scrollToIndex({ index: itemIndex, animated: false, viewPosition: 0 });
+              listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[itemIndex] ?? 0, animated: false });
               if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
             }, 600);
           }
@@ -630,7 +652,7 @@ export default function MushafScreen() {
     setMatchIndices(matches);
     setCurrentMatchIdx(0);
     if (matches.length > 0) {
-      listRef.current?.scrollToIndex({ index: matches[0], animated: true, viewPosition: 0.3 });
+      listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[matches[0]] ?? 0, animated: true });
     }
   }, [searchQuery]);
 
@@ -639,39 +661,37 @@ export default function MushafScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = (currentMatchIdx + direction + matchIndices.length) % matchIndices.length;
     setCurrentMatchIdx(next);
-    listRef.current?.scrollToIndex({ index: matchIndices[next], animated: true, viewPosition: 0.3 });
+    listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[matchIndices[next]] ?? 0, animated: true });
   }, [matchIndices, currentMatchIdx]);
+
+  const scrollToOffset = useCallback((idx: number) => {
+    if (idx < 0 || idx >= ITEM_OFFSETS.length) return;
+    setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[idx], animated: true });
+    }, 80);
+  }, []);
 
   const scrollToSurah = useCallback((surahNumber: number) => {
     const idx = MUSHAF_ITEMS.findIndex(
       item => item.type === "surah_header" && item.surahNumber === surahNumber
     );
-    if (idx >= 0) {
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
-    }
-  }, []);
+    scrollToOffset(idx);
+  }, [scrollToOffset]);
 
   const scrollToJuz = useCallback((juzNumber: number) => {
-    const idx = MUSHAF_ITEMS.findIndex(
+    let idx = MUSHAF_ITEMS.findIndex(
       item => item.type === "juz_marker" && item.juzNumber === juzNumber
     );
-    const fallback = MUSHAF_ITEMS.findIndex(
-      item => item.type === "surah_header"
-    );
-    const target = idx >= 0 ? idx : fallback;
-    if (target >= 0) {
-      listRef.current?.scrollToIndex({ index: target, animated: true, viewPosition: 0 });
-    }
-  }, []);
+    if (idx < 0) idx = MUSHAF_ITEMS.findIndex(item => item.type === "surah_header");
+    scrollToOffset(idx);
+  }, [scrollToOffset]);
 
   const scrollToHizb = useCallback((hizbNumber: number) => {
     const idx = MUSHAF_ITEMS.findIndex(
       item => item.type === "hizb_marker" && item.hizbNumber === hizbNumber
     );
-    if (idx >= 0) {
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
-    }
-  }, []);
+    scrollToOffset(idx);
+  }, [scrollToOffset]);
 
   const handleVerseAction = useCallback((surahNumber: number, verseNumber: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -799,6 +819,11 @@ export default function MushafScreen() {
         data={MUSHAF_ITEMS}
         keyExtractor={item => item.key}
         renderItem={renderItem}
+        getItemLayout={(_data, index) => ({
+          length: ITEM_HEIGHTS[index] ?? 50,
+          offset: ITEM_OFFSETS[index] ?? 0,
+          index,
+        })}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         removeClippedSubviews
@@ -808,14 +833,7 @@ export default function MushafScreen() {
         updateCellsBatchingPeriod={100}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomPadding + 90 }}
-        onScrollToIndexFailed={(info) => {
-          setTimeout(() => {
-            listRef.current?.scrollToIndex({
-              index: Math.min(info.index, MUSHAF_ITEMS.length - 1),
-              animated: false,
-            });
-          }, 300);
-        }}
+        onScrollToIndexFailed={() => {}}
       />
 
       {toast && (
