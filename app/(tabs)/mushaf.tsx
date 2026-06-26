@@ -19,7 +19,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { getFontSizeMultiplier } from "@/constants/themes";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
-import { HIZB_START } from "@/constants/quranMeta";
+import { HIZB_START, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
 import { JumpModal } from "@/components/JumpModal";
 
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
@@ -436,37 +436,6 @@ export default function MushafScreen() {
     }).start(() => setToast(null));
   }, [toastOpacity]);
 
-  useEffect(() => {
-    AsyncStorage.getItem(MUSHAF_JUMP_TARGET).then(jumpStored => {
-      if (jumpStored) {
-        try {
-          const { type, num } = JSON.parse(jumpStored);
-          AsyncStorage.removeItem(MUSHAF_JUMP_TARGET).catch(() => {});
-          setTimeout(() => {
-            if (type === "surah") scrollToSurah(num);
-            else if (type === "juz") scrollToJuz(num);
-            else if (type === "hizb") scrollToHizb(num);
-            showToast(`الانتقال إلى ${type === "surah" ? "سورة" : type === "juz" ? "جزء" : "حزب"} ${num}`);
-          }, 500);
-          return;
-        } catch {}
-      }
-      AsyncStorage.getItem(MUSHAF_POS_KEY).then(stored => {
-        if (stored) {
-          try {
-            const { itemIndex, juzNum } = JSON.parse(stored);
-            if (typeof itemIndex === "number" && itemIndex > 0) {
-              setTimeout(() => {
-                listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[itemIndex] ?? 0, animated: false });
-                if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
-              }, 600);
-            }
-          } catch {}
-        }
-      }).catch(() => {});
-    }).catch(() => {});
-  }, []);
-
   const savePosition = useCallback((itemIndex: number) => {
     const item = MUSHAF_ITEMS[itemIndex];
     if (!item) return;
@@ -496,24 +465,37 @@ export default function MushafScreen() {
     setMatchIndices(matches);
     setCurrentMatchIdx(0);
     if (matches.length > 0) {
-      listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[matches[0]] ?? 0, animated: true });
+      scrollToY(ITEM_OFFSETS[matches[0]] ?? 0, true);
     }
   }, [searchQuery]);
+
+  const scrollToY = useRef((offset: number, animated = true) => {
+    setTimeout(() => {
+      const list = listRef.current as any;
+      if (!list) return;
+      if (list.scrollToOffset) {
+        list.scrollToOffset({ offset, animated });
+        return;
+      }
+      const scrollResponder = list.getScrollResponder?.();
+      if (scrollResponder?.scrollTo) {
+        scrollResponder.scrollTo({ y: offset, animated });
+      }
+    }, 300);
+  }).current;
 
   const goToMatch = useCallback((direction: 1 | -1) => {
     if (matchIndices.length === 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = (currentMatchIdx + direction + matchIndices.length) % matchIndices.length;
     setCurrentMatchIdx(next);
-    listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[matchIndices[next]] ?? 0, animated: true });
-  }, [matchIndices, currentMatchIdx]);
+    scrollToY(ITEM_OFFSETS[matchIndices[next]] ?? 0, true);
+  }, [matchIndices, currentMatchIdx, scrollToY]);
 
   const scrollToOffset = useCallback((idx: number) => {
     if (idx < 0 || idx >= ITEM_OFFSETS.length) return;
-    setTimeout(() => {
-      listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[idx], animated: true });
-    }, 80);
-  }, []);
+    scrollToY(ITEM_OFFSETS[idx], true);
+  }, [scrollToY]);
 
   const scrollToSurah = useCallback((surahNumber: number) => {
     const idx = MUSHAF_ITEMS.findIndex(
@@ -536,6 +518,37 @@ export default function MushafScreen() {
     );
     scrollToOffset(idx);
   }, [scrollToOffset]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(MUSHAF_JUMP_TARGET).then(jumpStored => {
+      if (jumpStored) {
+        try {
+          const { type, num } = JSON.parse(jumpStored);
+          AsyncStorage.removeItem(MUSHAF_JUMP_TARGET).catch(() => {});
+          setTimeout(() => {
+            if (type === "surah") scrollToSurah(num);
+            else if (type === "juz") scrollToJuz(num);
+            else if (type === "hizb") scrollToHizb(num);
+            showToast(`الانتقال إلى ${type === "surah" ? "سورة" : type === "juz" ? "جزء" : "حزب"} ${num}`);
+          }, 500);
+          return;
+        } catch {}
+      }
+      AsyncStorage.getItem(MUSHAF_POS_KEY).then(stored => {
+        if (stored) {
+          try {
+            const { itemIndex, juzNum } = JSON.parse(stored);
+            if (typeof itemIndex === "number" && itemIndex > 0) {
+              setTimeout(() => {
+                scrollToY(ITEM_OFFSETS[itemIndex] ?? 0, false);
+                if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
+              }, 600);
+            }
+          } catch {}
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [scrollToSurah, scrollToJuz, scrollToHizb, scrollToY, showToast]);
 
   const handleVerseAction = useCallback((surahNumber: number, verseNumber: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
