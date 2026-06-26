@@ -3,10 +3,8 @@ import {
   Alert,
   Animated,
   FlatList,
-  Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,13 +19,11 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { getFontSizeMultiplier } from "@/constants/themes";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
-import {
-  HIZB_START,
-  SURAH_JUZ,
-  SURAH_TYPE,
-} from "@/constants/quranMeta";
+import { HIZB_START } from "@/constants/quranMeta";
+import { JumpModal } from "@/components/JumpModal";
 
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
+const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 const MASTERY_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
 
 function stripDiacritics(text: string): string {
@@ -412,173 +408,6 @@ const vrStyles = StyleSheet.create({
   },
 });
 
-type JumpTab = "surah" | "juz" | "hizb";
-
-function JumpModal({
-  visible, onClose, colors,
-  onSelectSurah, onSelectJuz, onSelectHizb,
-  masteryMap,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  colors: ReturnType<typeof useSettings>["colors"];
-  onSelectSurah: (n: number) => void;
-  onSelectJuz: (n: number) => void;
-  onSelectHizb: (n: number) => void;
-  masteryMap: Record<string, number>;
-}) {
-  const [tab, setTab] = useState<JumpTab>("juz");
-  const insets = useSafeAreaInsets();
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[jmpStyles.container, { backgroundColor: colors.bgDark, paddingBottom: insets.bottom + 16 }]}>
-        <View style={[jmpStyles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[jmpStyles.title, { color: colors.textPrimary }]}>الانتقال إلى</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={24} color={colors.textMuted} />
-          </Pressable>
-        </View>
-
-        <View style={[jmpStyles.tabs, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-          {(["surah", "juz", "hizb"] as JumpTab[]).map(t => (
-            <Pressable
-              key={t}
-              onPress={() => setTab(t)}
-              style={[jmpStyles.tab, t === tab && { backgroundColor: colors.gold + "25", borderColor: colors.gold }]}
-            >
-              <Text style={[jmpStyles.tabText, { color: t === tab ? colors.gold : colors.textSecondary }]}>
-                {t === "surah" ? "سورة" : t === "juz" ? "جزء" : "حزب"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {tab === "surah" && (
-          <FlatList
-            data={SURAHS}
-            keyExtractor={s => String(s.number)}
-            renderItem={({ item }) => {
-              const juz = SURAH_JUZ[item.number];
-              return (
-                <Pressable
-                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelectSurah(item.number); onClose(); }}
-                  style={[jmpStyles.surahRow, { borderBottomColor: colors.border }]}
-                >
-                  <View style={[jmpStyles.surahNum, { backgroundColor: colors.bgSurface }]}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.number}</Text>
-                  </View>
-                  <View style={{ flex: 1, marginHorizontal: 12 }}>
-                    <Text style={[jmpStyles.surahNameAr, { color: colors.textPrimary }]}>{item.nameArabic}</Text>
-                    <Text style={[jmpStyles.surahMeta, { color: colors.textMuted }]}>
-                      {SURAH_TYPE[item.number] === "mecquoise" ? "مكية" : "مدنية"} • ج{LATIN_JUZ[juz - 1]}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-back" size={16} color={colors.textMuted} />
-                </Pressable>
-              );
-            }}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-
-        {tab === "juz" && (
-          <ScrollView contentContainerStyle={jmpStyles.grid} showsVerticalScrollIndicator={false}>
-            {Array.from({ length: 30 }, (_, i) => i + 1).map(n => (
-              <Pressable
-                key={n}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelectJuz(n); onClose(); }}
-                style={[jmpStyles.gridCell, { backgroundColor: colors.bgCard, borderColor: colors.gold + "50" }]}
-              >
-                <Text style={[jmpStyles.gridNum, { color: colors.gold }]}>{LATIN_JUZ[n - 1]}</Text>
-                <Text style={[jmpStyles.gridLabel, { color: colors.textMuted }]}>جزء</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-
-        {tab === "hizb" && (
-          <ScrollView contentContainerStyle={jmpStyles.grid} showsVerticalScrollIndicator={false}>
-            {Array.from({ length: 60 }, (_, i) => i + 1).map(n => (
-              <Pressable
-                key={n}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelectHizb(n); onClose(); }}
-                style={[jmpStyles.gridCell, { backgroundColor: colors.bgCard, borderColor: colors.teal + "50" }]}
-              >
-                <Text style={[jmpStyles.gridNum, { color: colors.tealLight }]}>{LATIN_HIZB[n - 1]}</Text>
-                <Text style={[jmpStyles.gridLabel, { color: colors.textMuted }]}>حزب</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-    </Modal>
-  );
-}
-
-const jmpStyles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  title: { fontSize: 18, fontWeight: "700" as const, textAlign: "right" as const },
-  tabs: {
-    flexDirection: "row",
-    margin: 12,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
-    borderRadius: 10,
-  },
-  tabText: { fontSize: 14, fontWeight: "600" as const, textAlign: "right" as const },
-  surahRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  surahNum: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  surahNameAr: { fontSize: 16, textAlign: "right" },
-  surahMeta: { fontSize: 11, textAlign: "right", marginTop: 2 },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    padding: 12,
-    justifyContent: "center",
-  },
-  gridCell: {
-    width: 68,
-    height: 68,
-    borderRadius: 10,
-    borderWidth: 1,
-    margin: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  gridNum: { fontSize: 22, fontWeight: "700" as const },
-  gridLabel: { fontSize: 10, marginTop: 2 },
-});
-
 export default function MushafScreen() {
   const insets = useSafeAreaInsets();
   const { colors, arabicFontFamily, arabicFont: arabicFontKey, arabicFontSize, lineSpacingValue } = useSettings();
@@ -608,18 +437,33 @@ export default function MushafScreen() {
   }, [toastOpacity]);
 
   useEffect(() => {
-    AsyncStorage.getItem(MUSHAF_POS_KEY).then(stored => {
-      if (stored) {
+    AsyncStorage.getItem(MUSHAF_JUMP_TARGET).then(jumpStored => {
+      if (jumpStored) {
         try {
-          const { itemIndex, juzNum } = JSON.parse(stored);
-          if (typeof itemIndex === "number" && itemIndex > 0) {
-            setTimeout(() => {
-              listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[itemIndex] ?? 0, animated: false });
-              if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
-            }, 600);
-          }
+          const { type, num } = JSON.parse(jumpStored);
+          AsyncStorage.removeItem(MUSHAF_JUMP_TARGET).catch(() => {});
+          setTimeout(() => {
+            if (type === "surah") scrollToSurah(num);
+            else if (type === "juz") scrollToJuz(num);
+            else if (type === "hizb") scrollToHizb(num);
+            showToast(`الانتقال إلى ${type === "surah" ? "سورة" : type === "juz" ? "جزء" : "حزب"} ${num}`);
+          }, 500);
+          return;
         } catch {}
       }
+      AsyncStorage.getItem(MUSHAF_POS_KEY).then(stored => {
+        if (stored) {
+          try {
+            const { itemIndex, juzNum } = JSON.parse(stored);
+            if (typeof itemIndex === "number" && itemIndex > 0) {
+              setTimeout(() => {
+                listRef.current?.scrollToOffset({ offset: ITEM_OFFSETS[itemIndex] ?? 0, animated: false });
+                if (juzNum) showToast(`استؤنف من جزء ${juzNum}`);
+              }, 600);
+            }
+          } catch {}
+        }
+      }).catch(() => {});
     }).catch(() => {});
   }, []);
 
@@ -847,11 +691,9 @@ export default function MushafScreen() {
       <JumpModal
         visible={jumpVisible}
         onClose={() => setJumpVisible(false)}
-        colors={colors}
         onSelectSurah={scrollToSurah}
         onSelectJuz={scrollToJuz}
         onSelectHizb={scrollToHizb}
-        masteryMap={masteryMap}
       />
     </View>
   );

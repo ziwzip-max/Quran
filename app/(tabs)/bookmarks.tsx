@@ -17,11 +17,13 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
+import { JumpModal } from "@/components/JumpModal";
 
 const REVIEWS_KEY = "al_hifz_reviews";
 const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
 const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
+const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 
 async function loadReviews(): Promise<Record<string, number>> {
   try {
@@ -372,8 +374,10 @@ export default function BookmarksScreen() {
   const { masteryMap: mastery } = useMastery();
   const [reviews, setReviews] = useState<Record<string, number>>({});
   const [streak, setStreak] = useState(0);
+  const [jumpVisible, setJumpVisible] = useState(false);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const savedSurahNumbers = useMemo(() => surahGroups.map(g => g.surahNumber), [surahGroups]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -397,6 +401,12 @@ export default function BookmarksScreen() {
       saveReviews(updated);
       return updated;
     });
+  }, []);
+
+  const navigateToMushaf = useCallback(async (type: "surah" | "juz" | "hizb", num: number) => {
+    await AsyncStorage.setItem(MUSHAF_JUMP_TARGET, JSON.stringify({ type, num }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push("/(tabs)/mushaf");
   }, []);
 
   const totalVerses = blocks.reduce((sum, b) => sum + b.verses.length, 0);
@@ -430,13 +440,26 @@ export default function BookmarksScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>الحفظ</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {totalVerses > 0
-            ? `${totalVerses} آية في ${surahGroups.length} سورة`
-            : "لا توجد آيات محفوظة"}
-        </Text>
+        <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => setJumpVisible(true)}
+            style={[styles.jumpBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+            hitSlop={8}
+          >
+            <Ionicons name="navigate-outline" size={18} color={colors.gold} />
+            <Text style={[styles.jumpBtnText, { color: colors.gold }]}>انتقل</Text>
+          </Pressable>
+        </View>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>الحفظ</Text>
+        </View>
+        <View style={styles.headerRight} />
       </View>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        {totalVerses > 0
+          ? `${totalVerses} آية في ${surahGroups.length} سورة`
+          : "لا توجد آيات محفوظة"}
+      </Text>
 
       {totalVerses > 0 && (
         <StatsPanel
@@ -475,15 +498,44 @@ export default function BookmarksScreen() {
           </View>
         }
       />
+
+      <JumpModal
+        visible={jumpVisible}
+        onClose={() => setJumpVisible(false)}
+        onSelectSurah={(n) => navigateToMushaf("surah", n)}
+        onSelectJuz={(n) => navigateToMushaf("juz", n)}
+        onSelectHizb={(n) => navigateToMushaf("hizb", n)}
+        filterSurahNumbers={savedSurahNumbers}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, alignItems: "center" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  headerLeft: { flex: 1, alignItems: "flex-start" },
+  headerCenter: { flex: 2, alignItems: "center" },
+  headerRight: { flex: 1 },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "center" },
   subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center" },
+  jumpBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  jumpBtnText: { fontSize: 13, fontWeight: "600" as const },
   listContent: { paddingHorizontal: 16 },
   surahSection: { borderRadius: 16, overflow: "hidden", borderWidth: 1 },
   surahHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 14 },
