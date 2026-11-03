@@ -16,7 +16,7 @@
 ### Architecture
 - **Frontend**: React Native (Expo) with Expo Router for navigation
 - **Backend**: Node.js + Express.js
-- **Database**: PostgreSQL with Drizzle ORM
+- **Storage**: on-device (AsyncStorage); the server keeps no data
 - **Build System**: Metro (React Native), Expo, esbuild
 - **Language**: TypeScript with React Compiler enabled
 
@@ -26,7 +26,6 @@
 | Frontend | Expo 54.0.27 | React Native framework for cross-platform apps |
 | Navigation | Expo Router 6.0.17 | File-based routing for React Native |
 | Backend | Express 5.0.1 | REST API server |
-| Database | PostgreSQL + Drizzle ORM | Data persistence |
 | Runtime | Node.js 20+ | JavaScript runtime |
 | Language | TypeScript 5.9.2 | Type-safe JavaScript |
 | Runtime Compiler | React Compiler 19.0.0 | Automatic performance optimization |
@@ -93,21 +92,13 @@
   "Backend": {
     "express": "^5.0.1",
     "http-proxy-middleware": "^3.0.5",
-    "pg": "^8.16.3",
     "ws": "^8.18.0",
     "tsx": "^4.21.0"
   },
   
-  "Database": {
-    "drizzle-orm": "^0.39.3",
-    "drizzle-zod": "^0.7.0"
-  },
-  
   "State Management & Data": {
     "@tanstack/react-query": "^5.83.0",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "@react-native-async-storage/async-storage": "2.2.0"
   },
   
   "Utilities": {
@@ -127,7 +118,6 @@
   "@types/express": "^5.0.0",
   "@types/react": "~19.1.10",
   "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
-  "drizzle-kit": "^0.31.4",
   "eslint": "^9.31.0",
   "eslint-config-expo": "~10.0.0",
   "patch-package": "^8.0.0",
@@ -147,7 +137,6 @@
 - **Disk Space**: 5GB for node_modules and build artifacts
 
 ### Additional Tools Required
-- **PostgreSQL**: v12 or higher (for database)
 - **Git**: v2.0 or higher (for version control)
 - **Docker** (optional): Recommended for containerized deployment
 
@@ -179,30 +168,17 @@ Create a `.env` file in the root directory with the following variables:
 NODE_ENV=production
 PORT=5000
 
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/alhifz_db
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=your_postgres_user
-DB_PASSWORD=your_postgres_password
-DB_NAME=alhifz_db
+# Extra allowed CORS origins for the Express server (comma-separated)
+ALLOWED_ORIGINS=https://yourdomain.com
 
 # Frontend Configuration
 EXPO_PUBLIC_DOMAIN=yourdomain.com:5000
 ```
 
-### Step 4: Set Up PostgreSQL Database (optional)
+### Step 4: (No database needed)
 
-The server currently keeps data in memory (`MemStorage` in `server/storage.ts`) and the app stores
-settings on the device, so PostgreSQL is only needed once database-backed storage is added.
-
-```bash
-# Create a new database
-createdb alhifz_db
-
-# Run database migrations
-npm run db:push
-```
+The app stores bookmarks, progress and settings on the device, and the server keeps no data,
+so there is no database to set up.
 
 ### Step 5: Build the Frontend (Static Build)
 
@@ -366,51 +342,7 @@ These are typically minor compatibility warnings that don't prevent the app from
 
 ---
 
-### Issue 6: Database Connection Errors
-
-**Error Message**:
-```
-Error: connect ECONNREFUSED 127.0.0.1:5432
-```
-
-**Cause**: PostgreSQL is not running or the connection string is incorrect.
-
-**Solution**:
-
-1. **Check if PostgreSQL is running:**
-```bash
-pg_isready -h localhost -p 5432
-```
-
-2. **Verify DATABASE_URL in .env:**
-```env
-DATABASE_URL=postgresql://username:password@localhost:5432/alhifz_db
-```
-
-3. **Start PostgreSQL** (if stopped):
-```bash
-# macOS
-brew services start postgresql
-
-# Linux (systemd)
-sudo systemctl start postgresql
-
-# Docker
-docker run -d \
-  --name postgres \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  postgres:15
-```
-
-4. **Run migrations:**
-```bash
-npm run db:push
-```
-
----
-
-### Issue 7: Port Already in Use
+### Issue 6: Port Already in Use
 
 **Error Message**:
 ```
@@ -434,7 +366,7 @@ PORT=3000
 
 ---
 
-### Issue 8: CORS Errors in Production
+### Issue 7: CORS Errors in Production
 
 **Browser Error**:
 ```
@@ -444,23 +376,20 @@ Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remot
 **Cause**: The server's CORS configuration doesn't allow requests from your frontend domain.
 
 **Solution**:
-The Express server automatically handles CORS for:
-- Replit domains (via `REPLIT_DOMAINS` env var)
+The Express server automatically allows:
+- Replit domains (via the `REPLIT_DOMAINS` env var)
 - Localhost origins (for development)
+- Any origins listed in the `ALLOWED_ORIGINS` env var (comma-separated)
 
-For custom domains, update `server/index.ts`:
+For a custom domain, set for example:
 
-```typescript
-const origins = new Set<string>();
-origins.add("https://yourdomain.com");
-origins.add("https://www.yourdomain.com");
-
-// ... rest of CORS setup
+```env
+ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
 ---
 
-### Issue 9: Static Build Missing
+### Issue 8: Static Build Missing
 
 **Error Message**:
 ```
@@ -479,7 +408,7 @@ These commands must be run before starting the production server.
 
 ---
 
-### Issue 10: TypeScript/Build Errors
+### Issue 9: TypeScript/Build Errors
 
 **Error Message**:
 ```
@@ -509,15 +438,22 @@ npm run server:build
 
 ## Vercel Deployment (Web)
 
-The repository includes a `vercel.json` that builds the web version with
-`expo export --platform web` and serves `dist/` as a single-page app:
+The repository includes a `vercel.json` that runs `npm run web:build`'s steps:
+`expo export --platform web`, then `scripts/web-postbuild.cjs`, which sets the page
+language to Arabic and adds the web app manifest and offline service worker from `public/`.
+The output in `dist/` is served as a single-page app.
 
 ```bash
 npm i -g vercel
 vercel --prod
 ```
 
-The Express server is not used on Vercel: it only serves the Expo Go landing page and native manifests.
+With the GitHub repository connected to the Vercel project, every push to `main` deploys
+automatically. The Express server is not used on Vercel: it only serves the Expo Go landing
+page and native manifests.
+
+The web app can be installed to the home screen and works offline after the first visit.
+The Qaloon text is loaded only when that riwaya is selected, to keep the first load small.
 
 ---
 
@@ -553,7 +489,6 @@ Build and run:
 ```bash
 docker build -t alhifz:latest .
 docker run -p 5000:5000 \
-  -e DATABASE_URL="postgresql://..." \
   -e NODE_ENV=production \
   alhifz:latest
 ```
@@ -565,14 +500,13 @@ docker run -p 5000:5000 \
 Before deploying, ensure:
 
 - [ ] Node.js v20+ is installed
-- [ ] PostgreSQL is running and accessible
 - [ ] All environment variables are set in `.env`
 - [ ] `npm install` completes without errors
 - [ ] `npm run server:build` completes successfully
 - [ ] `npm run expo:static:build` completes successfully
 - [ ] Port 5000 is available (or configured port)
 - [ ] `babel.config.cjs` and `eslint.config.cjs` use the `.cjs` extension (already done in the repo)
-- [ ] Database migrations have been run (`npm run db:push`)
+- [ ] `npm test` and `npm run lint` pass
 - [ ] CORS origins are correctly configured for your domain
 
 ---
@@ -599,11 +533,12 @@ npm run server:dev          # Start backend in dev mode
 npm run expo:dev            # Start Expo dev server
 npm run lint                # Run ESLint
 npm run lint:fix            # Fix ESLint issues
+npm test                    # Run unit tests (Quran data, spaced repetition, Tajweed)
 
 # Building
 npm run expo:static:build   # Build static Expo files
 npm run server:build        # Build server bundle
-npm run db:push             # Run database migrations
+npm run web:build           # Build the web app into dist/ (used by Vercel)
 
 # Production
 npm run server:prod         # Start production server
@@ -619,8 +554,6 @@ npm run expo:start:static:build  # Build Expo with minification
 - **Expo Documentation**: https://docs.expo.dev/
 - **React Native Docs**: https://reactnative.dev/
 - **Express.js Docs**: https://expressjs.com/
-- **Drizzle ORM Docs**: https://orm.drizzle.team/
-- **PostgreSQL Docs**: https://www.postgresql.org/docs/
 
 ---
 
