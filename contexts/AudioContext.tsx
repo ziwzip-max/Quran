@@ -51,6 +51,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [sleepTimer, setSleepTimerValue] = useState<number | null>(null);
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
   const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Latest `stop`, so the sleep-timer interval never calls a stale copy.
+  const stopRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (sleepTimer !== null) {
@@ -60,7 +62,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setSleepTimerRemaining((prev) => {
           if (prev === null || prev <= 0) {
             if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
-            stop();
+            stopRef.current();
             setSleepTimerValue(null);
             return null;
           }
@@ -125,6 +127,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setPlaybackDuration(0);
     repeatCounterRef.current = 0;
   }, []);
+  stopRef.current = stop;
 
   const pause = useCallback(async () => {
     if (soundRef.current) {
@@ -461,7 +464,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         if (!info.exists) {
           try {
             await FileSystem.downloadAsync(remoteUrl, localUri);
-          } catch (e) {}
+          } catch {}
         }
         completed++;
         setDownloadProgress({ surahNum, percent: (completed / surah.verses.length) * 100 });

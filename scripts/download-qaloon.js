@@ -45,7 +45,7 @@ async function main() {
 
   process.stdout.write("\n");
 
-  const output = `export const QALOON_SURAHS: Array<{ number: number; verses: Array<{ number: number; text: string }> }> = ${JSON.stringify(surahs)};\n`;
+  const output = `export const QALOON_SURAHS: { number: number; verses: { number: number; text: string }[] }[] = ${JSON.stringify(surahs)};\n`;
 
   const outPath = path.join(__dirname, "..", "constants", "qaloonData.ts");
   fs.writeFileSync(outPath, output, "utf8");

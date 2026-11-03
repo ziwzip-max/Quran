@@ -174,9 +174,6 @@ export function parseTajweed(text: string): TajweedSegment[] {
     const hasSukun  = marks.includes(SUKUN);
     const hasShadda = marks.includes(SHADDA);
     const hasTanwin = marks.includes(TANWIN_F) || marks.includes(TANWIN_D) || marks.includes(TANWIN_K);
-    const hasFatha  = marks.includes(FATHA);
-    const hasDamma  = marks.includes(DAMMA);
-    const hasKasra  = marks.includes(KASRA);
 
     const nextCluster = clusters[i + 1] ?? "";
     const nextBase    = getBase(nextCluster);
@@ -186,25 +183,35 @@ export function parseTajweed(text: string): TajweedSegment[] {
 
     if (base === " " || base === "") return null;
 
+    // Noon sakin, tanwin and meem sakin rules depend on the next *pronounced*
+    // letter, which is usually at the start of the following word. Skip spaces,
+    // and after tanwin also skip the silent alif / alif maqsura that carries it.
+    let k = i + 1;
+    if (hasTanwin) {
+      while (k < n && (clusters[k] === "\u0627" || clusters[k] === "\u0649")) k++;
+    }
+    while (k < n && /^\s$/u.test(clusters[k])) k++;
+    const nextSoundBase = getBase(clusters[k] ?? "");
+
     if (base === HAMZAT_WASL_CHAR) return "hamzat_wasl";
 
     if (hasSukun && QALQALA_LETTERS.has(base)) return "qalqala";
 
     if (hasShadda && (base === "ن" || base === "م")) return "ghunna";
 
-    if (base === "ن" && hasSukun && nextBase === "ب") return "iqlab";
-    if (hasTanwin && nextBase === "ب") return "iqlab";
+    if (base === "ن" && hasSukun && nextSoundBase === "ب") return "iqlab";
+    if (hasTanwin && nextSoundBase === "ب") return "iqlab";
 
-    if (base === "م" && hasSukun && nextBase === "ب") return "qalb";
+    if (base === "م" && hasSukun && nextSoundBase === "ب") return "qalb";
 
-    if (base === "ن" && hasSukun && IDGHAM_GHUNNA_LETTERS.has(nextBase)) return "idgham_ghunna";
-    if (hasTanwin && IDGHAM_GHUNNA_LETTERS.has(nextBase)) return "idgham_ghunna";
+    if (base === "ن" && hasSukun && IDGHAM_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_ghunna";
+    if (hasTanwin && IDGHAM_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_ghunna";
 
-    if (base === "ن" && hasSukun && IDGHAM_BILA_GHUNNA_LETTERS.has(nextBase)) return "idgham_bila_ghunna";
-    if (hasTanwin && IDGHAM_BILA_GHUNNA_LETTERS.has(nextBase)) return "idgham_bila_ghunna";
+    if (base === "ن" && hasSukun && IDGHAM_BILA_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_bila_ghunna";
+    if (hasTanwin && IDGHAM_BILA_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_bila_ghunna";
 
-    if (base === "ن" && hasSukun && IKHFA_LETTERS.has(nextBase)) return "ikhfa";
-    if (hasTanwin && IKHFA_LETTERS.has(nextBase)) return "ikhfa";
+    if (base === "ن" && hasSukun && IKHFA_LETTERS.has(nextSoundBase)) return "ikhfa";
+    if (hasTanwin && IKHFA_LETTERS.has(nextSoundBase)) return "ikhfa";
 
     if (MADD_LETTERS.has(base)) {
       const prevHasFatha = prevMarks.includes(FATHA);

@@ -1,4 +1,4 @@
-export const VOD_LIST: Array<{ surahNumber: number; verseNumber: number }> = [
+export const VOD_LIST: { surahNumber: number; verseNumber: number }[] = [
   // Al-Fatiha
   { surahNumber: 1, verseNumber: 1 },
   { surahNumber: 1, verseNumber: 2 },

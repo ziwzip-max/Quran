@@ -128,7 +128,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadSettings().then(applySettings);
-  }, []);
+  }, [applySettings]);
 
   const setTheme = (t: ThemeName) => { setThemeState(t); saveSettings({ theme: t }); };
   const setArabicFont = (f: ArabicFontName) => { setArabicFontState(f); saveSettings({ arabicFont: f }); };

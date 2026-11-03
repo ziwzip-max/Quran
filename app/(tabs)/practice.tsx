@@ -399,7 +399,6 @@ function FlashcardMode({
   const [seenCount, setSeenCount] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const flipAnim = useRef(new Animated.Value(0)).current;
-  const isPinchRef = useRef(false);
 
   const currentBlock = shuffled[cardIndex % shuffled.length];
 
@@ -562,7 +561,7 @@ export default function PracticeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelected(pickTwoBlocks(filteredBlocks));
     setHasDrawn(true);
-  }, [filteredBlocks]);
+  }, [filteredBlocks, buttonScale]);
 
   const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 90;

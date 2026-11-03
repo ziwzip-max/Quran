@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { countDueBlocks } from "@/utils/srs";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -29,11 +30,7 @@ const LAST_SURAH_KEY = "al_hifz_last_surah";
 const PINS_KEY = "al_hifz_pins";
 const REVIEWS_KEY = "al_hifz_reviews";
 const SEARCH_HISTORY_KEY = "al_hifz_search_history";
-const MAX_HISTORY = 5;
 const MAX_SEARCH_HISTORY = 5;
-const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
-const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
-const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
 
 type SearchMode = "surahs" | "verse";
 
@@ -64,22 +61,6 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
   return VOD_LIST[dayEpoch % VOD_LIST.length];
 }
 
-function countDueBlocks(
-  masteryMap: Record<string, number>,
-  reviews: Record<string, number>
-): number {
-  let count = 0;
-  for (const [key, level] of Object.entries(masteryMap)) {
-    if (level === 0) continue;
-    const lastReview = reviews[key];
-    if (lastReview === undefined) { count++; continue; }
-    const elapsed = Date.now() - lastReview;
-    if (level === 1 && elapsed > REVIEW_THRESHOLD_L1) count++;
-    else if (level === 2 && elapsed > REVIEW_THRESHOLD_L2) count++;
-    else if (level === 3 && elapsed > REVIEW_THRESHOLD_L3) count++;
-  }
-  return count;
-}
 
 
 function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: ReturnType<typeof useSettings>["colors"] }) {
