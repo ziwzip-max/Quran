@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, type VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
-import { averageLevel, isDueForReview, levelAfterReview, reviewTimeAfter, type ReviewRating } from "@/utils/srs";
+import { averageLevel, dueBlocks, levelAfterReview, reviewTimeAfter, type ReviewRating } from "@/utils/srs";
 import { loadReviews, saveReviews } from "@/utils/reviews";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 
@@ -25,7 +25,7 @@ export default function ReviewScreen() {
   const navigation = useNavigation();
   const { colors, arabicFontFamily } = useSettings();
   const { blocks, isLoaded } = useBookmarks();
-  const { getMastery, setMastery, recordDailyReview } = useMastery();
+  const { getMastery, setMastery, recordDailyReview, masteryMap } = useMastery();
 
   const [reviews, setReviews] = useState<Record<string, number> | null>(null);
   const [queue, setQueue] = useState<VerseBlock[] | null>(null);
@@ -65,8 +65,8 @@ export default function ReviewScreen() {
   // Build the queue once, when data has loaded, so rating a block doesn't reshuffle it.
   useEffect(() => {
     if (queue || !isLoaded || !reviews) return;
-    setQueue(blocks.filter((b) => isDueForReview(b.id, reviews, blockLevel(b))));
-  }, [queue, isLoaded, reviews, blocks, blockLevel]);
+    setQueue(dueBlocks(blocks, masteryMap, reviews));
+  }, [queue, isLoaded, reviews, blocks, masteryMap]);
 
   const rate = async (rating: ReviewRating) => {
     if (!queue || !reviews) return;

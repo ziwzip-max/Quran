@@ -16,7 +16,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SURAH_NAME_FONT } from "@/constants/themes";
-import { countDueBlocks } from "@/utils/srs";
+import { dueBlocks } from "@/utils/srs";
+import { loadReviews } from "@/utils/reviews";
 import { highlightWords, searchVerses, textMatches } from "@/utils/arabicSearch";
 import { surahsInJuz } from "@/utils/quranIndex";
 import { useIsWide, useTopPadding } from "@/utils/layout";
@@ -33,7 +34,6 @@ import { BUILT_IN_DUAS, Dua } from "@/constants/duaaData";
 export const HISTORY_KEY = "al_hifz_history";
 const LAST_SURAH_KEY = "al_hifz_last_surah";
 const PINS_KEY = "al_hifz_pins";
-const REVIEWS_KEY = "al_hifz_reviews";
 const SEARCH_HISTORY_KEY = "al_hifz_search_history";
 const MAX_SEARCH_HISTORY = 5;
 const RESULTS_PAGE = 30;
@@ -293,6 +293,7 @@ function VerseResultCard({ result, colors, arabicFont, query }: { result: VerseR
 export default function QuranScreen() {
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
+  const { blocks } = useBookmarks();
   const [search, setSearch] = useState("");
   const [history, setHistory] = useState<number[]>([]);
   const [pins, setPins] = useState<number[]>([]);
@@ -349,12 +350,12 @@ export default function QuranScreen() {
 
   const loadDueCount = useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem(REVIEWS_KEY);
-      const reviews: Record<string, number> = stored ? JSON.parse(stored) : {};
-      setDueCount(countDueBlocks(masteryMap, reviews));
+      // Count blocks, like the memorisation screen (review dates are stored per block).
+      const reviews = await loadReviews();
+      setDueCount(dueBlocks(blocks, masteryMap, reviews).length);
       setReviewBannerDismissed(false);
     } catch {}
-  }, [masteryMap]);
+  }, [masteryMap, blocks]);
 
   const loadSearchHistory = useCallback(async () => {
     try {
