@@ -599,32 +599,18 @@ export default function SurahScreen() {
     setNavigatedVerseNum(null);
   }, [surahNumber]);
 
-  if (!surah) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
-        <Ionicons name="alert-circle-outline" size={40} color={colors.textMuted} />
-        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>السورة غير موجودة</Text>
-      </View>
-    );
-  }
-
-  const showBismillahHeader = surahNumber !== 1 && surahNumber !== 9;
-  const surahInfo = SURAH_INFO[surahNumber];
-  const juzNum = SURAH_JUZ[surahNumber];
-  const revType = SURAH_TYPE[surahNumber];
-
   const wordCount = useMemo(() =>
-    surah.verses.reduce((sum, v) => sum + v.text.trim().split(/\s+/).length, 0),
+    (surah?.verses ?? []).reduce((sum, v) => sum + v.text.trim().split(/\s+/).length, 0),
     [surah]
   );
   const letterCount = useMemo(() =>
-    surah.verses.reduce((sum, v) =>
+    (surah?.verses ?? []).reduce((sum, v) =>
       sum + v.text.replace(/[\u0610-\u061A\u064B-\u065F\s]/g, "").length, 0),
     [surah]
   );
 
   const bookmarkedIndices = useMemo(() =>
-    surah.verses
+    (surah?.verses ?? [])
       .map((v, i) => ({ idx: i, verseNum: v.number }))
       .filter(({ verseNum }) => isBookmarked(surahNumber, verseNum)),
     [surah, surahNumber, isBookmarked]
@@ -640,6 +626,21 @@ export default function SurahScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimeout(() => setNavigatedVerseNum(null), 1500);
   }, [bookmarkedIndices]);
+
+  if (!surah) {
+    return (
+      <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
+        <Ionicons name="alert-circle-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>السورة غير موجودة</Text>
+      </View>
+    );
+  }
+
+  const showBismillahHeader = surahNumber !== 1 && surahNumber !== 9;
+  const surahInfo = SURAH_INFO[surahNumber];
+  const juzNum = SURAH_JUZ[surahNumber];
+  const revType = SURAH_TYPE[surahNumber];
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

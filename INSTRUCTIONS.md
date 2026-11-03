@@ -191,7 +191,10 @@ DB_NAME=alhifz_db
 EXPO_PUBLIC_DOMAIN=yourdomain.com:5000
 ```
 
-### Step 4: Set Up PostgreSQL Database
+### Step 4: Set Up PostgreSQL Database (optional)
+
+The server currently keeps data in memory (`MemStorage` in `server/storage.ts`) and the app stores
+settings on the device, so PostgreSQL is only needed once database-backed storage is added.
 
 ```bash
 # Create a new database
@@ -504,6 +507,20 @@ npm run server:build
 
 ---
 
+## Vercel Deployment (Web)
+
+The repository includes a `vercel.json` that builds the web version with
+`expo export --platform web` and serves `dist/` as a single-page app:
+
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+The Express server is not used on Vercel: it only serves the Expo Go landing page and native manifests.
+
+---
+
 ## Docker Deployment (Recommended for Production)
 
 Create a `Dockerfile` for containerized deployment:
@@ -516,8 +533,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (dev dependencies are needed for the build steps)
+RUN npm ci
 
 # Copy application code
 COPY . .
@@ -554,7 +571,7 @@ Before deploying, ensure:
 - [ ] `npm run server:build` completes successfully
 - [ ] `npm run expo:static:build` completes successfully
 - [ ] Port 5000 is available (or configured port)
-- [ ] `babel.config.js` is renamed to `babel.config.cjs`
+- [ ] `babel.config.cjs` and `eslint.config.cjs` use the `.cjs` extension (already done in the repo)
 - [ ] Database migrations have been run (`npm run db:push`)
 - [ ] CORS origins are correctly configured for your domain
 

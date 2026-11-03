@@ -656,7 +656,7 @@ export default function PracticeScreen() {
               <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                أضف آيات للحفظ من صفحة "محفوظاتي" لتتمكن من التلاوة في الصلاة.
+                أضف آيات للحفظ من صفحة «محفوظاتي» لتتمكن من التلاوة في الصلاة.
               </Text>
             </View>
           ) : filterEmpty ? (
@@ -664,7 +664,7 @@ export default function PracticeScreen() {
               <Ionicons name="filter-outline" size={52} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد مجموعات بهذا المستوى</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                جرّب اختيار مستوى آخر أو اختر "الكل" لعرض جميع المجموعات.
+                جرّب اختيار مستوى آخر أو اختر «الكل» لعرض جميع المجموعات.
               </Text>
             </View>
           ) : (
@@ -681,7 +681,7 @@ export default function PracticeScreen() {
               {!hasDrawn && (
                 <View style={styles.promptArea}>
                   <Text style={[styles.promptArabic, { color: colors.gold }]}>﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴾</Text>
-                  <Text style={[styles.promptHint, { color: colors.textMuted }]}>اضغط على "اقترح" للبدء</Text>
+                  <Text style={[styles.promptHint, { color: colors.textMuted }]}>اضغط على «اقترح» للبدء</Text>
                 </View>
               )}
 

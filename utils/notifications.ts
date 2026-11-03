@@ -43,10 +43,10 @@ export async function scheduleSmartNotification(
   await Notifications.scheduleNotificationAsync({
     content,
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      repeats: true,
-    } as Notifications.DailyTriggerInput,
+    },
   });
 }
 
