@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
-import { averageLevel, isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
+import { dueBlocks, isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
 import { loadReviews, saveReviews } from "@/utils/reviews";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
@@ -351,13 +351,7 @@ export default function BookmarksScreen() {
   }, [loadStats]));
 
   // Blocks due for review, for the "review now" button.
-  const dueBlocks = useMemo(
-    () =>
-      blocks.filter((b) =>
-        isDueForReview(b.id, reviews, averageLevel(b.verses.map((v) => mastery[`${b.surahNumber}:${v.number}`] ?? 0))),
-      ).length,
-    [blocks, reviews, mastery],
-  );
+  const dueCount = useMemo(() => dueBlocks(blocks, mastery, reviews).length, [blocks, reviews, mastery]);
 
   const markReviewed = useCallback((blockId: string) => {
     setReviews((prev) => {
@@ -418,15 +412,15 @@ export default function BookmarksScreen() {
           <Text style={[styles.title, { color: colors.textPrimary }]}>الحفظ</Text>
         </View>
         <View style={styles.headerRight}>
-          {dueBlocks > 0 && (
+          {dueCount > 0 && (
             <Pressable
               onPress={() => router.push("/review")}
               accessibilityRole="button"
-              accessibilityLabel={`مراجعة ${dueBlocks} مقطع الآن`}
+              accessibilityLabel={`مراجعة ${dueCount} مقطع الآن`}
               style={[styles.jumpBtn, { backgroundColor: colors.gold, borderColor: colors.gold, alignSelf: "flex-end" }]}
             >
               <Ionicons name="school-outline" size={18} color={colors.bgCard} />
-              <Text numberOfLines={1} style={[styles.jumpBtnText, { color: colors.bgCard }]}>راجع ({dueBlocks})</Text>
+              <Text numberOfLines={1} style={[styles.jumpBtnText, { color: colors.bgCard }]}>راجع ({dueCount})</Text>
             </Pressable>
           )}
         </View>

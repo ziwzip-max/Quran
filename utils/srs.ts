@@ -29,13 +29,26 @@ export function isDueForReview(
   return false;
 }
 
-/** Number of entries in `masteryMap` that are due, given their last review times. */
-export function countDueBlocks(
-  masteryMap: Record<string, number>,
+export interface ReviewBlock {
+  /** Block id as stored in reviews, e.g. "2:255-257". */
+  id: string;
+  surahNumber: number;
+  verses: { number: number }[];
+}
+
+/**
+ * Memorisation blocks that are due for review. A block's level is the rounded
+ * average of its verses' levels (mastery is stored per verse, review dates per block).
+ */
+export function dueBlocks<T extends ReviewBlock>(
+  blocks: T[],
+  mastery: Record<string, number>,
   reviews: Record<string, number>,
   now: number = Date.now(),
-): number {
-  return Object.entries(masteryMap).filter(([key, level]) => isDueForReview(key, reviews, level, now)).length;
+): T[] {
+  return blocks.filter((b) =>
+    isDueForReview(b.id, reviews, averageLevel(b.verses.map((v) => mastery[`${b.surahNumber}:${v.number}`] ?? 0)), now),
+  );
 }
 
 /** Verses still being memorised (below the top level), used for the daily reminder text. */

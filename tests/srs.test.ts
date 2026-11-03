@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  countDueBlocks,
   countDueVerses,
   averageLevel,
+  dueBlocks,
   isDueForReview,
   levelAfterReview,
   reviewTimeAfter,
@@ -37,11 +37,23 @@ test("intervals grow with mastery", () => {
   assert.ok(REVIEW_THRESHOLD_L2 < REVIEW_THRESHOLD_L3);
 });
 
-test("countDueBlocks counts only due entries", () => {
-  const mastery = { a: 0, b: 1, c: 2, d: 3 };
-  const reviews = { b: NOW, c: NOW - REVIEW_THRESHOLD_L2 - 1 };
-  // a: not started; b: just reviewed; c: overdue; d: never reviewed
-  assert.equal(countDueBlocks(mastery, reviews, NOW), 2);
+test("dueBlocks counts blocks, with per-verse levels and per-block review dates", () => {
+  const block = (s: number, from: number, to: number) => ({
+    id: `${s}:${from}-${to}`,
+    surahNumber: s,
+    verses: Array.from({ length: to - from + 1 }, (_, i) => ({ number: from + i })),
+  });
+  const blocks = [block(2, 1, 3), block(2, 10, 11), block(3, 5, 5), block(4, 1, 2)];
+  const mastery = {
+    "2:1": 3, "2:2": 3, "2:3": 3, // level 3, reviewed recently → not due
+    "2:10": 1, "2:11": 1, // level 1, never reviewed → due
+    "3:5": 2, // level 2, overdue → due
+    // 4:1-2 not started → never due
+  };
+  const reviews = { "2:1-3": NOW - REVIEW_THRESHOLD_L1, "3:5-5": NOW - REVIEW_THRESHOLD_L2 - 1 };
+  assert.deepEqual(dueBlocks(blocks, mastery, reviews, NOW).map((b) => b.id), ["2:10-11", "3:5-5"]);
+  // Before the fix the home screen counted verses (here 6 with a level) instead of blocks.
+  assert.equal(dueBlocks(blocks, mastery, reviews, NOW).length, 2);
 });
 
 test("countDueVerses counts verses below full mastery", () => {
