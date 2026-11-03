@@ -21,14 +21,15 @@ export default function TabLayout() {
           headerShown: false,
           tabBarActiveTintColor: colors.gold,
           tabBarInactiveTintColor: colors.textMuted,
-          tabBarShowLabel: false,
+          tabBarShowLabel: true,
+          tabBarLabelStyle: { fontFamily: "Tajawal_400Regular", fontSize: 10.5, marginTop: -2 },
           tabBarStyle: {
             position: "absolute",
             backgroundColor: isIOS ? "transparent" : colors.bgCard,
             borderTopWidth: isWeb ? 1 : 0,
             borderTopColor: colors.border,
             elevation: 0,
-            ...(isWeb ? { height: 64 } : {}),
+            ...(isWeb ? { height: 68, paddingBottom: 6 } : {}),
           },
           tabBarBackground: () =>
             isIOS ? (
@@ -50,6 +51,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
+            title: "السور",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="reorder-three-outline" size={size + 2} color={color} />
             ),
@@ -58,6 +60,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="practice"
           options={{
+            title: "الصلاة",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="star-outline" size={size} color={color} />
             ),
@@ -66,6 +69,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="bookmarks"
           options={{
+            title: "الحفظ",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="bookmark-outline" size={size} color={color} />
             ),
@@ -74,6 +78,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="mushaf"
           options={{
+            title: "المصحف",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="book-outline" size={size} color={color} />
             ),
@@ -82,6 +87,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dua"
           options={{
+            title: "الأدعية",
             tabBarIcon: ({ color, size }) => (
               <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
                 <Ionicons name="hand-left-outline" size={size - 2} color={color} />
@@ -101,6 +107,7 @@ export default function TabLayout() {
             },
           }}
           options={{
+            title: "عشوائي",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="shuffle-outline" size={size} color={color} />
             ),
@@ -115,6 +122,7 @@ export default function TabLayout() {
             },
           }}
           options={{
+            title: "الإعدادات",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),
