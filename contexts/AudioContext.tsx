@@ -26,6 +26,18 @@ interface AudioContextValue {
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   playNext: (surahNum: number, verseNum: number) => Promise<void>;
+  /** Plays verses `from`–`to` of a surah `times` times (0 = until stopped), pausing `pauseSec` between rounds. */
+  playRange: (surahNum: number, from: number, to: number, times: number, pauseSec: number) => Promise<void>;
+  rangeRepeat: RangeRepeat | null;
+}
+
+export interface RangeRepeat {
+  surahNum: number;
+  from: number;
+  to: number;
+  times: number;
+  pauseSec: number;
+  round: number;
 }
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
@@ -97,6 +109,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const repeatModeRef = useRef(repeatMode);
   const continuousPlayRef = useRef(continuousPlay);
   const repeatCounterRef = useRef(0);
+  // Verse-range repetition for memorisation; null when not active.
+  const rangeRef = useRef<RangeRepeat | null>(null);
+  const [rangeRepeat, setRangeRepeat] = useState<RangeRepeat | null>(null);
+  const setRange = (r: RangeRepeat | null) => { rangeRef.current = r; setRangeRepeat(r); };
   const currentSurahNumRef = useRef<number | null>(null);
   const currentVerseNumRef = useRef<number | null>(null);
 
@@ -126,6 +142,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setPlaybackPosition(0);
     setPlaybackDuration(0);
     repeatCounterRef.current = 0;
+    setRange(null);
   }, []);
   stopRef.current = stop;
 
@@ -139,6 +156,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resume = useCallback(async () => {
+    const range = rangeRef.current;
+    if (!soundRef.current && range) {
+      // In the pause between two rounds of a range: start the next round now.
+      // A fresh object makes the pending timed start see a different range and skip.
+      const now = { ...range };
+      rangeRef.current = now;
+      setRangeRepeat(now);
+      await playInternalRef.current?.(now.surahNum, now.from);
+      return;
+    }
     if (soundRef.current) {
       try {
         await soundRef.current.playAsync();
@@ -322,9 +349,31 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           const sNum = currentSurahNumRef.current;
           const vNum = currentVerseNumRef.current;
 
+          const range = rangeRef.current;
           if (rMode > 0 && repeatCounterRef.current < rMode - 1) {
             repeatCounterRef.current += 1;
             try { await sound.replayAsync(); } catch {}
+          } else if (range && sNum === range.surahNum && vNum !== null) {
+            repeatCounterRef.current = 0;
+            if (vNum < range.to) {
+              await playInternalRef.current?.(sNum, vNum + 1);
+            } else if (range.times === 0 || range.round < range.times) {
+              const next = { ...range, round: range.round + 1 };
+              setRange(next);
+              try { await sound.unloadAsync(); } catch {}
+              soundRef.current = null;
+              setIsPlaying(false);
+              setTimeout(() => {
+                // Only continue if the same range is still active (not stopped meanwhile).
+                if (rangeRef.current === next) playInternalRef.current?.(next.surahNum, next.from);
+              }, range.pauseSec * 1000);
+            } else {
+              setRange(null);
+              setIsPlaying(false);
+              setCurrentKey(null);
+              try { sound.unloadAsync(); } catch {}
+              soundRef.current = null;
+            }
           } else if (continuousPlayRef.current && sNum !== null && vNum !== null) {
             repeatCounterRef.current = 0;
             const surah = SURAHS.find((s) => s.number === sNum);
@@ -391,9 +440,20 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         return;
       }
       repeatCounterRef.current = 0;
+      setRange(null);
       await playInternal(surahNum, verseNum);
     }
   }, [currentKey, isPlaying, pause, resume, playInternal, playSurahInternal]);
+
+  const playRange = useCallback(
+    async (surahNum: number, from: number, to: number, times: number, pauseSec: number) => {
+      await stop();
+      repeatCounterRef.current = 0;
+      setRange({ surahNum, from: Math.min(from, to), to: Math.max(from, to), times, pauseSec, round: 1 });
+      await playInternal(surahNum, Math.min(from, to));
+    },
+    [stop, playInternal],
+  );
 
   const playNext = useCallback(async (surahNum: number, verseNum: number) => {
     repeatCounterRef.current = 0;
@@ -489,6 +549,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       sleepTimerRemaining,
       setSleepTimer,
       play, stop, pause, resume, playNext,
+      playRange, rangeRepeat,
     }}>
       {children}
     </AudioCtx.Provider>

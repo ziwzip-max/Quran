@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { TranslationLang } from "@/utils/quranTexts";
 import {
   ThemeColors, ThemeName, ArabicFontName, AccentColorName, LineSpacingName,
   PlaybackRate, RepeatMode,
-  THEMES, ARABIC_FONTS, ACCENT_COLORS, LINE_SPACING,
+  THEMES, ARABIC_FONTS, ACCENT_COLORS, LINE_SPACING, DEFAULT_ARABIC_FONT,
   DEFAULT_RECITER_ID,
 } from "@/constants/themes";
 
@@ -24,6 +25,7 @@ interface SettingsContextValue {
   showTajweed: boolean;
   continuousPlay: boolean;
   qiraa: "hafs" | "qaloon";
+  translationLang: TranslationLang;
   notifEnabled: boolean;
   notifHour: number;
   notifMinute: number;
@@ -41,6 +43,7 @@ interface SettingsContextValue {
   setShowTajweed: (v: boolean) => void;
   setContinuousPlay: (v: boolean) => void;
   setQiraa: (q: "hafs" | "qaloon") => void;
+  setTranslationLang: (l: TranslationLang) => void;
   setNotifEnabled: (v: boolean) => void;
   setNotifHour: (h: number) => void;
   setNotifMinute: (m: number) => void;
@@ -75,7 +78,8 @@ const INVALID_FONTS: string[] = ["cairo"];
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>("light");
-  const [arabicFont, setArabicFontState] = useState<ArabicFontName>("system");
+  // Default to a bundled font: device fonts often lack Quranic marks (ۛ ۭ ۢ) and show boxes.
+  const [arabicFont, setArabicFontState] = useState<ArabicFontName>(DEFAULT_ARABIC_FONT);
   const [accentColor, setAccentColorState] = useState<AccentColorName>("or");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacingName>("normal");
   const [hideVerseNumbers, setHideVerseNumbersState] = useState(false);
@@ -87,6 +91,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [showTajweed, setShowTajweedState] = useState(false);
   const [continuousPlay, setContinuousPlayState] = useState(false);
   const [qiraa, setQiraaState] = useState<"hafs" | "qaloon">("hafs");
+  const [translationLang, setTranslationLangState] = useState<TranslationLang>("none");
   const [notifEnabled, setNotifEnabledState] = useState(false);
   const [notifHour, setNotifHourState] = useState(8);
   const [notifMinute, setNotifMinuteState] = useState(0);
@@ -99,7 +104,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (p.theme) setThemeState(p.theme);
     if (p.arabicFont) {
       const REMOVED_FONTS = ["amiri", "tajawal"];
-      const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? "system" : p.arabicFont;
+      const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? DEFAULT_ARABIC_FONT : p.arabicFont;
       setArabicFontState(font as ArabicFontName);
     }
     if (p.accentColor) setAccentColorState(p.accentColor);
@@ -114,6 +119,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (p.showTajweed !== undefined) setShowTajweedState(p.showTajweed);
     if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
     if (p.qiraa) setQiraaState(p.qiraa);
+    if (p.translationLang) setTranslationLangState(p.translationLang);
     if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
     if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
     if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
@@ -143,6 +149,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setShowTajweed = (v: boolean) => { setShowTajweedState(v); saveSettings({ showTajweed: v }); };
   const setContinuousPlay = (v: boolean) => { setContinuousPlayState(v); saveSettings({ continuousPlay: v }); };
   const setQiraa = (q: "hafs" | "qaloon") => { setQiraaState(q); saveSettings({ qiraa: q }); };
+  const setTranslationLang = (l: TranslationLang) => { setTranslationLangState(l); saveSettings({ translationLang: l }); };
   const setNotifEnabled = (v: boolean) => { setNotifEnabledState(v); saveSettings({ notifEnabled: v }); };
   const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
   const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
@@ -169,12 +176,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize, setArabicFontSize,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
-      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
+      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
       setNotifEnabled, setNotifHour, setNotifMinute, setAutoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
       reloadFromStorage,
@@ -182,7 +189,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize,
       colors, arabicFontFamily, lineSpacingValue,

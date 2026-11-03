@@ -34,12 +34,12 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const {
     theme, arabicFont, accentColor, lineSpacing,
     hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-    reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa,
+    reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang,
     notifEnabled, notifHour, notifMinute,
     arabicFontSize, setArabicFontSize,
     setTheme, setArabicFont, setAccentColor, setLineSpacing,
     setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
-    setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa,
+    setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
     setNotifEnabled, setNotifHour, setNotifMinute,
     autoNightMode, setAutoNightMode,
     colors, arabicFontFamily,
@@ -70,8 +70,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   ];
 
   const fonts: { key: ArabicFontName; sample: string; label: string; fontFamily?: string; sizeMultiplier?: number }[] = [
-    { key: "system",        sample: "بِسْمِ ٱللَّهِ", label: "افتراضي",     fontFamily: undefined },
-    { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ",         fontFamily: "NotoNaskhArabic_400Regular" },
+    { key: "naskh",         sample: "بِسْمِ ٱللَّهِ", label: "نسخ (افتراضي)", fontFamily: "NotoNaskhArabic_400Regular" },
+    { key: "system",        sample: "بِسْمِ ٱللَّهِ", label: "خط الجهاز",   fontFamily: undefined },
     { key: "amiriquran",    sample: "بِسْمِ ٱللَّهِ", label: "أميري قرآن",  fontFamily: "AmiriQuran_400Regular" },
     { key: "scheherazade",  sample: "بِسْمِ ٱللَّهِ", label: "شهرزاد",      fontFamily: "ScheherazadeNew_400Regular" },
     { key: "lateef",        sample: "بِسْمِ ٱللَّهِ", label: "لطيف",        fontFamily: "Lateef_400Regular", sizeMultiplier: 1.2 },
@@ -311,6 +311,19 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     style={[s.optionBtn, lineSpacing === sp.key && s.optionBtnActive, { flex: 1 }]}
                   >
                     <Text style={[s.optionLabel, lineSpacing === sp.key && s.optionLabelActive]}>{sp.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.sectionTitle}>ترجمة المعاني</Text>
+              <View style={s.optionRow}>
+                {([["none", "بدون"], ["fr", "Français"], ["en", "English"]] as const).map(([key, label]) => (
+                  <Pressable
+                    key={key}
+                    onPress={() => setTranslationLang(key)}
+                    style={[s.optionBtn, translationLang === key && s.optionBtnActive, { flex: 1 }]}
+                  >
+                    <Text style={[s.optionLabel, translationLang === key && s.optionLabelActive]}>{label}</Text>
                   </Pressable>
                 ))}
               </View>

@@ -92,6 +92,9 @@ export const THEMES: Record<ThemeName, ThemeColors> = {
   violet: violetTheme,
 };
 
+/** Noto Naskh Arabic: clear at reading size and draws every Quranic mark. */
+export const DEFAULT_ARABIC_FONT: ArabicFontName = "naskh";
+
 export const ARABIC_FONTS: Record<ArabicFontName, string | undefined> = {
   system: undefined,
   naskh: "NotoNaskhArabic_400Regular",

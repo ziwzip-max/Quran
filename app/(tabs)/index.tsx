@@ -17,6 +17,8 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { countDueBlocks } from "@/utils/srs";
+import { highlightWords, searchVerses, textMatches } from "@/utils/arabicSearch";
+import { surahsInJuz } from "@/utils/quranIndex";
 import { useIsWide, useTopPadding } from "@/utils/layout";
 import { openRandomSurah } from "@/utils/navigation";
 import { useSettingsSheet } from "@/contexts/SettingsSheetContext";
@@ -34,6 +36,7 @@ const PINS_KEY = "al_hifz_pins";
 const REVIEWS_KEY = "al_hifz_reviews";
 const SEARCH_HISTORY_KEY = "al_hifz_search_history";
 const MAX_SEARCH_HISTORY = 5;
+const RESULTS_PAGE = 30;
 
 type SearchMode = "surahs" | "verse";
 
@@ -255,7 +258,7 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
   );
 }
 
-function VerseResultCard({ result, colors, arabicFont }: { result: VerseResult; colors: ReturnType<typeof useSettings>["colors"]; arabicFont?: string }) {
+function VerseResultCard({ result, colors, arabicFont, query }: { result: VerseResult; colors: ReturnType<typeof useSettings>["colors"]; arabicFont?: string; query: string }) {
   return (
     <Pressable
       onPress={() => router.push({ pathname: "/surah/[id]", params: { id: String(result.surahNumber), verse: String(result.verseNumber) } })}
@@ -268,7 +271,15 @@ function VerseResultCard({ result, colors, arabicFont }: { result: VerseResult; 
         <Text style={[styles.verseCardName, { color: colors.textPrimary }]}>{result.surahNameArabic}</Text>
       </View>
       {result.verseText
-        ? <Text style={[styles.verseCardText, { color: colors.textPrimary, fontFamily: arabicFont }]}>{result.verseText}</Text>
+        ? (
+          <Text style={[styles.verseCardText, { color: colors.textPrimary, fontFamily: arabicFont }]}>
+            {query
+              ? highlightWords(result.verseText, query).map((w, i) =>
+                  w.hit ? <Text key={i} style={{ backgroundColor: colors.gold + "33", color: colors.textPrimary }}>{w.text}</Text> : w.text,
+                )
+              : result.verseText}
+          </Text>
+        )
         : <Text style={[styles.verseCardMissing, { color: colors.textSecondary }]}>الآية {result.verseNumber}</Text>
       }
       <View style={styles.verseCardNav}>
@@ -292,6 +303,10 @@ export default function QuranScreen() {
   const [selectedDua, setSelectedDua] = useState<Dua | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [juzFilter, setJuzFilter] = useState<number | null>(null);
+  const [revelationFilter, setRevelationFilter] = useState<"all" | "mecquoise" | "médinoise">("all");
+  const [juzPickerOpen, setJuzPickerOpen] = useState(false);
+  const [visibleResults, setVisibleResults] = useState(RESULTS_PAGE);
 
   const topPadding = useTopPadding();
   const isWide = useIsWide();
@@ -397,7 +412,13 @@ export default function QuranScreen() {
     const q = search.trim();
 
     if (q === "") {
-      return { mode: "surahs", filteredSurahs: SURAHS, verseResults: [] };
+      const inJuz = juzFilter ? new Set(surahsInJuz(juzFilter)) : null;
+      const list = SURAHS.filter(
+        (s) =>
+          (!inJuz || inJuz.has(s.number)) &&
+          (revelationFilter === "all" || SURAH_TYPE[s.number] === revelationFilter),
+      );
+      return { mode: "surahs", filteredSurahs: list, verseResults: [] };
     }
 
     const parsed = parseVerseQuery(q);
@@ -422,28 +443,19 @@ export default function QuranScreen() {
       return { mode: "surahs", filteredSurahs: surah ? [surah] : [], verseResults: [] };
     }
 
-    // Check if searching in Arabic (Arabic characters range)
+    // Arabic search ignores vowel marks and letter variants (see utils/arabicSearch).
     const isArabicSearch = /[\u0600-\u06FF]/.test(q);
     if (isArabicSearch && q.length >= 2) {
-      const surahMatches = SURAHS.filter(s => s.nameArabic.includes(q));
-      const verseMatches: VerseResult[] = [];
-      
-      // Full text search through all verses
-      for (const s of SURAHS) {
-        for (const v of s.verses) {
-          if (v.text.includes(q)) {
-            verseMatches.push({
-              surahNumber: s.number,
-              surahNameArabic: s.nameArabic,
-              verseNumber: v.number,
-              verseText: v.text,
-            });
-            if (verseMatches.length >= 30) break;
-          }
-        }
-        if (verseMatches.length >= 30) break;
-      }
-      
+      const surahMatches = SURAHS.filter((s) => textMatches(s.nameArabic, q));
+      const verseMatches: VerseResult[] = searchVerses(q).map((h) => {
+        const surah = SURAHS[h.surahNumber - 1];
+        return {
+          surahNumber: h.surahNumber,
+          surahNameArabic: surah.nameArabic,
+          verseNumber: h.verseNumber,
+          verseText: surah.verses[h.verseNumber - 1].text,
+        };
+      });
       return { mode: "surahs", filteredSurahs: surahMatches, verseResults: verseMatches };
     }
 
@@ -451,7 +463,7 @@ export default function QuranScreen() {
       (s) => s.nameTranslit.toLowerCase().includes(q.toLowerCase())
     );
     return { mode: "surahs", filteredSurahs: matched, verseResults: [] };
-  }, [search]);
+  }, [search, juzFilter, revelationFilter]);
 
   const showFilters = search.trim() === "";
 
@@ -494,7 +506,7 @@ export default function QuranScreen() {
             </View>
             {showBanner && (
               <Pressable
-                onPress={() => { setReviewBannerDismissed(true); router.push("/(tabs)/bookmarks"); }}
+                onPress={() => { setReviewBannerDismissed(true); router.push("/review"); }}
                 style={[styles.reviewBanner, { backgroundColor: colors.gold + "18", borderColor: colors.gold + "50" }]}
               >
                 <View style={styles.reviewBannerContent}>
@@ -544,7 +556,7 @@ export default function QuranScreen() {
                 placeholder="ابحث عن سورة، آية، أو نص..."
                 placeholderTextColor={colors.textMuted}
                 value={search}
-                onChangeText={setSearch}
+                onChangeText={(t) => { setSearch(t); setVisibleResults(RESULTS_PAGE); }}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
                 onSubmitEditing={() => {
@@ -557,6 +569,57 @@ export default function QuranScreen() {
               />
               <Ionicons name="search" size={16} color={colors.textMuted} />
             </View>
+
+            {showFilters && (
+              <View style={styles.filterRow}>
+                {([["all", "الكل"], ["mecquoise", "مكية"], ["médinoise", "مدنية"]] as const).map(([key, label]) => {
+                  const active = revelationFilter === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => setRevelationFilter(key)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.filterChip, { borderColor: active ? colors.gold : colors.border, backgroundColor: active ? colors.gold + "1F" : colors.bgCard }]}
+                    >
+                      <Text style={[styles.filterChipText, { color: active ? colors.gold : colors.textSecondary }]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => (juzFilter ? setJuzFilter(null) : setJuzPickerOpen(true))}
+                  accessibilityRole="button"
+                  accessibilityLabel={juzFilter ? `إلغاء تصفية الجزء ${juzFilter}` : "اختيار جزء"}
+                  style={[styles.filterChip, { borderColor: juzFilter ? colors.gold : colors.border, backgroundColor: juzFilter ? colors.gold + "1F" : colors.bgCard }]}
+                >
+                  <Text style={[styles.filterChipText, { color: juzFilter ? colors.gold : colors.textSecondary }]}>
+                    {juzFilter ? `الجزء ${juzFilter}` : "الجزء"}
+                  </Text>
+                  <Ionicons name={juzFilter ? "close" : "chevron-down"} size={14} color={juzFilter ? colors.gold : colors.textSecondary} />
+                </Pressable>
+              </View>
+            )}
+
+            <Modal visible={juzPickerOpen} transparent animationType="fade" onRequestClose={() => setJuzPickerOpen(false)}>
+              <Pressable style={styles.juzOverlay} onPress={() => setJuzPickerOpen(false)}>
+                <Pressable style={[styles.juzSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]} onPress={() => {}}>
+                  <Text style={[styles.juzTitle, { color: colors.textPrimary }]}>اختر الجزء</Text>
+                  <View style={styles.juzGrid}>
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
+                      <Pressable
+                        key={j}
+                        onPress={() => { setJuzFilter(j); setJuzPickerOpen(false); }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`الجزء ${j}`}
+                        style={[styles.juzCell, { borderColor: colors.border, backgroundColor: colors.bgSurface }]}
+                      >
+                        <Text style={[styles.juzCellText, { color: colors.textPrimary }]}>{j}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </Pressable>
+              </Pressable>
+            </Modal>
 
             {searchFocused && search.trim() === "" && searchHistory.length > 0 && (
               <View style={styles.searchHistorySection}>
@@ -600,10 +663,29 @@ export default function QuranScreen() {
 
             {verseResults.length > 0 && (
               <View style={styles.verseResultsSection}>
-                <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>نتائج من الآيات</Text>
-                {verseResults.map((res, i) => (
-                  <VerseResultCard key={`${res.surahNumber}-${res.verseNumber}-${i}`} result={res} colors={colors} arabicFont={arabicFontFamily} />
+                <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+                  {mode === "verse" ? "الآية" : `${verseResults.length} آية مطابقة`}
+                </Text>
+                {verseResults.slice(0, visibleResults).map((res, i) => (
+                  <VerseResultCard
+                    key={`${res.surahNumber}-${res.verseNumber}-${i}`}
+                    result={res}
+                    colors={colors}
+                    arabicFont={arabicFontFamily}
+                    query={mode === "verse" ? "" : search.trim()}
+                  />
                 ))}
+                {verseResults.length > visibleResults && (
+                  <Pressable
+                    onPress={() => setVisibleResults((n) => n + RESULTS_PAGE)}
+                    style={[styles.moreBtn, { borderColor: colors.border, backgroundColor: colors.bgCard }]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.moreBtnText, { color: colors.gold }]}>
+                      عرض المزيد ({verseResults.length - visibleResults} متبقية)
+                    </Text>
+                  </Pressable>
+                )}
                 <View style={{ height: 16 }} />
                 {filteredSurahs.length > 0 && (
                   <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>السور المطابقة</Text>
@@ -772,6 +854,17 @@ const styles = StyleSheet.create({
   verseRefText: { fontFamily: "Inter_700Bold", fontSize: 13 },
   verseCardName: { fontSize: 18, textAlign: "right" },
   verseCardText: { fontSize: 22, textAlign: "right", lineHeight: 42 },
+  moreBtn: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  moreBtnText: { fontFamily: "Tajawal_400Regular", fontSize: 15 },
+  filterRow: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  filterChipText: { fontFamily: "Tajawal_400Regular", fontSize: 14 },
+  juzOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", padding: 16 },
+  juzSheet: { width: "100%", maxWidth: 420, borderRadius: 20, borderWidth: 1, padding: 16 },
+  juzTitle: { fontFamily: "Tajawal_400Regular", fontSize: 18, textAlign: "right", marginBottom: 12 },
+  juzGrid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  juzCell: { width: 52, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  juzCellText: { fontFamily: "Inter_600SemiBold", fontSize: 15 },
   verseCardMissing: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "right" },
   verseCardNav: { flexDirection: "row", alignItems: "center", gap: 4, justifyContent: "flex-end", paddingTop: 2 },
   verseCardNavText: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "right" },
