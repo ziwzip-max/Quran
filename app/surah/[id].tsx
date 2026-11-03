@@ -29,16 +29,15 @@ import { RECITERS_LIST, getFontSizeMultiplier } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
-import { QALOON_SURAHS } from "@/constants/qaloonData";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
 const MAX_HISTORY_ITEMS = 5;
 const MIN_FONT = 18;
 const MAX_FONT = 48;
-const FONT_STEP = 2;
 const BISMILLAH = SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "").normalize("NFC") ?? "";
-const QALOON_BISMILLAH = QALOON_SURAHS[0]?.verses[0]?.text?.replace(/^\uFEFF/, "").normalize("NFC") ?? "";
+// First verse of Al-Fatiha in the Qaloon text (NFC), kept inline so the Qaloon data can load lazily.
+const QALOON_BISMILLAH = "\u0628\u0650\u0633\u0652\u0645\u0650\u0020\u0627\u0644\u0644\u064e\u0651\u0647\u0650\u0020\u0627\u0644\u0631\u064e\u0651\u062d\u0652\u0645\u064e\u0670\u0646\u0650\u0020\u0627\u0644\u0631\u064e\u0651\u062d\u0650\u064a\u0645\u0650";
 
 const REPEAT_CYCLE: (0 | 3 | 5 | 10)[] = [0, 3, 5, 10];
 const SLEEP_CYCLE: (number | null)[] = [null, 15, 30, 45, 60];
