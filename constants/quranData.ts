@@ -326,7 +326,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 3,
-    nameArabic: "سُورَةُ آلِ عِمۡرَانَ",
+    nameArabic: "سُورَةُ آلِ عِمْرَانَ",
     nameTranslit: "Aal-i-Imraan",
     nameFr: "La Famille d'Imran",
     versesCount: 200,
@@ -849,7 +849,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 6,
-    nameArabic: "سُورَةُ الأَنۡعَامِ",
+    nameArabic: "سُورَةُ الأَنْعَامِ",
     nameTranslit: "Al-An'aam",
     nameFr: "Les Bestiaux",
     versesCount: 165,
@@ -1023,7 +1023,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 7,
-    nameArabic: "سُورَةُ الأَعۡرَافِ",
+    nameArabic: "سُورَةُ الأَعْرَافِ",
     nameTranslit: "Al-A'raaf",
     nameFr: "Les Hauteurs",
     versesCount: 206,
@@ -1322,7 +1322,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 9,
-    nameArabic: "سُورَةُ التَّوۡبَةِ",
+    nameArabic: "سُورَةُ التَّوْبَةِ",
     nameTranslit: "At-Tawba",
     nameFr: "Le Repentir",
     versesCount: 129,
@@ -1830,7 +1830,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 13,
-    nameArabic: "سُورَةُ الرَّعۡدِ",
+    nameArabic: "سُورَةُ الرَّعْدِ",
     nameTranslit: "Ar-Ra'd",
     nameFr: "Le Tonnerre",
     versesCount: 43,
@@ -1882,7 +1882,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 14,
-    nameArabic: "سُورَةُ إِبۡرَاهِيمَ",
+    nameArabic: "سُورَةُ إِبْرَاهِيمَ",
     nameTranslit: "Ibrahim",
     nameFr: "Abraham",
     versesCount: 52,
@@ -1943,7 +1943,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 15,
-    nameArabic: "سُورَةُ الحِجۡرِ",
+    nameArabic: "سُورَةُ الحِجْرِ",
     nameTranslit: "Al-Hijr",
     nameFr: "Al-Hijr",
     versesCount: 99,
@@ -2051,7 +2051,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 16,
-    nameArabic: "سُورَةُ النَّحۡلِ",
+    nameArabic: "سُورَةُ النَّحْلِ",
     nameTranslit: "An-Nahl",
     nameFr: "Les Abeilles",
     versesCount: 128,
@@ -2188,7 +2188,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 17,
-    nameArabic: "سُورَةُ الإِسۡرَاءِ",
+    nameArabic: "سُورَةُ الإِسْرَاءِ",
     nameTranslit: "Al-Israa",
     nameFr: "Le Voyage Nocturne",
     versesCount: 111,
@@ -2308,7 +2308,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 18,
-    nameArabic: "سُورَةُ الكَهۡفِ",
+    nameArabic: "سُورَةُ الكَهْفِ",
     nameTranslit: "Al-Kahf",
     nameFr: "La Caverne",
     versesCount: 110,
@@ -2427,7 +2427,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 19,
-    nameArabic: "سُورَةُ مَرۡيَمَ",
+    nameArabic: "سُورَةُ مَرْيَمَ",
     nameTranslit: "Maryam",
     nameFr: "Marie",
     versesCount: 98,
@@ -2886,7 +2886,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 23,
-    nameArabic: "سُورَةُ المُؤۡمِنُونَ",
+    nameArabic: "سُورَةُ المُؤْمِنُونَ",
     nameTranslit: "Al-Muminoon",
     nameFr: "Les Croyants",
     versesCount: 118,
@@ -3086,7 +3086,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 25,
-    nameArabic: "سُورَةُ الفُرۡقَانِ",
+    nameArabic: "سُورَةُ الفُرْقَانِ",
     nameTranslit: "Al-Furqaan",
     nameFr: "Le Discernement",
     versesCount: 77,
@@ -3408,7 +3408,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 27,
-    nameArabic: "سُورَةُ النَّمۡلِ",
+    nameArabic: "سُورَةُ النَّمْلِ",
     nameTranslit: "An-Naml",
     nameFr: "Les Fourmis",
     versesCount: 93,
@@ -3754,7 +3754,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 31,
-    nameArabic: "سُورَةُ لُقۡمَانَ",
+    nameArabic: "سُورَةُ لُقْمَانَ",
     nameTranslit: "Luqman",
     nameFr: "Luqman",
     versesCount: 34,
@@ -3797,7 +3797,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 32,
-    nameArabic: "سُورَةُ السَّجۡدَةِ",
+    nameArabic: "سُورَةُ السَّجْدَةِ",
     nameTranslit: "As-Sajda",
     nameFr: "La Prosternation",
     versesCount: 30,
@@ -3836,7 +3836,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 33,
-    nameArabic: "سُورَةُ الأَحۡزَابِ",
+    nameArabic: "سُورَةُ الأَحْزَابِ",
     nameTranslit: "Al-Ahzaab",
     nameFr: "Les Coalisés",
     versesCount: 73,
@@ -4593,7 +4593,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 41,
-    nameArabic: "سُورَةُ فُصِّلَتۡ",
+    nameArabic: "سُورَةُ فُصِّلَتْ",
     nameTranslit: "Fussilat",
     nameFr: "Fuçsilat",
     versesCount: 54,
@@ -4718,7 +4718,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 43,
-    nameArabic: "سُورَةُ الزُّخۡرُفِ",
+    nameArabic: "سُورَةُ الزُّخْرُفِ",
     nameTranslit: "Az-Zukhruf",
     nameFr: "L'Ornement",
     versesCount: 89,
@@ -4930,7 +4930,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 46,
-    nameArabic: "سُورَةُ الأَحۡقَافِ",
+    nameArabic: "سُورَةُ الأَحْقَافِ",
     nameTranslit: "Al-Ahqaf",
     nameFr: "Al-Ahqaf",
     versesCount: 35,
@@ -5021,7 +5021,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 48,
-    nameArabic: "سُورَةُ الفَتۡحِ",
+    nameArabic: "سُورَةُ الفَتْحِ",
     nameTranslit: "Al-Fath",
     nameFr: "La Victoire",
     versesCount: 29,
@@ -5267,7 +5267,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 53,
-    nameArabic: "سُورَةُ النَّجۡمِ",
+    nameArabic: "سُورَةُ النَّجْمِ",
     nameTranslit: "An-Najm",
     nameFr: "L'Étoile",
     versesCount: 62,
@@ -5402,7 +5402,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 55,
-    nameArabic: "سُورَةُ الرَّحۡمَٰن",
+    nameArabic: "سُورَةُ الرَّحْمَٰن",
     nameTranslit: "Ar-Rahmaan",
     nameFr: "Le Tout Miséricordieux",
     versesCount: 78,
@@ -5663,7 +5663,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 59,
-    nameArabic: "سُورَةُ الحَشۡرِ",
+    nameArabic: "سُورَةُ الحَشْرِ",
     nameTranslit: "Al-Hashr",
     nameFr: "L'Examinée",
     versesCount: 24,
@@ -5696,7 +5696,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 60,
-    nameArabic: "سُورَةُ المُمۡتَحنَةِ",
+    nameArabic: "سُورَةُ المُمْتَحنَةِ",
     nameTranslit: "Al-Mumtahana",
     nameFr: "Les Rangs",
     versesCount: 13,
@@ -5829,7 +5829,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 66,
-    nameArabic: "سُورَةُ التَّحۡرِيمِ",
+    nameArabic: "سُورَةُ التَّحْرِيمِ",
     nameTranslit: "At-Tahrim",
     nameFr: "La Royauté",
     versesCount: 12,
@@ -5850,7 +5850,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 67,
-    nameArabic: "سُورَةُ المُلۡكِ",
+    nameArabic: "سُورَةُ المُلْكِ",
     nameTranslit: "Al-Mulk",
     nameFr: "La Plume",
     versesCount: 30,
@@ -6321,7 +6321,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 77,
-    nameArabic: "سُورَةُ المُرۡسَلَاتِ",
+    nameArabic: "سُورَةُ المُرْسَلَاتِ",
     nameTranslit: "Al-Mursalaat",
     nameFr: "La Nouvelle",
     versesCount: 50,
@@ -6535,7 +6535,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 81,
-    nameArabic: "سُورَةُ التَّكۡوِيرِ",
+    nameArabic: "سُورَةُ التَّكْوِيرِ",
     nameTranslit: "At-Takwir",
     nameFr: "La Déchirure",
     versesCount: 29,
@@ -6737,7 +6737,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 87,
-    nameArabic: "سُورَةُ الأَعۡلَىٰ",
+    nameArabic: "سُورَةُ الأَعْلَىٰ",
     nameTranslit: "Al-A'laa",
     nameFr: "Le Plus Haut",
     versesCount: 19,
@@ -6800,7 +6800,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 89,
-    nameArabic: "سُورَةُ الفَجۡرِ",
+    nameArabic: "سُورَةُ الفَجْرِ",
     nameTranslit: "Al-Fajr",
     nameFr: "L'Aube",
     versesCount: 30,
@@ -6868,7 +6868,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 91,
-    nameArabic: "سُورَةُ الشَّمۡسِ",
+    nameArabic: "سُورَةُ الشَّمْسِ",
     nameTranslit: "Ash-Shams",
     nameFr: "Le Soleil",
     versesCount: 15,
@@ -6892,7 +6892,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 92,
-    nameArabic: "سُورَةُ اللَّيۡلِ",
+    nameArabic: "سُورَةُ اللَّيْلِ",
     nameTranslit: "Al-Lail",
     nameFr: "La Nuit",
     versesCount: 21,
@@ -6942,7 +6942,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 94,
-    nameArabic: "سُورَةُ الشَّرۡحِ",
+    nameArabic: "سُورَةُ الشَّرْحِ",
     nameTranslit: "Ash-Sharh",
     nameFr: "L'Élargissement",
     versesCount: 8,
@@ -7004,7 +7004,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 97,
-    nameArabic: "سُورَةُ القَدۡرِ",
+    nameArabic: "سُورَةُ القَدْرِ",
     nameTranslit: "Al-Qadr",
     nameFr: "La Nuit du Destin",
     versesCount: 5,
@@ -7035,7 +7035,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 99,
-    nameArabic: "سُورَةُ الزَّلۡزَلَةِ",
+    nameArabic: "سُورَةُ الزَّلْزَلَةِ",
     nameTranslit: "Az-Zalzala",
     nameFr: "Le Tremblement",
     versesCount: 8,
@@ -7109,7 +7109,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 103,
-    nameArabic: "سُورَةُ العَصۡرِ",
+    nameArabic: "سُورَةُ العَصْرِ",
     nameTranslit: "Al-Asr",
     nameFr: "L'Après-Midi",
     versesCount: 3,
@@ -7153,7 +7153,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 106,
-    nameArabic: "سُورَةُ قُرَيۡشٍ",
+    nameArabic: "سُورَةُ قُرَيْشٍ",
     nameTranslit: "Quraish",
     nameFr: "Quraych",
     versesCount: 4,
@@ -7182,7 +7182,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 108,
-    nameArabic: "سُورَةُ الكَوۡثَرِ",
+    nameArabic: "سُورَةُ الكَوْثَرِ",
     nameTranslit: "Al-Kawthar",
     nameFr: "L'Abondance",
     versesCount: 3,
@@ -7209,7 +7209,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 110,
-    nameArabic: "سُورَةُ النَّصۡرِ",
+    nameArabic: "سُورَةُ النَّصْرِ",
     nameTranslit: "An-Nasr",
     nameFr: "Le Secours",
     versesCount: 3,
@@ -7235,7 +7235,7 @@ export const SURAHS: Surah[] = [
   },
   {
     number: 112,
-    nameArabic: "سُورَةُ الإِخۡلَاصِ",
+    nameArabic: "سُورَةُ الإِخْلَاصِ",
     nameTranslit: "Al-Ikhlaas",
     nameFr: "L'Intégrité",
     versesCount: 4,

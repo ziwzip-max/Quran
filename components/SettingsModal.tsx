@@ -252,7 +252,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <Text style={s.sectionTitle}>معاينة</Text>
               <View style={s.preview}>
                 <Text style={[s.previewText, arabicFontFamily ? { fontFamily: arabicFontFamily } : {}]}>
-                  آلِ عِمۡرَانَ — ٱلْحَمْدُ لِلَّهِ
+                  آلِ عِمْرَانَ — ٱلْحَمْدُ لِلَّهِ
                 </Text>
               </View>
             </>
