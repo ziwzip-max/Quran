@@ -141,9 +141,9 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     reloadFromStorage();
-  }, []);
+  }, [reloadFromStorage]);
 
-  const toggleBookmark = (surahNumber: number, verseNumber: number) => {
+  const toggleBookmark = useCallback((surahNumber: number, verseNumber: number) => {
     const key = getVerseKey(surahNumber, verseNumber);
     setBookmarks((prev) => {
       const updated = { ...prev };
@@ -155,11 +155,12 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  const isBookmarked = (surahNumber: number, verseNumber: number): boolean => {
-    return !!bookmarks[getVerseKey(surahNumber, verseNumber)];
-  };
+  const isBookmarked = useCallback(
+    (surahNumber: number, verseNumber: number): boolean => !!bookmarks[getVerseKey(surahNumber, verseNumber)],
+    [bookmarks],
+  );
 
   const blocks = useMemo(() => computeBlocks(bookmarks), [bookmarks]);
   const surahGroups = useMemo(() => groupBySurah(blocks), [blocks]);
@@ -174,7 +175,7 @@ export function BookmarksProvider({ children }: { children: ReactNode }) {
       isLoaded,
       reloadFromStorage,
     }),
-    [bookmarks, blocks, surahGroups, isLoaded, reloadFromStorage]
+    [bookmarks, blocks, surahGroups, toggleBookmark, isBookmarked, isLoaded, reloadFromStorage]
   );
 
   return (

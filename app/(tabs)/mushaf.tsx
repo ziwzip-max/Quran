@@ -449,6 +449,21 @@ export default function MushafScreen() {
     AsyncStorage.setItem(MUSHAF_POS_KEY, JSON.stringify({ itemIndex, juzNum })).catch(() => {});
   }, []);
 
+  const scrollToY = useRef((offset: number, animated = true) => {
+    setTimeout(() => {
+      const list = listRef.current as any;
+      if (!list) return;
+      if (list.scrollToOffset) {
+        list.scrollToOffset({ offset, animated });
+        return;
+      }
+      const scrollResponder = list.getScrollResponder?.();
+      if (scrollResponder?.scrollTo) {
+        scrollResponder.scrollTo({ y: offset, animated });
+      }
+    }, 300);
+  }).current;
+
   useEffect(() => {
     if (!searchQuery.trim()) {
       setMatchIndices([]);
@@ -467,22 +482,7 @@ export default function MushafScreen() {
     if (matches.length > 0) {
       scrollToY(ITEM_OFFSETS[matches[0]] ?? 0, true);
     }
-  }, [searchQuery]);
-
-  const scrollToY = useRef((offset: number, animated = true) => {
-    setTimeout(() => {
-      const list = listRef.current as any;
-      if (!list) return;
-      if (list.scrollToOffset) {
-        list.scrollToOffset({ offset, animated });
-        return;
-      }
-      const scrollResponder = list.getScrollResponder?.();
-      if (scrollResponder?.scrollTo) {
-        scrollResponder.scrollTo({ y: offset, animated });
-      }
-    }, 300);
-  }).current;
+  }, [searchQuery, scrollToY]);
 
   const goToMatch = useCallback((direction: 1 | -1) => {
     if (matchIndices.length === 0) return;
@@ -595,7 +595,7 @@ export default function MushafScreen() {
     return null;
   }, [colors, arabicFontFamily, arabicFontKey, arabicFontSize, lineSpacingValue, masteryMap, searchQuery, handleVerseAction]);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
     const firstVisible = viewableItems[0]?.index;
     if (typeof firstVisible === "number") {
       savePosition(firstVisible);

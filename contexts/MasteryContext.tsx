@@ -39,7 +39,7 @@ export function MasteryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     reloadFromStorage();
-  }, []);
+  }, [reloadFromStorage]);
 
   const persist = (map: Record<string, MasteryLevel>) => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));

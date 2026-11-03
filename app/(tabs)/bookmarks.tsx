@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -20,9 +21,6 @@ import { SURAHS } from "@/constants/quranData";
 import { JumpModal } from "@/components/JumpModal";
 
 const REVIEWS_KEY = "al_hifz_reviews";
-const REVIEW_THRESHOLD_L1 = 3 * 24 * 60 * 60 * 1000;
-const REVIEW_THRESHOLD_L2 = 7 * 24 * 60 * 60 * 1000;
-const REVIEW_THRESHOLD_L3 = 30 * 24 * 60 * 60 * 1000;
 const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 
 async function loadReviews(): Promise<Record<string, number>> {
@@ -36,29 +34,8 @@ async function saveReviews(reviews: Record<string, number>) {
   try { await AsyncStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews)); } catch {}
 }
 
-function isDueForReview(blockId: string, reviews: Record<string, number>, masteryLevel: number): boolean {
-  const lastReview = reviews[blockId];
-  if (lastReview === undefined) return masteryLevel > 0;
-  const elapsed = Date.now() - lastReview;
-  if (masteryLevel === 1) return elapsed > REVIEW_THRESHOLD_L1;
-  if (masteryLevel === 2) return elapsed > REVIEW_THRESHOLD_L2;
-  if (masteryLevel === 3) return elapsed > REVIEW_THRESHOLD_L3;
-  return false;
-}
 
-export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 };
-
-function StatBar({ value, total, color, flex }: { value: number; total: number; color: string; flex?: number }) {
-  const pct = total > 0 ? value / total : 0;
-  return (
-    <View style={[barStyles.container, flex !== undefined ? { flex } : {}]}>
-      <View style={[barStyles.track, { backgroundColor: color + "20" }]}>
-        <View style={[barStyles.fill, { flex: pct, backgroundColor: color }]} />
-        <View style={{ flex: 1 - pct }} />
-      </View>
-    </View>
-  );
-}
+export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 } from "@/utils/srs";
 
 function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: number, colors: any }) {
   const labels = ["غير مبدوء", "قيد الحفظ", "متوسط", "متقن"];
@@ -67,7 +44,6 @@ function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: 
       <View style={statsStyles.breakdownBar}>
         {counts.map((count, i) => {
           if (count === 0 && total > 0) return null;
-          const pct = total > 0 ? (count / total) * 100 : 0;
           return (
             <View 
               key={i} 
@@ -110,15 +86,12 @@ function StatsPanel({
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [isCollapsed]);
+  }, [isCollapsed, animation]);
 
   const heightInterpolate = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 220],
   });
-
-  const masteredCount = masteryCounts[3] + masteryCounts[2];
-  const inProgressCount = masteryCounts[1];
 
   return (
     <View style={[statsStyles.panel, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
@@ -164,12 +137,6 @@ function StatsPanel({
     </View>
   );
 }
-
-const barStyles = StyleSheet.create({
-  container: { flex: 1 },
-  track: { flex: 1, flexDirection: "row", borderRadius: 4, overflow: "hidden" },
-  fill: { backgroundColor: "#fff" },
-});
 
 const statsStyles = StyleSheet.create({
   panel: { borderRadius: 16, padding: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 14, overflow: "hidden" },

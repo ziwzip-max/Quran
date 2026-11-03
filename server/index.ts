@@ -28,6 +28,14 @@ function setupCors(app: express.Application) {
       });
     }
 
+    // Extra allowed origins for self-hosting, e.g.
+    // ALLOWED_ORIGINS=https://al-hifz-kappa.vercel.app,https://example.com
+    if (process.env.ALLOWED_ORIGINS) {
+      process.env.ALLOWED_ORIGINS.split(",").forEach((o: string) => {
+        if (o.trim()) origins.add(o.trim().replace(/\/$/, ""));
+      });
+    }
+
     const origin = req.header("origin");
 
     // Allow localhost origins for Expo web development (any port)

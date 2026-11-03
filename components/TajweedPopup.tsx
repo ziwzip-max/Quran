@@ -40,7 +40,7 @@ export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps
         Animated.timing(fadeAnim,  { toValue: 0,   duration: 200, useNativeDriver: useNative }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, slideAnim, fadeAnim]);
 
   if (!rule) return null;
   const info: TajweedRuleInfo = TAJWEED_RULES[rule];

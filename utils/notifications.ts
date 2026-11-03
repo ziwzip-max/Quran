@@ -1,6 +1,5 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { MasteryLevel } from "@/contexts/MasteryContext";
 
 // In a real app, we'd need to pass more than just masteryMap to know when things are due.
 // For this task, we assume "due" means any bookmarked verse that isn't L3, 
@@ -50,9 +49,4 @@ export async function scheduleSmartNotification(
   });
 }
 
-export function countDueVerses(masteryMap: Record<string, MasteryLevel>): number {
-  // Simple SRS logic: anything bookmarked (in mastery map) that is NOT L3 is "due" 
-  // or maybe even L3 needs periodic review. 
-  // For now, let's count anything < 3.
-  return Object.values(masteryMap).filter(level => level < 3).length;
-}
+export { countDueVerses } from "@/utils/srs";
