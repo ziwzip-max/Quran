@@ -15,7 +15,7 @@ export interface Surah {
 export const SURAHS: Surah[] = [
   {
     number: 1,
-    nameArabic: "سُورَةُ ٱلْفَاتِحَةِ",
+    nameArabic: "سُورَةُ الفَاتِحَةِ",
     nameTranslit: "Al-Faatiha",
     nameFr: "L'Ouverture",
     versesCount: 7,

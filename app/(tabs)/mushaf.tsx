@@ -15,8 +15,9 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
-import { getFontSizeMultiplier } from "@/constants/themes";
+import { getFontSizeMultiplier, SURAH_NAME_FONT } from "@/constants/themes";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { HIZB_START, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
@@ -182,8 +183,8 @@ const shStyles = StyleSheet.create({
     paddingVertical: 12,
   },
   nameAr: {
-    fontSize: 22,
-    fontWeight: "700" as const,
+    fontFamily: SURAH_NAME_FONT,
+    fontSize: 24,
     textAlign: "center",
   },
   meta: {
@@ -413,7 +414,7 @@ export default function MushafScreen() {
   const { colors, arabicFontFamily, arabicFont: arabicFontKey, arabicFontSize, lineSpacingValue } = useSettings();
   const { masteryMap } = useMastery();
   const listRef = useRef<FlatList>(null);
-  const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPadding = useTopPadding();
   const bottomPadding = Platform.OS === "web" ? Math.max(insets.bottom, 34) : insets.bottom;
 
   const [searchQuery, setSearchQuery] = useState("");

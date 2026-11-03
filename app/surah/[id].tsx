@@ -63,7 +63,6 @@ function TajweedText({
 
   return (
     <View style={styles.tajweedWrap}>
-      <TajweedLegend segments={segments} />
       <Text style={[style, arabicFont ? { fontFamily: arabicFont } : {}, styles.tajweedTextBlock]}>
         {segments.map((seg, i) => {
           if (!seg.rule) {
@@ -263,15 +262,15 @@ function VerseItem({
           )}
         </View>
         <View style={styles.verseHeaderRight}>
-          {showTajweed && (
-            <View style={[styles.tajweedHintBadge, { backgroundColor: colors.teal + "20", borderColor: colors.teal + "40" }]}>
-              <Text style={[styles.tajweedHintText, { color: colors.tealLight }]}>اضغط الكلمة الملونة</Text>
-            </View>
-          )}
-          <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }} hitSlop={10}>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }}
+            style={styles.iconBtn} hitSlop={ICON_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="التفسير"
+          >
             <Ionicons name="book-outline" size={20} color={colors.textMuted} />
           </Pressable>
-          <Pressable onPress={onPlayAudio} hitSlop={10} style={styles.audioBtn}>
+          <Pressable onPress={onPlayAudio} style={styles.iconBtn} hitSlop={ICON_HIT_SLOP} accessibilityRole="button" accessibilityLabel={isCurrentAudio ? "إيقاف" : "تشغيل الآية"}>
             {isAudioLoading
               ? <ActivityIndicator size="small" color={colors.gold} />
               : <Ionicons
@@ -282,7 +281,7 @@ function VerseItem({
             }
           </Pressable>
           <Animated.View style={{ transform: [{ scale }] }}>
-            <Pressable onPress={handleToggle} hitSlop={12}>
+            <Pressable onPress={handleToggle} style={styles.iconBtn} hitSlop={ICON_HIT_SLOP} accessibilityRole="button" accessibilityLabel={isBookmarked ? "إزالة من المحفوظات" : "حفظ الآية"}>
               <Ionicons
                 name={isBookmarked ? "bookmark" : "bookmark-outline"}
                 size={22}
@@ -442,10 +441,24 @@ export default function SurahScreen() {
       title: surah.nameArabic,
       headerStyle: { backgroundColor: colors.bgDark },
       headerTintColor: colors.textPrimary,
-      headerTitleStyle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: colors.textPrimary },
-      headerBackTitle: "القرآن",
+      // Right to left: back arrow and surah name on the right, actions on the left.
+      headerBackVisible: false,
+      headerTitle: () => null,
       headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 }}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+          accessibilityRole="button"
+          accessibilityLabel="رجوع"
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 8 }}
+        >
+          <Text style={{ fontFamily: arabicFontFamily ?? "Amiri_400Regular", fontSize: 20, color: colors.textPrimary }}>
+            {surah.nameArabic}
+          </Text>
+          <Ionicons name="arrow-forward" size={22} color={colors.textPrimary} />
+        </Pressable>
+      ),
+      headerLeft: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 8 }}>
           {Platform.OS !== "web" && (
             <Pressable
               onPress={handleDownload}
@@ -468,7 +481,7 @@ export default function SurahScreen() {
         </View>
       ),
     });
-  }, [surah, navigation, colors, isImmersive, showTajweed, setShowTajweed, handleDownload]);
+  }, [surah, navigation, colors, arabicFontFamily, isImmersive, showTajweed, setShowTajweed, handleDownload]);
 
   useFocusEffect(useCallback(() => {
     hasScrolled.current = false;
@@ -615,6 +628,12 @@ export default function SurahScreen() {
     [surah, surahNumber, isBookmarked]
   );
 
+
+  // One Tajweed legend for the whole surah instead of a box on every verse.
+  const surahTajweedSegments = useMemo(
+    () => (showTajweed && surah ? surah.verses.flatMap((v) => parseTajweed(v.text)) : []),
+    [showTajweed, surah],
+  );
 
   const navigateToBookmark = useCallback((bIdx: number) => {
     if (bookmarkedIndices.length === 0) return;
@@ -833,13 +852,22 @@ export default function SurahScreen() {
         contentContainerStyle={[
           styles.listContent,
           {
-            paddingTop: isImmersive ? (Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top) + 12 : 0,
+            paddingTop: isImmersive ? (Platform.OS === "web" ? Math.max(insets.top, 12) : insets.top) + 12 : 0,
             paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24,
           },
         ]}
         columnWrapperStyle={isLandscape ? { gap: 8, paddingHorizontal: 8 } : undefined}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={headerComponent}
+        ListHeaderComponent={
+          <>
+            {headerComponent}
+            {showTajweed && (
+              <View style={styles.surahLegend}>
+                <TajweedLegend segments={surahTajweedSegments} title="أحكام التجويد في هذه السورة — اضغط على الحرف الملوّن لشرح الحكم" />
+              </View>
+            )}
+          </>
+        }
         viewabilityConfig={highlightActiveVerse ? viewabilityConfig : undefined}
         onViewableItemsChanged={highlightActiveVerse ? onViewableItemsChanged : undefined}
         scrollEventThrottle={16}
@@ -1349,6 +1377,8 @@ export default function SurahScreen() {
   );
 }
 
+const ICON_HIT_SLOP = 5;
+
 const fontBtnStyle: object = {
   borderRadius: 8, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 4,
 };
@@ -1486,7 +1516,9 @@ const styles = StyleSheet.create({
   },
   verseContainer: {
     borderRadius: 14,
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 10,
     borderWidth: 1,
     flex: 1,
   },
@@ -1494,10 +1526,11 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   verseHeader: {
-    flexDirection: "row",
+    // Right to left: verse number on the right, actions on the left.
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 2,
   },
   verseHeaderLeft: {
     flexDirection: "row",
@@ -1507,12 +1540,13 @@ const styles = StyleSheet.create({
   verseHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 6,
+    marginLeft: -6,
   },
   verseNumberBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -1521,11 +1555,15 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
   },
-  audioBtn: {
-    width: 28,
-    height: 28,
+  // 34 px buttons with a 5 px hit slop: a 44 px touch target without making each verse taller.
+  iconBtn: {
+    width: 34,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
+  },
+  surahLegend: {
+    marginBottom: 6,
   },
   tajweedWrap: {
     gap: 8,
@@ -1533,21 +1571,11 @@ const styles = StyleSheet.create({
   tajweedTextBlock: {
     textAlign: "right",
   },
-  tajweedHintBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderWidth: 1,
-  },
-  tajweedHintText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
-  },
   verseText: {
     textAlign: "right",
   },
   verseSeparator: {
-    height: 10,
+    height: 6,
   },
   downloadBar: {
     height: 40,

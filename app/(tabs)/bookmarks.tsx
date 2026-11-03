@@ -9,10 +9,11 @@ import {
   Animated,
 } from "react-native";
 import { useFocusEffect, router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { EmptyAction } from "@/components/EmptyAction";
+import { useTopPadding } from "@/utils/layout";
 import { isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
@@ -335,7 +336,6 @@ function SurahSection({
 }
 
 export default function BookmarksScreen() {
-  const insets = useSafeAreaInsets();
   const { surahGroups, toggleBookmark, isLoaded, blocks, bookmarks } = useBookmarks();
   const { colors, arabicFontFamily } = useSettings();
   const { masteryMap: mastery } = useMastery();
@@ -343,7 +343,7 @@ export default function BookmarksScreen() {
   const [streak, setStreak] = useState(0);
   const [jumpVisible, setJumpVisible] = useState(false);
 
-  const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPadding = useTopPadding();
   const savedSurahNumbers = useMemo(() => surahGroups.map(g => g.surahNumber), [surahGroups]);
 
   const loadStats = useCallback(async () => {
@@ -460,8 +460,9 @@ export default function BookmarksScreen() {
             <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
             <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-              اضغط على الإشارة المرجعية عند قراءة أي سورة لإضافة الآيات للحفظ.
+              اضغط على علامة الحفظ عند قراءة أي سورة لإضافة الآيات إلى قائمة الحفظ.
             </Text>
+            <EmptyAction label="اختر سورة للبدء" />
           </View>
         }
       />

@@ -12,11 +12,14 @@ import {
   Modal,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SURAH_NAME_FONT } from "@/constants/themes";
 import { countDueBlocks } from "@/utils/srs";
+import { useIsWide, useTopPadding } from "@/utils/layout";
+import { openRandomSurah } from "@/utils/navigation";
+import { useSettingsSheet } from "@/contexts/SettingsSheetContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -277,7 +280,6 @@ function VerseResultCard({ result, colors, arabicFont }: { result: VerseResult; 
 }
 
 export default function QuranScreen() {
-  const insets = useSafeAreaInsets();
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
   const [search, setSearch] = useState("");
@@ -291,7 +293,9 @@ export default function QuranScreen() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPadding = useTopPadding();
+  const isWide = useIsWide();
+  const { openSettings } = useSettingsSheet();
 
   const loadHistory = useCallback(async () => {
     try {
@@ -466,6 +470,28 @@ export default function QuranScreen() {
         keyExtractor={(s) => String(s.number)}
         ListHeaderComponent={
           <>
+            <View style={styles.header}>
+              {/* On wide screens the side menu already shows the app name. */}
+              <Text style={[styles.appTitle, { color: colors.textPrimary }]}>{isWide ? "" : "الحفظ"}</Text>
+              <View style={styles.headerActions}>
+                <Pressable
+                  onPress={openRandomSurah}
+                  accessibilityRole="button"
+                  accessibilityLabel="سورة عشوائية"
+                  style={[styles.headerBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                >
+                  <Ionicons name="shuffle" size={20} color={colors.textSecondary} />
+                </Pressable>
+                <Pressable
+                  onPress={openSettings}
+                  accessibilityRole="button"
+                  accessibilityLabel="الإعدادات"
+                  style={[styles.headerBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                >
+                  <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+            </View>
             {showBanner && (
               <Pressable
                 onPress={() => { setReviewBannerDismissed(true); router.push("/(tabs)/bookmarks"); }}
@@ -641,7 +667,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: Platform.OS === "web" ? 640 : undefined,
   },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  header: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  appTitle: { fontFamily: "Amiri_400Regular", fontSize: 28, textAlign: "right" },
+  headerActions: { flexDirection: "row", gap: 8 },
+  headerBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   gearBtn: { padding: 4 },
   reviewBanner: {
     flexDirection: "row", alignItems: "center",
@@ -715,7 +744,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
     flexDirection: "row", alignItems: "center", gap: 6,
   },
-  historyChipArabic: { fontSize: 14 },
+  historyChipArabic: { fontFamily: SURAH_NAME_FONT, fontSize: 15 },
   historyChipNum: { fontFamily: "Inter_500Medium", fontSize: 10 },
   pinsSection: { marginBottom: 4 },
   pinsScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
@@ -724,7 +753,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
     flexDirection: "row", alignItems: "center", gap: 6,
   },
-  pinChipText: { fontFamily: "Inter_500Medium", fontSize: 14 },
+  pinChipText: { fontFamily: SURAH_NAME_FONT, fontSize: 15 },
   listContent: { paddingHorizontal: 16 },
   card: { borderRadius: 14, borderWidth: 1 },
   cardInner: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 14 },
@@ -732,7 +761,7 @@ const styles = StyleSheet.create({
   verseCount: { fontFamily: "Inter_400Regular", fontSize: 11 },
   revTypePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   revTypeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  arabicName: { fontSize: 20, textAlign: "right" },
+  arabicName: { fontFamily: SURAH_NAME_FONT, fontSize: 21, textAlign: "right" },
   numberBadge: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   numberText: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
   verseResultContainer: { paddingHorizontal: 16, paddingBottom: 12 },
