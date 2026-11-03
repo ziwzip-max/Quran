@@ -12,7 +12,7 @@ import { SURAHS } from "@/constants/quranData";
  * so playback can be paused or stopped without going back to the surah.
  */
 export function MiniPlayer({ floating = false }: { floating?: boolean }) {
-  const { currentSurahNum, currentVerseNum, isPlaying, isLoading, isSurahMode, playbackPosition, playbackDuration, pause, resume, stop } =
+  const { currentSurahNum, currentVerseNum, isPlaying, isLoading, isSurahMode, playbackPosition, playbackDuration, pause, resume, stop, rangeRepeat } =
     useAudio();
   const { colors } = useSettings();
 
@@ -21,7 +21,10 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
   if (!surah) return null;
 
   const progress = playbackDuration > 0 ? Math.min(1, playbackPosition / playbackDuration) : 0;
-  const subtitle = isSurahMode || currentVerseNum == null ? "السورة كاملة" : `الآية ${currentVerseNum}`;
+  const verseLabel = isSurahMode || currentVerseNum == null ? "السورة كاملة" : `الآية ${currentVerseNum}`;
+  const subtitle = rangeRepeat
+    ? `${verseLabel} · تكرار ${rangeRepeat.from}–${rangeRepeat.to} · الجولة ${rangeRepeat.round}${rangeRepeat.times ? ` من ${rangeRepeat.times}` : ""}`
+    : verseLabel;
 
   return (
     <View

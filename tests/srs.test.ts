@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import {
   countDueBlocks,
   countDueVerses,
+  averageLevel,
   isDueForReview,
+  levelAfterReview,
+  reviewTimeAfter,
   REVIEW_THRESHOLD_L1,
   REVIEW_THRESHOLD_L2,
   REVIEW_THRESHOLD_L3,
@@ -44,4 +47,26 @@ test("countDueBlocks counts only due entries", () => {
 test("countDueVerses counts verses below full mastery", () => {
   assert.equal(countDueVerses({ "1:1": 0, "1:2": 1, "1:3": 2, "1:4": 3 }), 3);
   assert.equal(countDueVerses({}), 0);
+});
+
+
+test("guided review ratings move the level", () => {
+  assert.equal(levelAfterReview(3, "forgot"), 1);
+  assert.equal(levelAfterReview(0, "hard"), 1);
+  assert.equal(levelAfterReview(2, "hard"), 2);
+  assert.equal(levelAfterReview(1, "good"), 2);
+  assert.equal(levelAfterReview(3, "good"), 3);
+});
+
+test("a forgotten block is due again the next day, not in three days", () => {
+  const t = reviewTimeAfter("forgot", NOW);
+  const DAY = 24 * 60 * 60 * 1000;
+  assert.equal(isDueForReview("a", { a: t }, 1, NOW + DAY - 1), false);
+  assert.equal(isDueForReview("a", { a: t }, 1, NOW + DAY + 1), true);
+  assert.equal(reviewTimeAfter("good", NOW), NOW);
+});
+
+test("averageLevel rounds and handles empty blocks", () => {
+  assert.equal(averageLevel([]), 0);
+  assert.equal(averageLevel([1, 2, 2]), 2);
 });

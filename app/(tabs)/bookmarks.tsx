@@ -14,27 +14,15 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
-import { isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
+import { averageLevel, isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
+import { loadReviews, saveReviews } from "@/utils/reviews";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { JumpModal } from "@/components/JumpModal";
 
-const REVIEWS_KEY = "al_hifz_reviews";
 const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
-
-async function loadReviews(): Promise<Record<string, number>> {
-  try {
-    const stored = await AsyncStorage.getItem(REVIEWS_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch { return {}; }
-}
-
-async function saveReviews(reviews: Record<string, number>) {
-  try { await AsyncStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews)); } catch {}
-}
-
 
 export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 } from "@/utils/srs";
 
@@ -362,6 +350,15 @@ export default function BookmarksScreen() {
     loadStats();
   }, [loadStats]));
 
+  // Blocks due for review, for the "review now" button.
+  const dueBlocks = useMemo(
+    () =>
+      blocks.filter((b) =>
+        isDueForReview(b.id, reviews, averageLevel(b.verses.map((v) => mastery[`${b.surahNumber}:${v.number}`] ?? 0))),
+      ).length,
+    [blocks, reviews, mastery],
+  );
+
   const markReviewed = useCallback((blockId: string) => {
     setReviews((prev) => {
       const updated = { ...prev, [blockId]: Date.now() };
@@ -420,7 +417,19 @@ export default function BookmarksScreen() {
         <View style={styles.headerCenter}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>الحفظ</Text>
         </View>
-        <View style={styles.headerRight} />
+        <View style={styles.headerRight}>
+          {dueBlocks > 0 && (
+            <Pressable
+              onPress={() => router.push("/review")}
+              accessibilityRole="button"
+              accessibilityLabel={`مراجعة ${dueBlocks} مقطع الآن`}
+              style={[styles.jumpBtn, { backgroundColor: colors.gold, borderColor: colors.gold, alignSelf: "flex-end" }]}
+            >
+              <Ionicons name="school-outline" size={18} color={colors.bgCard} />
+              <Text numberOfLines={1} style={[styles.jumpBtnText, { color: colors.bgCard }]}>راجع ({dueBlocks})</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {totalVerses > 0

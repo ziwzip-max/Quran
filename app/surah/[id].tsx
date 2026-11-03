@@ -29,6 +29,10 @@ import { RECITERS_LIST, getFontSizeMultiplier } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
+import { EDITIONS, fetchEditionSurah, TRANSLATION_CREDITS } from "@/utils/quranTexts";
+import { shareText, verseShareText } from "@/utils/share";
+import { RangeRepeatSheet } from "@/components/RangeRepeatSheet";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HISTORY_KEY = "al_hifz_history";
@@ -109,9 +113,9 @@ function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
     setLoading(true);
     setError(false);
     setTafsir(null);
-    fetch(`https://api.alquran.cloud/v1/ayah/${surahNum}:${verseNum}/ar.muyassar`)
-      .then(r => r.json())
-      .then(d => { setTafsir(d?.data?.text ?? null); setLoading(false); })
+    // Whole surah at once, saved on the device: later verses open instantly and offline.
+    fetchEditionSurah(EDITIONS.tafsir, surahNum)
+      .then(v => { setTafsir(v[verseNum - 1] ?? null); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
   }, [surahNum, verseNum]);
 
@@ -124,7 +128,7 @@ function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
       {loading
         ? <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
         : error
-          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير</Text>
+          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير. يحتاج أول عرض لتفسير السورة إلى اتصال بالإنترنت، ثم يعمل دون اتصال.</Text>
           : <Text style={{ fontSize: 16, textAlign: "right", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
               {tafsir}
             </Text>
@@ -157,6 +161,8 @@ function VerseItem({
   masteryLevel,
   isNavigatedTo,
   onTafsir,
+  translation,
+  onShare,
 }: {
   verse: Verse;
   surahNum: number;
@@ -178,6 +184,8 @@ function VerseItem({
   masteryLevel: MasteryLevel;
   isNavigatedTo: boolean;
   onTafsir: () => void;
+  translation?: string;
+  onShare: () => void;
 }) {
   const { colors } = useSettings();
   const scale = useRef(new Animated.Value(1)).current;
@@ -270,6 +278,9 @@ function VerseItem({
           >
             <Ionicons name="book-outline" size={20} color={colors.textMuted} />
           </Pressable>
+          <Pressable onPress={onShare} style={styles.iconBtn} hitSlop={ICON_HIT_SLOP} accessibilityRole="button" accessibilityLabel="مشاركة الآية">
+            <Ionicons name="share-outline" size={19} color={colors.textMuted} />
+          </Pressable>
           <Pressable onPress={onPlayAudio} style={styles.iconBtn} hitSlop={ICON_HIT_SLOP} accessibilityRole="button" accessibilityLabel={isCurrentAudio ? "إيقاف" : "تشغيل الآية"}>
             {isAudioLoading
               ? <ActivityIndicator size="small" color={colors.gold} />
@@ -309,6 +320,9 @@ function VerseItem({
           {displayText}
         </Text>
       )}
+      {translation ? (
+        <Text style={[styles.translationText, { color: colors.textSecondary }]}>{translation}</Text>
+      ) : null}
     </View>
   );
 }
@@ -326,7 +340,7 @@ export default function SurahScreen() {
     highlightActiveVerse, lineSpacingValue, showTajweed, setShowTajweed, qiraa, repeatMode, playbackRate,
     arabicFontSize, setArabicFontSize,
     setPlaybackRate, setRepeatMode, reciterId,
-    continuousPlay, setContinuousPlay,
+    continuousPlay, setContinuousPlay, translationLang,
   } = useSettings();
   const {
     play, stop, pause, resume, playNext,
@@ -335,6 +349,7 @@ export default function SurahScreen() {
     playbackPosition, playbackDuration, isSurahMode,
     downloadProgress, downloadSurah,
     sleepTimerActive, sleepTimerRemaining, setSleepTimer,
+    rangeRepeat,
   } = useAudio();
   const { getMastery } = useMastery();
 
@@ -469,6 +484,15 @@ export default function SurahScreen() {
             </Pressable>
           )}
           <Pressable
+            onPress={() => setRangeOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="تكرار مقطع"
+            hitSlop={10}
+            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+          >
+            <Ionicons name="repeat" size={16} color={rangeRepeat ? colors.gold : colors.textSecondary} />
+          </Pressable>
+          <Pressable
             onPress={() => {
               setShowTajweed(!showTajweed);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -481,7 +505,7 @@ export default function SurahScreen() {
         </View>
       ),
     });
-  }, [surah, navigation, colors, arabicFontFamily, isImmersive, showTajweed, setShowTajweed, handleDownload]);
+  }, [surah, navigation, colors, arabicFontFamily, isImmersive, showTajweed, setShowTajweed, handleDownload, rangeRepeat]);
 
   useFocusEffect(useCallback(() => {
     hasScrolled.current = false;
@@ -628,6 +652,34 @@ export default function SurahScreen() {
     [surah, surahNumber, isBookmarked]
   );
 
+
+  // Keep the screen on while reading or memorising. Failures (e.g. browsers
+  // without the Wake Lock API) are ignored: the screen just behaves as before.
+  useEffect(() => {
+    const tag = "surah-reading";
+    activateKeepAwakeAsync(tag).catch(() => {});
+    return () => { deactivateKeepAwake(tag).catch(() => {}); };
+  }, []);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  }, []);
+  const [translations, setTranslations] = useState<string[]>([]);
+  const [translationError, setTranslationError] = useState(false);
+  useEffect(() => {
+    setTranslations([]);
+    setTranslationError(false);
+    if (translationLang === "none") return;
+    let cancelled = false;
+    fetchEditionSurah(EDITIONS[translationLang], surahNumber)
+      .then((v) => { if (!cancelled) setTranslations(v); })
+      .catch(() => { if (!cancelled) setTranslationError(true); });
+    return () => { cancelled = true; };
+  }, [translationLang, surahNumber]);
 
   // One Tajweed legend for the whole surah instead of a box on every verse.
   const surahTajweedSegments = useMemo(
@@ -842,6 +894,30 @@ export default function SurahScreen() {
         </View>
       )}
 
+      {rangeRepeat && rangeRepeat.surahNum === surahNumber && (
+        <View style={[styles.rangeBanner, { backgroundColor: colors.gold + "1F", borderColor: colors.gold + "55" }]}>
+          <Ionicons name="repeat" size={18} color={colors.gold} />
+          <Text style={[styles.rangeBannerText, { color: colors.textPrimary }]}>
+            تكرار الآيات {rangeRepeat.from}–{rangeRepeat.to} · الجولة {rangeRepeat.round}
+            {rangeRepeat.times ? ` من ${rangeRepeat.times}` : ""}
+          </Text>
+          <Pressable onPress={() => stop()} accessibilityRole="button" accessibilityLabel="إيقاف التكرار" style={styles.rangeStop} hitSlop={6}>
+            <Ionicons name="stop" size={18} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+      )}
+      <RangeRepeatSheet
+        visible={rangeOpen}
+        onClose={() => setRangeOpen(false)}
+        surahNum={surahNumber}
+        verseCount={surah.verses.length}
+        initialFrom={Math.max(1, activeIndex + 1)}
+      />
+      {toast && (
+        <View pointerEvents="none" style={[styles.toast, { backgroundColor: colors.textPrimary }]}>
+          <Text style={[styles.toastText, { color: colors.bgCard }]}>{toast}</Text>
+        </View>
+      )}
       <FlatList
         ref={flatListRef}
         key={isLandscape ? "landscape" : "portrait"}
@@ -861,6 +937,13 @@ export default function SurahScreen() {
         ListHeaderComponent={
           <>
             {headerComponent}
+            {translationLang !== "none" && (
+              <Text style={[styles.translationCredit, { color: colors.textMuted }]}>
+                {translationError
+                  ? "تعذّر تحميل الترجمة — تحتاج أول مرة إلى اتصال بالإنترنت"
+                  : TRANSLATION_CREDITS[translationLang]}
+              </Text>
+            )}
             {showTajweed && (
               <View style={styles.surahLegend}>
                 <TajweedLegend segments={surahTajweedSegments} title="أحكام التجويد في هذه السورة — اضغط على الحرف الملوّن لشرح الحكم" />
@@ -927,6 +1010,11 @@ export default function SurahScreen() {
               masteryLevel={getMastery(surahNumber, item.number)}
               isNavigatedTo={navigatedVerseNum === item.number}
               onTafsir={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTafsirVerse({ surahNum: surahNumber, verseNum: item.number }); }}
+              translation={translations[item.number - 1]}
+              onShare={async () => {
+                const how = await shareText(verseShareText(overrideText ?? item.text, surah.nameArabic, surahNumber, item.number));
+                if (how === "copied") showToast("تم نسخ الآية");
+              }}
             />
           );
         }}
@@ -1564,6 +1652,44 @@ const styles = StyleSheet.create({
   },
   surahLegend: {
     marginBottom: 6,
+  },
+  translationText: {
+    // French / English: left to right, below the Arabic.
+    writingDirection: "ltr",
+    textAlign: "left",
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 6,
+  },
+  rangeBanner: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  rangeBannerText: { flex: 1, fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "right" },
+  rangeStop: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+  toast: {
+    position: "absolute",
+    bottom: 40,
+    alignSelf: "center",
+    zIndex: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  toastText: { fontFamily: "Tajawal_400Regular", fontSize: 15 },
+  translationCredit: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 8,
   },
   tajweedWrap: {
     gap: 8,

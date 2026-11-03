@@ -42,3 +42,26 @@ export function countDueBlocks(
 export function countDueVerses(masteryMap: Record<string, MasteryLevel>): number {
   return Object.values(masteryMap).filter((level) => level < 3).length;
 }
+
+export type ReviewRating = "forgot" | "hard" | "good";
+
+/** New mastery level after a guided review: forgot → 1, hard → same (at least 1), good → one up (max 3). */
+export function levelAfterReview(level: number, rating: ReviewRating): MasteryLevel {
+  if (rating === "forgot") return 1;
+  if (rating === "hard") return Math.max(1, Math.min(3, level)) as MasteryLevel;
+  return Math.max(1, Math.min(3, level + 1)) as MasteryLevel;
+}
+
+/**
+ * Review time to store after a guided review. A forgotten block is stored as if
+ * reviewed earlier, so it comes back tomorrow instead of in three days.
+ */
+export function reviewTimeAfter(rating: ReviewRating, now: number = Date.now()): number {
+  return rating === "forgot" ? now - REVIEW_THRESHOLD_L1 + DAY : now;
+}
+
+/** Rounded average mastery of a block's verses. */
+export function averageLevel(levels: number[]): number {
+  if (levels.length === 0) return 0;
+  return Math.round(levels.reduce((a, b) => a + b, 0) / levels.length);
+}

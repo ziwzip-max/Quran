@@ -56,6 +56,7 @@ function RootLayoutNav() {
           headerBackTitle: "القرآن",
         }}
       />
+      <Stack.Screen name="review" options={{ headerShown: true }} />
     </Stack>
   );
 }
