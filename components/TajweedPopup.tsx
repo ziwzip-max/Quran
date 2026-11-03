@@ -129,16 +129,17 @@ function Section({
 
 interface TajweedLegendProps {
   segments: TajweedSegment[];
+  title?: string;
 }
 
-export function TajweedLegend({ segments }: TajweedLegendProps) {
+export function TajweedLegend({ segments, title = "أحكام التجويد في هذه الآية" }: TajweedLegendProps) {
   const { colors } = useSettings();
   const rules = getActiveTajweedRules(segments);
   if (rules.length === 0) return null;
 
   return (
     <View style={[legendStyles.container, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-      <Text style={[legendStyles.header, { color: colors.textMuted }]}>أحكام التجويد في هذه الآية</Text>
+      <Text style={[legendStyles.header, { color: colors.textMuted }]}>{title}</Text>
       <View style={legendStyles.chips}>
         {rules.map((rule) => {
           const info = TAJWEED_RULES[rule];

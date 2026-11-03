@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { SURAH_NAME_FONT } from "@/constants/themes";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS } from "@/constants/quranData";
 import { SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  surahNameAr: { fontSize: 16, textAlign: "right" },
+  surahNameAr: { fontFamily: SURAH_NAME_FONT, fontSize: 17, textAlign: "right" },
   surahMeta: { fontSize: 11, textAlign: "right", marginTop: 2 },
   grid: {
     flexDirection: "row",

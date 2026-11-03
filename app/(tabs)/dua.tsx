@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
 import { BUILT_IN_DUAS, DUA_CATEGORIES, Dua, DuaCategory } from "@/constants/duaaData";
 
@@ -234,7 +235,7 @@ export default function DuaScreen() {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
-  const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPadding = useTopPadding();
 
   useFocusEffect(useCallback(() => {
     AsyncStorage.getItem(CUSTOM_DUAS_KEY).then((stored) => {

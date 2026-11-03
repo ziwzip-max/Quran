@@ -13,6 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { EmptyAction } from "@/components/EmptyAction";
+import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -563,7 +565,7 @@ export default function PracticeScreen() {
     setHasDrawn(true);
   }, [filteredBlocks, buttonScale]);
 
-  const topPadding = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPadding = useTopPadding();
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 90;
 
   const noBookmarks = blocks.length === 0;
@@ -655,8 +657,9 @@ export default function PracticeScreen() {
               <Ionicons name="bookmark-outline" size={52} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>لا توجد آيات محفوظة</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                أضف آيات للحفظ من صفحة «محفوظاتي» لتتمكن من التلاوة في الصلاة.
+                احفظ آيات أثناء القراءة بالضغط على علامة الحفظ، وستظهر هنا لتختار منها ما تتلوه في الصلاة.
               </Text>
+              <EmptyAction label="اختر سورة للبدء" />
             </View>
           ) : filterEmpty ? (
             <View style={styles.emptyState}>
