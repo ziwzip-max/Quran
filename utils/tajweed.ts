@@ -153,6 +153,10 @@ const SHAMSIYYA_LETTERS         = new Set([
   "ت","ث","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ل","ن",
 ]);
 const HAMZAT_WASL_CHAR          = "ٱ";
+const MADDA                     = "\u0653";
+const SAKT_MARK                 = "\u06DC";
+// Short vowels, tanwin and shadda: a letter carrying any of these is voweled.
+const HARAKAT                   = /[\u064B-\u0651]/u;
 
 function getBase(cluster: string): string {
   return cluster[0] ?? "";
@@ -184,14 +188,33 @@ export function parseTajweed(text: string): TajweedSegment[] {
     if (base === " " || base === "") return null;
 
     // Noon sakin, tanwin and meem sakin rules depend on the next *pronounced*
-    // letter, which is usually at the start of the following word. Skip spaces,
-    // and after tanwin also skip the silent alif / alif maqsura that carries it.
+    // letter, which is usually at the start of the following word. Skip spaces
+    // and standalone pause marks, and after tanwin also skip the silent
+    // alif / alif maqsura that carries it.
     let k = i + 1;
     if (hasTanwin) {
       while (k < n && (clusters[k] === "\u0627" || clusters[k] === "\u0649")) k++;
     }
-    while (k < n && /^\s$/u.test(clusters[k])) k++;
-    const nextSoundBase = getBase(clusters[k] ?? "");
+    let crossesWord = false;
+    let hasSakt = false;
+    while (k < n && !/^\p{L}/u.test(clusters[k])) {
+      if (/\s/u.test(clusters[k])) crossesWord = true;
+      if (clusters[k].includes(SAKT_MARK)) hasSakt = true;
+      k++;
+    }
+    // A sakt (short silent pause, e.g. 75:27 مَنْ ۜ رَاقٍ) keeps the letter clear.
+    const nextSoundBase = hasSakt ? "" : getBase(clusters[k] ?? "");
+    // Idgham only happens across two words; inside a word (ٱلدُّنْيَا، بُنْيَٰن،
+    // صِنْوَان، قِنْوَان) the noon is pronounced clearly.
+    const idghamBase = crossesWord ? nextSoundBase : "";
+
+    // In the Uthmani script a noon or meem that is not pronounced clearly is
+    // written without a sukun: a bare letter for idgham / ikhfa, or with a
+    // small high meem (U+06E2) for iqlab. Only clear (izhar) ones carry a sukun.
+    const isSakin = hasSukun || !HARAKAT.test(marks);
+    // A noon with madda is the opening letter Nun (68:1 نٓ), read clearly in Hafs.
+    const noonSakin = base === "ن" && isSakin && !marks.includes(MADDA);
+    const meemSakin = base === "م" && isSakin;
 
     if (base === HAMZAT_WASL_CHAR) return "hamzat_wasl";
 
@@ -199,18 +222,18 @@ export function parseTajweed(text: string): TajweedSegment[] {
 
     if (hasShadda && (base === "ن" || base === "م")) return "ghunna";
 
-    if (base === "ن" && hasSukun && nextSoundBase === "ب") return "iqlab";
+    if (noonSakin && nextSoundBase === "ب") return "iqlab";
     if (hasTanwin && nextSoundBase === "ب") return "iqlab";
 
-    if (base === "م" && hasSukun && nextSoundBase === "ب") return "qalb";
+    if (meemSakin && nextSoundBase === "ب") return "qalb";
 
-    if (base === "ن" && hasSukun && IDGHAM_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_ghunna";
-    if (hasTanwin && IDGHAM_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_ghunna";
+    if (noonSakin && IDGHAM_GHUNNA_LETTERS.has(idghamBase)) return "idgham_ghunna";
+    if (hasTanwin && IDGHAM_GHUNNA_LETTERS.has(idghamBase)) return "idgham_ghunna";
 
-    if (base === "ن" && hasSukun && IDGHAM_BILA_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_bila_ghunna";
-    if (hasTanwin && IDGHAM_BILA_GHUNNA_LETTERS.has(nextSoundBase)) return "idgham_bila_ghunna";
+    if (noonSakin && IDGHAM_BILA_GHUNNA_LETTERS.has(idghamBase)) return "idgham_bila_ghunna";
+    if (hasTanwin && IDGHAM_BILA_GHUNNA_LETTERS.has(idghamBase)) return "idgham_bila_ghunna";
 
-    if (base === "ن" && hasSukun && IKHFA_LETTERS.has(nextSoundBase)) return "ikhfa";
+    if (noonSakin && IKHFA_LETTERS.has(nextSoundBase)) return "ikhfa";
     if (hasTanwin && IKHFA_LETTERS.has(nextSoundBase)) return "ikhfa";
 
     if (MADD_LETTERS.has(base)) {
