@@ -11,14 +11,12 @@ import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new"
 import { Lateef_400Regular } from "@expo-google-fonts/lateef";
 import { Tajawal_400Regular } from "@expo-google-fonts/tajawal";
 import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { queryClient } from "@/lib/query-client";
 import { BookmarksProvider } from "@/contexts/BookmarksContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
 import { MasteryProvider, useMastery } from "@/contexts/MasteryContext";
@@ -85,7 +83,6 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView>
           <KeyboardProvider>
             <SettingsProvider>
@@ -100,7 +97,6 @@ export default function RootLayout() {
             </SettingsProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
-      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

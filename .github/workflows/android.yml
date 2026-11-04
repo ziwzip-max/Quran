@@ -1,0 +1,141 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check and tests
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Generate the Android project
+        run: |
+          # Each build gets a higher versionCode so it installs as an update.
+          node -e '
+            const fs = require("fs");
+            const app = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            app.expo.android.versionCode = Number(process.env.GITHUB_RUN_NUMBER);
+            fs.writeFileSync("app.json", JSON.stringify(app, null, 2));
+          '
+          npx expo prebuild --platform android --no-install --clean
+          # More memory for the release build (Hermes, native modules).
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g/' android/gradle.properties
+
+      - name: Build release APK
+        working-directory: android
+        # Phones only (64- and 32-bit ARM); emulator ABIs are left out to keep the APK small.
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Sign APK
+        id: sign
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p 'require("./app.json").expo.version')
+          APK_IN=android/app/build/outputs/apk/release/app-release.apk
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            OUT="al-hifz-$VERSION.apk"
+            "$BUILD_TOOLS/apksigner" sign \
+              --ks "$RUNNER_TEMP/release.keystore" --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD \
+              --out "$OUT" "$APK_IN"
+            rm -f "$RUNNER_TEMP/release.keystore"
+            echo "release_signed=true" >> "$GITHUB_OUTPUT"
+          else
+            # No release key configured: keep the development signature so the build can be tested,
+            # but do not publish it (updates must always use the same release key).
+            OUT="al-hifz-$VERSION-test-build.apk"
+            cp "$APK_IN" "$OUT"
+            echo "::warning::Release signing secrets are not set; built a test APK signed with the development key. See INSTRUCTIONS.md."
+            echo "release_signed=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "apksigner from $BUILD_TOOLS"
+          # Fails the step if the signature is invalid; prints the signing certificate.
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT"
+          echo "apk=$OUT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -l "$OUT"
+
+      - name: Inspect APK
+        env:
+          APK: ${{ steps.sign.outputs.apk }}
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BUILD_TOOLS/aapt2" dump badging "$APK" \
+            | grep -E "^(package|sdkVersion|targetSdkVersion|application-label|uses-permission|native-code):"
+          # The release APK must contain the compiled app (Hermes bytecode) and the Hermes engine.
+          unzip -l "$APK" | grep -E "assets/index.android.bundle$"
+          unzip -l "$APK" | grep -E "lib/arm64-v8a/libhermes(vm)?\.so$"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.sign.outputs.apk }}
+          path: ${{ steps.sign.outputs.apk }}
+          if-no-files-found: error
+
+      - name: Publish to the android-latest release
+        if: steps.sign.outputs.release_signed == 'true' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.sign.outputs.apk }}
+          VERSION: ${{ steps.sign.outputs.version }}
+        run: |
+          TAG=android-latest
+          NOTES="Al-Hifz $VERSION for Android (build ${GITHUB_RUN_NUMBER}, commit ${GITHUB_SHA::7}).
+          Download the APK below and open it on your phone to install or update. See INSTRUCTIONS.md."
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$TAG"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "Al-Hifz $VERSION (Android, build ${GITHUB_RUN_NUMBER})" --notes "$NOTES"
+            for old in $(gh release view "$TAG" --json assets --jq '.assets[].name'); do
+              gh release delete-asset "$TAG" "$old" --yes
+            done
+          else
+            gh release create "$TAG" --title "Al-Hifz $VERSION (Android, build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --latest
+          fi
+          gh release upload "$TAG" "$APK" --clobber
