@@ -1,571 +1,125 @@
-# Al-Hifz Quran App - Deployment & Self-Hosting Guide
+# Al-Hifz — Build, Deploy and Install
 
-## Table of Contents
-1. [Tech Stack Overview](#tech-stack-overview)
-2. [Dependencies & Versions](#dependencies--versions)
-3. [System Requirements](#system-requirements)
-4. [Self-Hosting Walkthrough](#self-hosting-walkthrough)
-5. [Initial Deployment Issues & Solutions](#initial-deployment-issues--solutions)
+Al-Hifz targets two platforms:
 
----
+| Platform | How it is built | Where it goes |
+|---|---|---|
+| **Web** (main) | `npm run web:build` (Expo export + post-build step) | Vercel, on every push to `main` |
+| **Android** | GitHub Actions: Expo prebuild + Gradle | A signed APK on the GitHub release `android-latest` |
 
-## Tech Stack Overview
-
-**Al-Hifz** is a comprehensive Quran application built with modern technologies. It's a cross-platform app supporting mobile (iOS/Android) and web platforms.
-
-### Architecture
-- **Frontend**: React Native (Expo) with Expo Router for navigation
-- **Backend**: Node.js + Express.js
-- **Storage**: on-device (AsyncStorage); the server keeps no data
-- **Build System**: Metro (React Native), Expo, esbuild
-- **Language**: TypeScript with React Compiler enabled
-
-### Core Technologies
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Frontend | Expo 54.0.27 | React Native framework for cross-platform apps |
-| Navigation | Expo Router 6.0.17 | File-based routing for React Native |
-| Backend | Express 5.0.1 | REST API server |
-| Runtime | Node.js 20+ | JavaScript runtime |
-| Language | TypeScript 5.9.2 | Type-safe JavaScript |
-| Runtime Compiler | React Compiler 19.0.0 | Automatic performance optimization |
+iOS and Expo Go are not supported.
 
 ---
 
-## Dependencies & Versions
+## Web (Vercel)
 
-### Core Dependencies
+The Vercel project is connected to this repository. `vercel.json` defines the build:
 
-```json
-{
-  "Frontend Framework": {
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "expo": "~54.0.27",
-    "expo-router": "~6.0.17",
-    "react-native-web": "^0.21.0"
-  },
-  
-  "Expo Modules": {
-    "expo-av": "^16.0.8",
-    "expo-blur": "~15.0.8",
-    "expo-clipboard": "^55.0.8",
-    "expo-constants": "~18.0.11",
-    "expo-font": "~14.0.10",
-    "expo-glass-effect": "~0.1.4",
-    "expo-haptics": "~15.0.8",
-    "expo-image": "~3.0.11",
-    "expo-image-picker": "~17.0.9",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-linking": "~8.0.10",
-    "expo-location": "~19.0.8",
-    "expo-notifications": "^55.0.11",
-    "expo-splash-screen": "~31.0.12",
-    "expo-status-bar": "~3.0.9",
-    "expo-symbols": "~1.0.8",
-    "expo-system-ui": "~6.0.9",
-    "expo-web-browser": "~15.0.10",
-    "expo-vector-icons": "^15.0.3"
-  },
-  
-  "Arabic Fonts": {
-    "@expo-google-fonts/amiri": "^0.4.1",
-    "@expo-google-fonts/amiri-quran": "^0.4.1",
-    "@expo-google-fonts/cairo": "^0.4.2",
-    "@expo-google-fonts/inter": "^0.4.0",
-    "@expo-google-fonts/lateef": "^0.4.2",
-    "@expo-google-fonts/noto-naskh-arabic": "^0.4.5",
-    "@expo-google-fonts/scheherazade-new": "^0.4.2",
-    "@expo-google-fonts/tajawal": "^0.4.1"
-  },
-  
-  "UI & Animation": {
-    "react-native-reanimated": "~4.1.1",
-    "react-native-gesture-handler": "~2.28.0",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0",
-    "react-native-keyboard-controller": "^1.20.6",
-    "react-native-svg": "15.12.1",
-    "react-native-worklets": "0.5.1"
-  },
-  
-  "Backend": {
-    "express": "^5.0.1",
-    "http-proxy-middleware": "^3.0.5",
-    "ws": "^8.18.0",
-    "tsx": "^4.21.0"
-  },
-  
-  "State Management & Data": {
-    "@tanstack/react-query": "^5.83.0",
-    "@react-native-async-storage/async-storage": "2.2.0"
-  },
-  
-  "Utilities": {
-    "@stardazed/streams-text-encoding": "^1.0.2",
-    "@ungap/structured-clone": "^1.3.0",
-    "react-dom": "19.1.0"
-  }
-}
-```
+- install: `npm ci`
+- build: `npx expo export --platform web --output-dir dist && node scripts/web-postbuild.cjs dist`
+- output: `dist/`, served as a single-page app
 
-### Dev Dependencies
+`scripts/web-postbuild.cjs` sets the page language to Arabic and adds the web app manifest and the
+offline service worker from `public/`. Every push to `main` deploys to production; every other
+branch gets a preview URL.
 
-```json
-{
-  "@babel/core": "^7.25.2",
-  "@expo/ngrok": "^4.1.0",
-  "@types/express": "^5.0.0",
-  "@types/react": "~19.1.10",
-  "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
-  "eslint": "^9.31.0",
-  "eslint-config-expo": "~10.0.0",
-  "patch-package": "^8.0.0",
-  "typescript": "~5.9.2"
-}
-```
-
----
-
-## System Requirements
-
-### Minimum Requirements
-- **Node.js**: v20.0.0 or higher
-- **npm**: v10.0.0 or higher (comes with Node.js)
-- **OS**: Linux, macOS, or Windows
-- **RAM**: 2GB minimum (4GB+ recommended)
-- **Disk Space**: 5GB for node_modules and build artifacts
-
-### Additional Tools Required
-- **Git**: v2.0 or higher (for version control)
-- **Docker** (optional): Recommended for containerized deployment
-
----
-
-## Self-Hosting Walkthrough
-
-### Step 1: Clone the Repository
+Build and check locally:
 
 ```bash
-git clone <your-repo-url>
-cd al-hifz
+npm ci
+npm run web:build
+npx serve -s dist     # then open http://localhost:3000
 ```
 
-### Step 2: Install Dependencies
+---
+
+## Android (APK)
+
+### Download and install
+
+1. Open the repository's **Releases** page and the release **`android-latest`**.
+2. Download `al-hifz-<version>.apk` on the phone.
+3. Open it. Android asks to allow installing apps from this source (your browser or file manager):
+   allow it once, then install.
+
+Updates are installed the same way, over the existing app, and keep your data: every APK is
+signed with the same release key.
+
+### How the APK is built
+
+`.github/workflows/android.yml` runs on every push to `main` that changes the app and on every
+pull request, and can be started by hand (**Actions → Android APK → Run workflow**). It:
+
+1. installs dependencies and runs the type-check and tests;
+2. generates the native project with `npx expo prebuild --platform android`;
+3. builds a release APK with Gradle (Hermes, release JS bundle);
+4. signs it with the release key from the repository secrets;
+5. uploads it as a workflow artifact (on pull requests too, to test a change on a phone) and,
+   for `main`, to the release `android-latest`.
+
+If the signing secrets below are missing, the workflow still builds a **test APK** signed with the
+development key and does not publish it.
+
+The version shown in the app is `expo.version` in `app.json`; the workflow uses the run number as
+the Android `versionCode`, so each build installs as an update.
+
+### Signing key (important)
+
+The APK is signed with a release keystore stored as repository secrets:
+
+| Secret | Content |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore and key password |
+| `ANDROID_KEY_ALIAS` | Key alias (`alhifz`) |
+
+**Keep a copy of the keystore and its password somewhere safe.** Android only installs an update
+if it is signed with the same key; if the key is lost, users must uninstall the app (losing its
+data unless they made a backup) to install a new one. Never commit the keystore to the repository.
+
+To create a new key (only if you are starting over):
 
 ```bash
-npm install
+keytool -genkeypair -v -keystore alhifz-release.keystore -alias alhifz \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 alhifz-release.keystore   # value for ANDROID_KEYSTORE_BASE64
 ```
 
-This will install all dependencies from `package.json`.
+### Build locally (optional)
 
-### Step 3: Configure Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Server Configuration
-NODE_ENV=production
-PORT=5000
-
-# Extra allowed CORS origins for the Express server (comma-separated)
-ALLOWED_ORIGINS=https://yourdomain.com
-
-# Frontend Configuration
-EXPO_PUBLIC_DOMAIN=yourdomain.com:5000
-```
-
-### Step 4: (No database needed)
-
-The app stores bookmarks, progress and settings on the device, and the server keeps no data,
-so there is no database to set up.
-
-### Step 5: Build the Frontend (Static Build)
+Needs the Android SDK (platform 36, build-tools 36.0.0, NDK 27.1) and JDK 17.
 
 ```bash
-npm run expo:static:build
+npm ci
+npx expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk (signed with the debug key)
 ```
 
-This creates optimized static builds for the Expo app in the `static-build/` directory.
-
-### Step 6: Build the Backend
-
-```bash
-npm run server:build
-```
-
-This bundles the Express server using esbuild and outputs to `server_dist/`.
-
-### Step 7: Start the Production Server
-
-```bash
-npm run server:prod
-```
-
-The server will start on the port specified in your `.env` file (default: 5000).
-
-### Step 8: Verify Deployment
-
-Open your browser and navigate to:
-```
-https://yourdomain.com:5000
-```
-
-You should see the Al-Hifz Quran app loaded and running.
+`android/` is generated and ignored by git: change `app.json`, not the generated files.
+To check that the app's JavaScript compiles for Android without the SDK:
+`npm run android:bundle-check`.
 
 ---
 
-## Initial Deployment Issues & Solutions
+## Data and backups
 
-### Issue 1: `tsx: not found`
-
-**Error Message:**
-```
-sh: 1: tsx: not found
-```
-
-**Cause**: The `tsx` package was listed in dependencies but not installed.
-
-**Solution**:
-```bash
-npm install
-# or
-npm install tsx@^4.21.0
-```
-
-Ensure `tsx` is installed before running the development server. It's required for running TypeScript directly with `npm run server:dev`.
+All user data (bookmarks, mastery levels, review dates, settings, history) is stored on the
+device or in the browser. Use **Settings → النسخ الاحتياطي** to export a JSON backup and
+**استيراد البيانات** to restore it, for example to move from the web app to the Android app.
 
 ---
 
-### Issue 2: Babel Configuration Conflict (ES Module vs CommonJS)
+## Troubleshooting
 
-**Error Message:**
-```
-ReferenceError: module is not defined in ES module scope
-This file is being treated as an ES module because it has a '.js' file extension 
-and '/home/runner/workspace/package.json' contains "type": "module". 
-To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
-```
+**Android says "App not installed" when updating.** The installed app was signed with a different
+key (for example a locally built APK). Back up your data, uninstall, then install the new APK.
 
-**Cause**: 
-- `package.json` has `"type": "module"` (ES modules)
-- `babel.config.js` uses `module.exports` (CommonJS syntax)
-- Node treats `.js` files as ES modules when `"type": "module"` is set, causing the conflict
+**The web app shows an old version.** Reload the page: the service worker fetches the page from
+the network first and only falls back to its cached copy when offline.
 
-**Solution**:
-Rename `babel.config.js` to `babel.config.cjs`:
+**Tafsir or translation does not load.** The first view of each surah needs an internet connection;
+after that it is kept on the device.
 
-```bash
-mv babel.config.js babel.config.cjs
-```
-
-**Why This Works**: Files ending in `.cjs` are always treated as CommonJS, regardless of the `"type"` setting in `package.json`.
-
-**Alternative Solution** (not recommended):
-You could convert the file to ES module syntax, but `.cjs` is the standard approach for build config files that need CommonJS.
-
----
-
-### Issue 3: Expo Installer Prompts (npx expo)
-
-**Error Behavior**:
-```
-Need to install the following packages:
-expo@55.0.9
-Ok to proceed? (y/n)
-```
-
-The `npx expo` command tries to install a newer version of Expo than what's specified in `package.json`, blocking the startup.
-
-**Cause**: 
-`npx expo` bypasses the installed version and attempts to use the latest version from npm registry.
-
-**Solution**:
-Use the local installed binary instead of `npx`:
-
-Change in `package.json`:
-```json
-// Before (problematic)
-"expo:dev": "npx expo start --localhost"
-
-// After (fixed)
-"expo:dev": "./node_modules/.bin/expo start --localhost"
-```
-
-This ensures your installed version (`~54.0.27`) is used instead of fetching a newer one.
-
----
-
-### Issue 4: Metro Bundler Not Ready
-
-**Error Message** (in browser):
-```
-Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-```
-
-**Cause**: The Metro bundler (Expo's JavaScript bundler) takes time to start and compile the app.
-
-**Solution**:
-- Wait 30-60 seconds for the bundler to fully initialize
-- Check the frontend workflow logs: `npm run expo:dev`
-- Look for the message: `Metro waiting on exp://...`
-- This indicates the bundler is ready
-
-In `api.replit` configuration, use:
-```toml
-waitForPort = 8081
-ensurePreviewReachable = "/status"
-```
-
----
-
-### Issue 5: Package Version Mismatches
-
-**Error Message** (in console):
-```
-The following packages should be updated for best compatibility with the installed expo version:
-  expo-clipboard@55.0.8 - expected version: ~8.0.8
-  expo-notifications@55.0.11 - expected version: ~0.32.16
-```
-
-**Cause**: Version conflicts between installed packages and the Expo version.
-
-**Solution**:
-Option A: Update packages to match expected versions
-```bash
-npm install expo-clipboard@8.0.8 expo-notifications@0.32.16
-```
-
-Option B: Ignore warnings (they're usually non-critical)
-
-These are typically minor compatibility warnings that don't prevent the app from running. Monitor the app for actual errors before updating.
-
----
-
-### Issue 6: Port Already in Use
-
-**Error Message**:
-```
-Error: listen EADDRINUSE :::5000
-```
-
-**Cause**: Another process is using port 5000.
-
-**Solution**:
-
-```bash
-# Find process using port 5000
-lsof -i :5000
-
-# Kill the process (macOS/Linux)
-kill -9 <PID>
-
-# Or change the port in .env
-PORT=3000
-```
-
----
-
-### Issue 7: CORS Errors in Production
-
-**Browser Error**:
-```
-Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource...
-```
-
-**Cause**: The server's CORS configuration doesn't allow requests from your frontend domain.
-
-**Solution**:
-The Express server automatically allows:
-- Replit domains (via the `REPLIT_DOMAINS` env var)
-- Localhost origins (for development)
-- Any origins listed in the `ALLOWED_ORIGINS` env var (comma-separated)
-
-For a custom domain, set for example:
-
-```env
-ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-```
-
----
-
-### Issue 8: Static Build Missing
-
-**Error Message**:
-```
-Error: ENOENT: no such file or directory, open '.../static-build/ios/manifest.json'
-```
-
-**Cause**: The static build hasn't been generated.
-
-**Solution**:
-```bash
-npm run expo:static:build
-npm run server:build
-```
-
-These commands must be run before starting the production server.
-
----
-
-### Issue 9: TypeScript/Build Errors
-
-**Error Message**:
-```
-error TS1005: ',' expected.
-```
-
-**Cause**: TypeScript compilation errors in source files.
-
-**Solution**:
-
-1. **Check tsconfig.json** - Ensure it's properly configured:
-```bash
-cat tsconfig.json
-```
-
-2. **Run type check**:
-```bash
-npx tsc --noEmit
-```
-
-3. **Fix reported errors** and rebuild:
-```bash
-npm run server:build
-```
-
----
-
-## Vercel Deployment (Web)
-
-The repository includes a `vercel.json` that runs `npm run web:build`'s steps:
-`expo export --platform web`, then `scripts/web-postbuild.cjs`, which sets the page
-language to Arabic and adds the web app manifest and offline service worker from `public/`.
-The output in `dist/` is served as a single-page app.
-
-```bash
-npm i -g vercel
-vercel --prod
-```
-
-With the GitHub repository connected to the Vercel project, every push to `main` deploys
-automatically. The Express server is not used on Vercel: it only serves the Expo Go landing
-page and native manifests.
-
-The web app can be installed to the home screen and works offline after the first visit.
-The Qaloon text is loaded only when that riwaya is selected, to keep the first load small.
-
----
-
-## Docker Deployment (Recommended for Production)
-
-Create a `Dockerfile` for containerized deployment:
-
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies (dev dependencies are needed for the build steps)
-RUN npm ci
-
-# Copy application code
-COPY . .
-
-# Build the app
-RUN npm run expo:static:build && npm run server:build
-
-# Expose port
-EXPOSE 5000
-
-# Start the server
-CMD ["npm", "run", "server:prod"]
-```
-
-Build and run:
-```bash
-docker build -t alhifz:latest .
-docker run -p 5000:5000 \
-  -e NODE_ENV=production \
-  alhifz:latest
-```
-
----
-
-## Troubleshooting Checklist
-
-Before deploying, ensure:
-
-- [ ] Node.js v20+ is installed
-- [ ] All environment variables are set in `.env`
-- [ ] `npm install` completes without errors
-- [ ] `npm run server:build` completes successfully
-- [ ] `npm run expo:static:build` completes successfully
-- [ ] Port 5000 is available (or configured port)
-- [ ] `babel.config.cjs` and `eslint.config.cjs` use the `.cjs` extension (already done in the repo)
-- [ ] `npm test` and `npm run lint` pass
-- [ ] CORS origins are correctly configured for your domain
-
----
-
-## Production Deployment Checklist
-
-- [ ] Set `NODE_ENV=production`
-- [ ] Use strong database credentials
-- [ ] Configure HTTPS/SSL certificates
-- [ ] Set up monitoring and logging
-- [ ] Configure regular database backups
-- [ ] Use a process manager (PM2, systemd) to keep the server running
-- [ ] Set up a reverse proxy (Nginx, Apache) in front of the Express server
-- [ ] Enable rate limiting on API endpoints
-- [ ] Set up error tracking (Sentry, etc.)
-
----
-
-## Useful Commands
-
-```bash
-# Development
-npm run server:dev          # Start backend in dev mode
-npm run expo:dev            # Start Expo dev server
-npm run lint                # Run ESLint
-npm run lint:fix            # Fix ESLint issues
-npm test                    # Run unit tests (Quran data, spaced repetition, Tajweed)
-
-# Building
-npm run expo:static:build   # Build static Expo files
-npm run server:build        # Build server bundle
-npm run web:build           # Build the web app into dist/ (used by Vercel)
-
-# Production
-npm run server:prod         # Start production server
-
-# Debugging
-npm run expo:start:static:build  # Build Expo with minification
-```
-
----
-
-## Support & Additional Resources
-
-- **Expo Documentation**: https://docs.expo.dev/
-- **React Native Docs**: https://reactnative.dev/
-- **Express.js Docs**: https://expressjs.com/
-
----
-
-## Notes
-
-- The app uses React Compiler for automatic performance optimizations
-- Tajweed (Quranic recitation rules) visualization is color-coded in the UI
-- The app supports multiple Qira'at (recitation styles) and Arabic fonts
-- Audio functionality requires proper CORS configuration for external audio URLs
-- Mobile deployment requires iOS and Android certificates (not covered in this guide)
-
----
-
-**Last Updated**: March 2026
-**Version**: 1.0.0
+**Audio does not play.** Recitations are streamed from everyayah.com and mp3quran.net and need a
+connection, except surahs downloaded on Android.
