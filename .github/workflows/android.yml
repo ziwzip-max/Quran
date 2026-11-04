@@ -72,6 +72,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
+          set -euo pipefail
           VERSION=$(node -p 'require("./app.json").expo.version')
           APK_IN=android/app/build/outputs/apk/release/app-release.apk
           BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
@@ -92,7 +93,9 @@ jobs:
             echo "::warning::Release signing secrets are not set; built a test APK signed with the development key. See INSTRUCTIONS.md."
             echo "release_signed=false" >> "$GITHUB_OUTPUT"
           fi
-          "$BUILD_TOOLS/apksigner" verify --print-certs "$OUT" | grep -E "Signer #1 certificate (DN|SHA-256)"
+          echo "apksigner from $BUILD_TOOLS"
+          # Fails the step if the signature is invalid; prints the signing certificate.
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT"
           echo "apk=$OUT" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           ls -l "$OUT"
