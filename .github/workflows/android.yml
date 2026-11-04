@@ -100,6 +100,18 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           ls -l "$OUT"
 
+      - name: Inspect APK
+        env:
+          APK: ${{ steps.sign.outputs.apk }}
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BUILD_TOOLS/aapt2" dump badging "$APK" \
+            | grep -E "^(package|sdkVersion|targetSdkVersion|application-label|uses-permission|native-code):"
+          # The release APK must contain the compiled app (Hermes bytecode) and the Hermes engine.
+          unzip -l "$APK" | grep -E "assets/index.android.bundle$"
+          unzip -l "$APK" | grep -E "lib/arm64-v8a/libhermes(vm)?\.so$"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.sign.outputs.apk }}
