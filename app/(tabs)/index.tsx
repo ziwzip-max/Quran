@@ -218,6 +218,7 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
   isPinned: boolean;
   colors: ReturnType<typeof useSettings>["colors"];
 }) {
+  const glass = useGlass();
   const revType = SURAH_TYPE[surah.number];
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -236,10 +237,8 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
       delayLongPress={400}
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: isPinned ? colors.gold + "10" : colors.bgCard,
-          borderColor: isPinned ? colors.gold + "50" : colors.border,
-        },
+        glass.surface("soft"),
+        isPinned && { backgroundColor: colors.gold + "24", borderColor: colors.gold + "70" },
         pressed && { opacity: 0.75 }
       ]}
     >
@@ -611,7 +610,7 @@ export default function QuranScreen() {
 
             <Modal visible={juzPickerOpen} transparent animationType="fade" onRequestClose={() => setJuzPickerOpen(false)}>
               <Pressable style={styles.juzOverlay} onPress={() => setJuzPickerOpen(false)}>
-                <Pressable style={[styles.juzSheet, glass.surface("strong")]} onPress={() => {}}>
+                <Pressable style={[styles.juzSheet, glass.surface("strong", { blur: true })]} onPress={() => {}}>
                   <Text style={[styles.juzTitle, { color: colors.textPrimary }]}>اختر الجزء</Text>
                   <View style={styles.juzGrid}>
                     {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
@@ -727,7 +726,7 @@ export default function QuranScreen() {
 
       <Modal visible={!!selectedDua} animationType="fade" transparent>
         <Pressable style={styles.modalOverlay} onPress={() => setSelectedDua(null)}>
-          <View style={[styles.duaModalContent, glass.surface("strong")]}>
+          <View style={[styles.duaModalContent, glass.surface("strong", { blur: true })]}>
             <View style={styles.duaModalHeader}>
               <Text style={[styles.duaModalTitle, { color: colors.textPrimary }]}>{selectedDua?.title}</Text>
               <Pressable onPress={() => setSelectedDua(null)}>

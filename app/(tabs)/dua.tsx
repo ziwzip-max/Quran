@@ -352,7 +352,7 @@ export default function DuaScreen() {
         onRequestClose={() => setCategoryModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setCategoryModalVisible(false)}>
-          <View style={[styles.categoryPickerSheet, glass.surface("strong")]}>
+          <View style={[styles.categoryPickerSheet, glass.surface("strong", { blur: true })]}>
             <View style={[styles.categoryPickerHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.categoryPickerTitle, { color: colors.textPrimary }]}>اختر الفئة</Text>
               <Pressable onPress={() => setCategoryModalVisible(false)} hitSlop={10}>

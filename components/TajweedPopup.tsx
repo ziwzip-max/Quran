@@ -63,7 +63,7 @@ export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps
         style={[
           styles.sheet,
           {
-            ...glass.surface("strong"),
+            ...glass.surface("strong", { blur: true }),
             borderBottomWidth: 0,
             paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             transform: [{ translateY: slideAnim }],

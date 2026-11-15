@@ -32,7 +32,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
     <View
       style={[
         styles.bar,
-        glass.surface("soft"),
+        glass.surface("soft", { blur: true }),
         floating && styles.floating,
       ]}
     >

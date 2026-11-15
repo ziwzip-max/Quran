@@ -56,7 +56,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const FONT_STEP = 2;
   const insets = useSafeAreaInsets();
   const glass = useGlass();
-  const s = makeStyles(colors, glass.surface("strong"));
+  const s = makeStyles(colors, glass.surface("strong", { blur: true }));
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("المظهر");
   const [reciterPickerVisible, setReciterPickerVisible] = useState(false);

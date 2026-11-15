@@ -38,7 +38,7 @@ function TabBarGlass() {
     <View
       style={[
         StyleSheet.absoluteFill,
-        glass.surface("soft"),
+        glass.surface("soft", { blur: true }),
         { borderWidth: 0, borderTopWidth: 1, borderTopColor: glass.enabled ? glass.tokens.edge : colors.border },
       ]}
     />

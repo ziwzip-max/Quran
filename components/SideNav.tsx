@@ -10,7 +10,7 @@ export function SideNav({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useSettings();
   const glass = useGlass();
   return (
-    <View style={[styles.nav, glass.surface("soft"), { borderWidth: 0, borderLeftWidth: 1, borderLeftColor: glass.enabled ? glass.tokens.edge : colors.border }]}>
+    <View style={[styles.nav, glass.surface("soft", { blur: true }), { borderWidth: 0, borderLeftWidth: 1, borderLeftColor: glass.enabled ? glass.tokens.edge : colors.border }]}>
       <ScreenBackground />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: glass.enabled ? glass.tokens.soft : colors.bgCard }]} />
       <Text style={[styles.brand, { color: colors.textPrimary }]}>الحفظ</Text>

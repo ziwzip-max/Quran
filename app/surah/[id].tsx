@@ -1155,7 +1155,7 @@ export default function SurahScreen() {
         <View style={[
           styles.audioBar,
           {
-            ...glass.surface("soft"),
+            ...glass.surface("soft", { blur: true }),
             bottom: Platform.OS === "web" ? 34 : insets.bottom,
           }
         ]}>
@@ -1337,7 +1337,7 @@ export default function SurahScreen() {
         onRequestClose={() => setTafsirVerse(null)}
       >
         <Pressable style={styles.tafsirOverlay} onPress={() => setTafsirVerse(null)}>
-          <View style={[styles.tafsirSheet, { ...glass.surface("strong"), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
+          <View style={[styles.tafsirSheet, { ...glass.surface("strong", { blur: true }), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
             <View style={[styles.tafsirHeader, { borderBottomColor: colors.border }]}>
               <Pressable onPress={() => setTafsirVerse(null)} hitSlop={12}>
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -1370,7 +1370,7 @@ export default function SurahScreen() {
           <Pressable
             onPress={() => {}}
             style={{
-              ...glass.surface("strong"),
+              ...glass.surface("strong", { blur: true }),
               borderRadius: 20,
               padding: 24,
               width: 260,
@@ -1456,7 +1456,7 @@ export default function SurahScreen() {
           <View style={[
             styles.guideSheet,
             {
-              ...glass.surface("strong"),
+              ...glass.surface("strong", { blur: true }),
               borderBottomWidth: 0,
               paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             },

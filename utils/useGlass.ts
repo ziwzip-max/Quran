@@ -26,8 +26,10 @@ export interface Glass {
   /**
    * Style for a surface: frosted glass, or a plain solid card when glass is off.
    * `soft` for bars and cards, `strong` for sheets and dialogs that hold text.
+   * `blur: true` adds the real background blur (web). Use it only for surfaces that sit over other
+   * content (bars, headers, sheets, dialogs): on a plain page the blur is invisible and costs speed.
    */
-  surface: (kind?: GlassKind) => ViewStyle;
+  surface: (kind?: GlassKind, opts?: { blur?: boolean }) => ViewStyle;
 }
 
 export function useGlass(): Glass {
@@ -38,15 +40,16 @@ export function useGlass(): Glass {
   const tokens = useMemo(() => glassTokens(effectiveTheme, colors.gold), [effectiveTheme, colors.gold]);
 
   return useMemo<Glass>(() => {
-    const surface = (kind: GlassKind = "soft"): ViewStyle => {
+    const surface = (kind: GlassKind = "soft", opts?: { blur?: boolean }): ViewStyle => {
       if (!enabled) return { backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border };
       const base: ViewStyle = { backgroundColor: tokens[kind], borderWidth: 1, borderColor: tokens.edge };
       if (Platform.OS === "web") {
-        // Real background blur and a soft shadow with a light top edge. Web only.
+        // A soft shadow with a light top edge, and the real background blur where asked. Web only.
         return {
           ...base,
-          backdropFilter: `blur(${tokens.blur}px) saturate(160%)`,
-          WebkitBackdropFilter: `blur(${tokens.blur}px) saturate(160%)`,
+          ...(opts?.blur
+            ? { backdropFilter: `blur(${tokens.blur}px) saturate(160%)`, WebkitBackdropFilter: `blur(${tokens.blur}px) saturate(160%)` }
+            : null),
           boxShadow: `0 8px 28px ${tokens.shadow}, inset 0 1px 0 ${tokens.edge}`,
         } as ViewStyle;
       }

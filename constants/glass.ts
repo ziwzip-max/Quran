@@ -29,8 +29,8 @@ type Fixed = Omit<GlassTokens, "glow"> & { glow: [Omit<GlowStop, "color">, GlowS
 const FIXED: Record<GlassThemeName, Fixed> = {
   dark: {
     base: "#0A0E1A",
-    glow: [{ alpha: 0.36 }, { color: "#26B399", alpha: 0.26 }, { color: "#7C5CE0", alpha: 0.36 }],
-    soft: "rgba(14,20,38,0.78)",
+    glow: [{ alpha: 0.5 }, { color: "#26B399", alpha: 0.38 }, { color: "#7C5CE0", alpha: 0.5 }],
+    soft: "rgba(14,20,38,0.82)",
     strong: "rgba(14,20,38,0.92)",
     edge: "rgba(255,255,255,0.14)",
     shadow: "rgba(0,0,0,0.45)",
@@ -38,8 +38,8 @@ const FIXED: Record<GlassThemeName, Fixed> = {
   },
   light: {
     base: "#F5F0E8",
-    glow: [{ alpha: 0.32 }, { color: "#3FB7A2", alpha: 0.24 }, { color: "#A98BE6", alpha: 0.26 }],
-    soft: "rgba(255,255,255,0.74)",
+    glow: [{ alpha: 0.42 }, { color: "#3FB7A2", alpha: 0.32 }, { color: "#A98BE6", alpha: 0.34 }],
+    soft: "rgba(255,255,255,0.78)",
     strong: "rgba(255,255,255,0.92)",
     edge: "rgba(255,255,255,0.9)",
     shadow: "rgba(90,70,30,0.16)",
@@ -47,8 +47,8 @@ const FIXED: Record<GlassThemeName, Fixed> = {
   },
   sepia: {
     base: "#F5EDD8",
-    glow: [{ alpha: 0.3 }, { color: "#8FB08A", alpha: 0.24 }, { color: "#D9967A", alpha: 0.24 }],
-    soft: "rgba(253,246,227,0.72)",
+    glow: [{ alpha: 0.38 }, { color: "#8FB08A", alpha: 0.3 }, { color: "#D9967A", alpha: 0.3 }],
+    soft: "rgba(253,246,227,0.76)",
     strong: "rgba(253,246,227,0.93)",
     edge: "rgba(255,250,236,0.9)",
     shadow: "rgba(100,70,30,0.16)",
@@ -56,8 +56,8 @@ const FIXED: Record<GlassThemeName, Fixed> = {
   },
   violet: {
     base: "#FFFFFF",
-    glow: [{ alpha: 0.2 }, { color: "#3FB7A2", alpha: 0.18 }, { color: "#A98BE6", alpha: 0.2 }],
-    soft: "rgba(255,255,255,0.66)",
+    glow: [{ alpha: 0.28 }, { color: "#3FB7A2", alpha: 0.24 }, { color: "#A98BE6", alpha: 0.26 }],
+    soft: "rgba(255,255,255,0.72)",
     strong: "rgba(255,255,255,0.94)",
     edge: "rgba(255,255,255,0.95)",
     shadow: "rgba(0,0,0,0.12)",

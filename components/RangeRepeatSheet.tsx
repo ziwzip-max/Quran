@@ -76,7 +76,7 @@ export function RangeRepeatSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, glass.surface("strong")]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, glass.surface("strong", { blur: true })]} onPress={() => {}}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>تكرار مقطع للحفظ</Text>
           {isSurahMode ? (
             <Text style={[styles.note, { color: colors.textSecondary }]}>

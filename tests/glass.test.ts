@@ -29,7 +29,7 @@ test("glass surfaces are translucent and sheets are more opaque than chrome", ()
     const t = glassTokens(name, "#C9A227");
     const soft = parseColor(t.soft).a;
     const strong = parseColor(t.strong).a;
-    assert.ok(soft > 0.4 && soft < 0.8, `${name} soft alpha ${soft}`);
+    assert.ok(soft > 0.4 && soft < 0.85, `${name} soft alpha ${soft}`);
     assert.ok(strong > soft && strong < 1, `${name} strong alpha ${strong}`);
   }
 });

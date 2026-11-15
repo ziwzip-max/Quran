@@ -11,7 +11,7 @@ export function HeaderGlass() {
     <View
       style={[
         StyleSheet.absoluteFill,
-        glass.surface("soft"),
+        glass.surface("soft", { blur: true }),
         { borderWidth: 0, borderBottomWidth: 1, borderBottomColor: glass.enabled ? glass.tokens.edge : colors.border },
       ]}
     />
