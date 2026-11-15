@@ -15,6 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
 import { getFontSizeMultiplier, SURAH_NAME_FONT } from "@/constants/themes";
@@ -415,6 +417,7 @@ export default function MushafScreen() {
   const { masteryMap } = useMastery();
   const listRef = useRef<FlatList>(null);
   const topPadding = useTopPadding();
+  const glass = useGlass();
   const bottomPadding = Platform.OS === "web" ? Math.max(insets.bottom, 34) : insets.bottom;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -612,6 +615,7 @@ export default function MushafScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
+      <ScreenBackground />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         {searchActive ? (
           <View style={[styles.searchRow, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
@@ -649,7 +653,7 @@ export default function MushafScreen() {
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => setJumpVisible(true)}
-                style={[styles.jumpBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                style={[styles.jumpBtn, glass.surface("soft")]}
                 hitSlop={8}
               >
                 <Ionicons name="navigate-outline" size={18} color={colors.gold} />

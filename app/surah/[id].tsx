@@ -15,10 +15,14 @@ import {
   Modal,
   TextInput,
 } from "react-native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
+import { HeaderGlass } from "@/components/HeaderGlass";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
@@ -376,6 +380,8 @@ export default function SurahScreen() {
   const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
   const [jumpToVerseInput, setJumpToVerseInput] = useState("");
   const flatListRef = useRef<FlatList<Verse>>(null);
+  const headerHeight = useHeaderHeight();
+  const glass = useGlass();
 
   // Verses have different heights, so a far-away verse has not been measured yet and
   // scrollToIndex cannot reach it directly. On failure we jump close to it (using the
@@ -468,7 +474,10 @@ export default function SurahScreen() {
     navigation.setOptions({
       headerShown: !isImmersive,
       title: surah.nameArabic,
-      headerStyle: { backgroundColor: colors.bgDark },
+      // The header is frosted glass over the page background; the screen adds the header's height as padding.
+      headerTransparent: true,
+      headerBackground: () => <HeaderGlass />,
+      headerStyle: { backgroundColor: "transparent" },
       headerTintColor: colors.textPrimary,
       headerTitleStyle: { fontFamily: SURAH_NAME_FONT, fontSize: 21, color: colors.textPrimary },
       headerTitleAlign: "left", // start of the line: next to the back arrow, on the right
@@ -749,7 +758,7 @@ export default function SurahScreen() {
   };
 
   const headerComponent = (
-    <View style={[styles.surahHeader, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+    <View style={[styles.surahHeader, glass.surface("soft")]}>
       <View style={styles.surahHeaderTop}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
           <Text style={[
@@ -900,9 +909,10 @@ export default function SurahScreen() {
 
   return (
     <View
-      style={{ flex: 1, backgroundColor: colors.bgDark }}
+      style={{ flex: 1, backgroundColor: colors.bgDark, paddingTop: isImmersive ? 0 : headerHeight }}
       {...(panResponder ? panResponder.panHandlers : {})}
     >
+      <ScreenBackground />
       <Animated.View style={[
         styles.progressBar,
         {
@@ -1145,8 +1155,7 @@ export default function SurahScreen() {
         <View style={[
           styles.audioBar,
           {
-            backgroundColor: colors.bgCard + "F5",
-            borderColor: colors.border,
+            ...glass.surface("soft"),
             bottom: Platform.OS === "web" ? 34 : insets.bottom,
           }
         ]}>
@@ -1328,7 +1337,7 @@ export default function SurahScreen() {
         onRequestClose={() => setTafsirVerse(null)}
       >
         <Pressable style={styles.tafsirOverlay} onPress={() => setTafsirVerse(null)}>
-          <View style={[styles.tafsirSheet, { backgroundColor: colors.bgCard, borderColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
+          <View style={[styles.tafsirSheet, { ...glass.surface("strong"), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
             <View style={[styles.tafsirHeader, { borderBottomColor: colors.border }]}>
               <Pressable onPress={() => setTafsirVerse(null)} hitSlop={12}>
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -1361,13 +1370,11 @@ export default function SurahScreen() {
           <Pressable
             onPress={() => {}}
             style={{
-              backgroundColor: colors.bgCard,
+              ...glass.surface("strong"),
               borderRadius: 20,
               padding: 24,
               width: 260,
               alignItems: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
             }}
           >
             <Ionicons name="locate-outline" size={28} color={colors.gold} style={{ marginBottom: 8 }} />
@@ -1449,8 +1456,8 @@ export default function SurahScreen() {
           <View style={[
             styles.guideSheet,
             {
-              backgroundColor: colors.bgCard,
-              borderColor: colors.border,
+              ...glass.surface("strong"),
+              borderBottomWidth: 0,
               paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             },
           ]}>

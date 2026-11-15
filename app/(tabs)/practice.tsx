@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { HiddenWord } from "@/components/HiddenWord";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
@@ -557,6 +558,7 @@ export default function PracticeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
+      <ScreenBackground />
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
@@ -610,7 +612,7 @@ export default function PracticeScreen() {
       )}
 
       {!noBookmarks && !filterEmpty && hasDrawn && (
-        <View style={[styles.modeBarContainer, { backgroundColor: colors.bgDark }]}>
+        <View style={styles.modeBarContainer}>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}

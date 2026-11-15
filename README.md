@@ -32,6 +32,7 @@ It runs **in the browser** (deployed on Vercel) and as an **Android app** (APK b
 
 **Interface**
 - Right-to-left layout; side menu on wide screens
+- Frosted-glass look: translucent bars, sheets and home cards over a soft colour glow; background blur on the web, a tinted translucent surface on Android. Can be switched off in settings, and is off automatically when the system asks for reduced transparency
 - Four themes, automatic night mode, five Arabic fonts (Noto Naskh by default)
 - Installable web app that works offline after the first visit
 

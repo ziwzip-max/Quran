@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useGlass } from "@/utils/useGlass";
 import { TajweedRule, TajweedRuleInfo, TAJWEED_RULES, getActiveTajweedRules, TajweedSegment } from "@/utils/tajweed";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -23,6 +24,7 @@ interface TajweedPopupProps {
 
 export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps) {
   const { colors } = useSettings();
+  const glass = useGlass();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -61,8 +63,8 @@ export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps
         style={[
           styles.sheet,
           {
-            backgroundColor: colors.bgCard,
-            borderColor: colors.border,
+            ...glass.surface("strong"),
+            borderBottomWidth: 0,
             paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             transform: [{ translateY: slideAnim }],
           },

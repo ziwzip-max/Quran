@@ -1,11 +1,13 @@
 import { Tabs } from "expo-router";
 import { BottomTabBar, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Platform, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SettingsSheetProvider } from "@/contexts/SettingsSheetContext";
 import { MiniPlayer } from "@/components/MiniPlayer";
+import { ScreenBackground } from "@/components/ScreenBackground";
+import { useGlass } from "@/utils/useGlass";
 import { SideNav } from "@/components/SideNav";
 import { useIsWide } from "@/utils/layout";
 
@@ -28,6 +30,21 @@ const TABS: { name: string; title: string; icon: (p: IconProps) => React.ReactNo
   },
 ];
 
+/** Frosted strip behind the tab bar buttons. */
+function TabBarGlass() {
+  const glass = useGlass();
+  const { colors } = useSettings();
+  return (
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        glass.surface("soft"),
+        { borderWidth: 0, borderTopWidth: 1, borderTopColor: glass.enabled ? glass.tokens.edge : colors.border },
+      ]}
+    />
+  );
+}
+
 export default function TabLayout() {
   const isWide = useIsWide();
   const { colors } = useSettings();
@@ -37,6 +54,8 @@ export default function TabLayout() {
     // Mini player sits directly above the tab bar; both take their own space so nothing is hidden.
     return (
       <View>
+        {/* One backdrop for the mini player and the bar, so the glass has the glow to sit on. */}
+        <ScreenBackground />
         <MiniPlayer />
         <BottomTabBar {...props} />
       </View>
@@ -56,10 +75,10 @@ export default function TabLayout() {
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarShowLabel: true,
           tabBarLabelStyle: { fontFamily: "Tajawal_400Regular", fontSize: 11, marginTop: -2 },
+          tabBarBackground: () => <TabBarGlass />,
           tabBarStyle: {
-            backgroundColor: colors.bgCard,
-            borderTopWidth: Platform.OS === "web" ? 1 : 0,
-            borderTopColor: colors.border,
+            backgroundColor: "transparent",
+            borderTopWidth: 0,
             elevation: 0,
             ...(Platform.OS === "web" ? { height: 64, paddingBottom: 6 } : {}),
           },

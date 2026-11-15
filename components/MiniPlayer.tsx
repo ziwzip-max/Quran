@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { useAudio } from "@/contexts/AudioContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useGlass } from "@/utils/useGlass";
 import { SURAHS } from "@/constants/quranData";
 
 /**
@@ -15,6 +16,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
   const { currentSurahNum, currentVerseNum, isPlaying, isLoading, isSurahMode, playbackPosition, playbackDuration, pause, resume, stop, rangeRepeat } =
     useAudio();
   const { colors } = useSettings();
+  const glass = useGlass();
 
   if (currentSurahNum == null) return null;
   const surah = SURAHS[currentSurahNum - 1];
@@ -30,7 +32,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
     <View
       style={[
         styles.bar,
-        { backgroundColor: colors.bgCard, borderColor: colors.border },
+        glass.surface("soft"),
         floating && styles.floating,
       ]}
     >
@@ -71,15 +73,15 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { borderTopWidth: 1, overflow: "hidden" },
+  bar: { overflow: "hidden", borderRadius: 18, marginHorizontal: 10, marginTop: 8 },
   floating: {
     position: "absolute",
     bottom: 16,
     alignSelf: "center",
     width: "92%",
     maxWidth: 560,
-    borderWidth: 1,
-    borderRadius: 16,
+    marginHorizontal: 0,
+    marginTop: 0,
   },
   track: { height: 2, width: "100%" },
   fill: { height: 2 },

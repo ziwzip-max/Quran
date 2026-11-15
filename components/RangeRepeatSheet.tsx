@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useGlass } from "@/utils/useGlass";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAudio } from "@/contexts/AudioContext";
 
@@ -22,6 +23,7 @@ export function RangeRepeatSheet({
   initialFrom: number;
 }) {
   const { colors } = useSettings();
+  const glass = useGlass();
   const { playRange, isSurahMode } = useAudio();
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(Math.min(verseCount, initialFrom + 4));
@@ -74,7 +76,7 @@ export function RangeRepeatSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, glass.surface("strong")]} onPress={() => {}}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>تكرار مقطع للحفظ</Text>
           {isSurahMode ? (
             <Text style={[styles.note, { color: colors.textSecondary }]}>
