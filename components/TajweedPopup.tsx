@@ -224,7 +224,7 @@ const legendStyles = StyleSheet.create({
     marginTop: 10, gap: 8,
   },
   header: { fontFamily: "Inter_500Medium", fontSize: 10, textAlign: "right" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "flex-start" },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4,

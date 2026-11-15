@@ -25,7 +25,7 @@ import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { RECITERS_LIST, getFontSizeMultiplier } from "@/constants/themes";
+import { RECITERS_LIST, getFontSizeMultiplier, SURAH_NAME_FONT } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
@@ -33,6 +33,7 @@ import { EDITIONS, fetchEditionSurah, TRANSLATION_CREDITS } from "@/utils/quranT
 import { shareText, verseShareText } from "@/utils/share";
 import { groupPassages, stepPassage } from "@/utils/passages";
 import { RangeRepeatSheet } from "@/components/RangeRepeatSheet";
+import { HeaderBack } from "@/components/HeaderBack";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -469,24 +470,13 @@ export default function SurahScreen() {
       title: surah.nameArabic,
       headerStyle: { backgroundColor: colors.bgDark },
       headerTintColor: colors.textPrimary,
-      // Right to left: back arrow and surah name on the right, actions on the left.
-      headerBackVisible: false,
-      headerTitle: () => null,
+      headerTitleStyle: { fontFamily: SURAH_NAME_FONT, fontSize: 21, color: colors.textPrimary },
+      headerTitleAlign: "left", // start of the line: next to the back arrow, on the right
+      headerLeft: () => <HeaderBack />,
+      // The header follows the page direction: back arrow and title at the start (right),
+      // the action buttons at the end (left).
       headerRight: () => (
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
-          accessibilityRole="button"
-          accessibilityLabel="رجوع"
-          style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 8 }}
-        >
-          <Text style={{ fontFamily: arabicFontFamily ?? "Amiri_400Regular", fontSize: 20, color: colors.textPrimary }}>
-            {surah.nameArabic}
-          </Text>
-          <Ionicons name="arrow-forward" size={22} color={colors.textPrimary} />
-        </Pressable>
-      ),
-      headerLeft: () => (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginHorizontal: 12 }}>
           {Platform.OS !== "web" && (
             <Pressable
               onPress={handleDownload}
@@ -1654,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   verseHeader: {
     // Right to left: verse number on the right, actions on the left.
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 2,
@@ -1702,7 +1692,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   rangeBanner: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginHorizontal: 16,
@@ -1842,7 +1832,7 @@ const styles = StyleSheet.create({
   },
   audioBarInfo: {
     flex: 1,
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     gap: 2,
   },
   audioBarRef: {
@@ -1908,7 +1898,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   bookmarkCountRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 6,
@@ -1985,7 +1975,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
   },
   guideRuleBadge: {
     flexDirection: "row",

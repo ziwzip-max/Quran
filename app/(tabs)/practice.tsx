@@ -151,7 +151,7 @@ function WordTestCard({
           const revealed = revealedWords[verse.number] ?? new Set<number>();
           return (
             <View key={verse.number} style={styles.wordVerseBlock}>
-              <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface, alignSelf: "flex-end", marginBottom: 6 }]}>
+              <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface, alignSelf: "flex-start", marginBottom: 6 }]}>
                 <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
               </View>
               <View style={styles.wordRow}>
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   indexBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   indexText: { fontFamily: "Inter_700Bold", fontSize: 13 },
   refInfo: { flex: 1 },
-  refSurahRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" },
+  refSurahRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-start" },
   refSurahArabic: { fontSize: 16, textAlign: "right" },
   refSurahNumber: { fontFamily: "Inter_500Medium", fontSize: 13 },
   refRange: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "right", marginTop: 2 },
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
   revealAllText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
   wordVerseBlock: { gap: 8 },
   wordRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
     justifyContent: "flex-start",
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   dictationFeedback: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
     marginTop: 12,

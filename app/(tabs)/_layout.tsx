@@ -12,9 +12,7 @@ import { useIsWide } from "@/utils/layout";
 
 type IconProps = { color: string; size: number };
 
-// Logical order: the first tab is the home screen. In a bottom bar the tabs are
-// laid out left to right, so for Arabic (right to left) they are declared in
-// reverse and the home tab ends up on the right.
+// The app is right to left, so the first tab (home) is drawn on the right.
 const TABS: { name: string; title: string; icon: (p: IconProps) => React.ReactNode }[] = [
   { name: "index", title: "السور", icon: ({ color, size }) => <Ionicons name="list" size={size} color={color} /> },
   { name: "bookmarks", title: "الحفظ", icon: ({ color, size }) => <Ionicons name="bookmark-outline" size={size} color={color} /> },
@@ -36,8 +34,6 @@ export default function TabLayout() {
   const isWide = useIsWide();
   const { colors } = useSettings();
 
-  const tabs = isWide ? TABS : [...TABS].reverse();
-
   const renderTabBar = (props: BottomTabBarProps) => {
     if (isWide) return <SideNav {...props} />;
     // Mini player sits directly above the tab bar. On iOS both float over the
@@ -57,7 +53,8 @@ export default function TabLayout() {
         tabBar={renderTabBar}
         screenOptions={{
           headerShown: false,
-          tabBarPosition: isWide ? "right" : "bottom",
+          // "left" is the start side, which is the right in a right-to-left app.
+          tabBarPosition: isWide ? "left" : "bottom",
           tabBarActiveTintColor: colors.gold,
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarShowLabel: true,
@@ -73,7 +70,7 @@ export default function TabLayout() {
             isIOS && !isWide ? <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} /> : null,
         }}
       >
-        {tabs.map((t) => (
+        {TABS.map((t) => (
           <Tabs.Screen key={t.name} name={t.name} options={{ title: t.title, tabBarIcon: t.icon }} />
         ))}
       </Tabs>
