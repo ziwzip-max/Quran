@@ -31,6 +31,7 @@ import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
 import { EDITIONS, fetchEditionSurah, TRANSLATION_CREDITS } from "@/utils/quranTexts";
 import { shareText, verseShareText } from "@/utils/share";
+import { groupPassages, stepPassage } from "@/utils/passages";
 import { RangeRepeatSheet } from "@/components/RangeRepeatSheet";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -367,13 +368,25 @@ export default function SurahScreen() {
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [tajweedPopup, setTajweedPopup] = useState<{ rule: TajweedRule; word: string } | null>(null);
   const [qaloonVerses, setQaloonVerses] = useState<string[]>([]);
-  const [bookmarkNavIdx, setBookmarkNavIdx] = useState(-1);
+  const [navigatedRange, setNavigatedRange] = useState<[number, number] | null>(null);
   const [navigatedVerseNum, setNavigatedVerseNum] = useState<number | null>(null);
   const [tajweedGuideVisible, setTajweedGuideVisible] = useState(false);
   const [tafsirVerse, setTafsirVerse] = useState<{ surahNum: number; verseNum: number } | null>(null);
   const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
   const [jumpToVerseInput, setJumpToVerseInput] = useState("");
   const flatListRef = useRef<FlatList<Verse>>(null);
+
+  // Verses have different heights, so a far-away verse has not been measured yet and
+  // scrollToIndex cannot reach it directly. On failure we jump close to it (using the
+  // average height), let the list measure the items on the way, and retry a few times.
+  const pendingScroll = useRef<{ index: number; viewPosition: number; viewOffset: number; tries: number } | null>(null);
+  const scrollToVerseIndex = useCallback((index: number, viewPosition = 0.3, viewOffset = 0) => {
+    pendingScroll.current = { index, viewPosition, viewOffset, tries: 0 };
+    flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition, viewOffset });
+  }, []);
+  const topVisible = useRef(0);
+  const bottomVisible = useRef(0);
+  const lastJumpedPassage = useRef<number | null>(null);
   const hasScrolled = useRef(false);
   const positionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredPosition = useRef(false);
@@ -430,10 +443,10 @@ export default function SurahScreen() {
     const index = surah.verses.findIndex((v) => v.number === keyVerse);
     if (index < 0) return;
     const timer = setTimeout(() => {
-      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+      scrollToVerseIndex(index, 0.4);
     }, 100);
     return () => clearTimeout(timer);
-  }, [currentKey, surah, surahNumber, highlightActiveVerse]);
+  }, [currentKey, surah, surahNumber, highlightActiveVerse, scrollToVerseIndex]);
 
   const currentReciterEntry = RECITERS_LIST.find((r) => r.id === reciterId);
   const isSurahMissing = isSurahMode && (currentReciterEntry?.missingSurahs?.includes(surahNumber) ?? false);
@@ -526,7 +539,7 @@ export default function SurahScreen() {
     const index = surah.verses.findIndex((v) => v.number === targetVerse);
     if (index < 0) return;
     const doScroll = () => {
-      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+      scrollToVerseIndex(index, 0.3);
       setNavigatedVerseNum(targetVerse);
       hasScrolled.current = true;
       setTimeout(() => setNavigatedVerseNum(null), 2000);
@@ -535,7 +548,7 @@ export default function SurahScreen() {
     const timer2 = setTimeout(() => { if (!hasScrolled.current) doScroll(); }, 800);
     const timer3 = setTimeout(() => { if (!hasScrolled.current) doScroll(); }, 1200);
     return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
-  }, [surah, verseParam]);
+  }, [surah, verseParam, scrollToVerseIndex]);
 
   useEffect(() => {
     if (!surah || verseParam || hasRestoredPosition.current) return;
@@ -551,16 +564,30 @@ export default function SurahScreen() {
     });
   }, [surah, surahNumber, verseParam]);
 
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 55,
-    minimumViewTime: 200,
-  }).current;
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
-    if (viewableItems.length > 0) {
-      setActiveIndex(viewableItems[0].index ?? -1);
-    }
-  }).current;
+  // Two viewability listeners: the visible range (for the skip buttons) is tracked at once;
+  // the active-verse highlight keeps its short delay so it does not flicker while scrolling.
+  const highlightActiveVerseRef = useRef(highlightActiveVerse);
+  useEffect(() => { highlightActiveVerseRef.current = highlightActiveVerse; }, [highlightActiveVerse]);
+  const viewabilityPairs = useRef([
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 50 },
+      onViewableItemsChanged: ({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
+        const idx = viewableItems.map((v) => v.index).filter((i): i is number => typeof i === "number");
+        if (idx.length > 0) {
+          topVisible.current = Math.min(...idx);
+          bottomVisible.current = Math.max(...idx);
+        }
+      },
+    },
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 55, minimumViewTime: 200 },
+      onViewableItemsChanged: ({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
+        if (highlightActiveVerseRef.current && viewableItems.length > 0) {
+          setActiveIndex(viewableItems[0].index ?? -1);
+        }
+      },
+    },
+  ]).current;
 
   const [swipeIndicator, setSwipeIndicator] = useState<{ text: string, visible: boolean }>({ text: "", visible: false });
 
@@ -631,7 +658,8 @@ export default function SurahScreen() {
   }, [surahNumber]);
 
   useEffect(() => {
-    setBookmarkNavIdx(-1);
+    lastJumpedPassage.current = null;
+    setNavigatedRange(null);
     setNavigatedVerseNum(null);
   }, [surahNumber]);
 
@@ -687,15 +715,27 @@ export default function SurahScreen() {
     [showTajweed, surah],
   );
 
-  const navigateToBookmark = useCallback((bIdx: number) => {
-    if (bookmarkedIndices.length === 0) return;
-    const entry = bookmarkedIndices[bIdx];
-    flatListRef.current?.scrollToIndex({ index: entry.idx, animated: true, viewPosition: 0.3 });
-    setBookmarkNavIdx(bIdx);
-    setNavigatedVerseNum(entry.verseNum);
+  // Memorised passages: runs of consecutive bookmarked verses.
+  const passages = useMemo(() => groupPassages(bookmarkedIndices.map((b) => b.idx)), [bookmarkedIndices]);
+
+  const goToPassage = useCallback((pIdx: number) => {
+    const p = passages[pIdx];
+    if (!p || !surah) return;
+    lastJumpedPassage.current = pIdx;
+    // Passage start at the top of the screen, so the next/previous press has a clear reference.
+    scrollToVerseIndex(p.start, 0, 8);
+    const first = surah.verses[p.start].number;
+    const last = surah.verses[p.end].number;
+    setNavigatedRange([first, last]);
+    showToast(`المقطع ${pIdx + 1} من ${passages.length} · ${first === last ? `الآية ${first}` : `الآيات ${first}–${last}`}`);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimeout(() => setNavigatedVerseNum(null), 1500);
-  }, [bookmarkedIndices]);
+    setTimeout(() => setNavigatedRange(null), 2500);
+  }, [passages, surah, scrollToVerseIndex, showToast]);
+
+  const stepToPassage = useCallback((direction: 1 | -1) => {
+    const next = stepPassage(passages, { top: topVisible.current, bottom: bottomVisible.current, lastJumped: lastJumpedPassage.current }, direction);
+    if (next >= 0) goToPassage(next);
+  }, [passages, goToPassage]);
 
   if (!surah) {
     return (
@@ -811,12 +851,12 @@ export default function SurahScreen() {
 
       {bookmarkedIndices.length > 0 && (
         <Pressable
-          onPress={() => navigateToBookmark(0)}
+          onPress={() => goToPassage(0)}
           style={[styles.bookmarkCountRow, { backgroundColor: colors.gold + "15", borderColor: colors.gold + "40" }]}
         >
           <Ionicons name="chevron-back-outline" size={13} color={colors.gold + "90"} />
           <Text style={[styles.bookmarkCountText, { color: colors.gold }]}>
-            {bookmarkedIndices.length} آية محفوظة — اضغط للتنقل
+            {bookmarkedIndices.length} آية محفوظة في {passages.length} {passages.length === 1 ? "مقطع" : "مقاطع"} — اضغط للانتقال
           </Text>
           <Ionicons name="bookmark" size={14} color={colors.gold} />
         </Pressable>
@@ -951,8 +991,7 @@ export default function SurahScreen() {
             )}
           </>
         }
-        viewabilityConfig={highlightActiveVerse ? viewabilityConfig : undefined}
-        onViewableItemsChanged={highlightActiveVerse ? onViewableItemsChanged : undefined}
+        viewabilityConfigCallbackPairs={viewabilityPairs}
         scrollEventThrottle={16}
         onScrollBeginDrag={() => {
           if (currentKey && !currentKey.startsWith("surah:") && highlightActiveVerse) {
@@ -973,10 +1012,14 @@ export default function SurahScreen() {
             AsyncStorage.setItem(`al_hifz_pos_${surahNumber}`, String(scrollY));
           }, 800);
         }}
-        onScrollToIndexFailed={({ index }) => {
+        onScrollToIndexFailed={(info) => {
+          const p = pendingScroll.current;
+          if (!p || p.index !== info.index || p.tries >= 8) return;
+          p.tries += 1;
+          flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
           setTimeout(() => {
-            flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
-          }, 300);
+            flatListRef.current?.scrollToIndex({ index: p.index, animated: p.tries > 2, viewPosition: p.viewPosition, viewOffset: p.viewOffset });
+          }, 120);
         }}
         renderItem={({ item, index }) => {
           const verseKey = `${surahNumber}:${item.number}`;
@@ -1008,7 +1051,7 @@ export default function SurahScreen() {
               onRuleTap={handleRuleTap}
               overrideText={overrideText}
               masteryLevel={getMastery(surahNumber, item.number)}
-              isNavigatedTo={navigatedVerseNum === item.number}
+              isNavigatedTo={navigatedVerseNum === item.number || (!!navigatedRange && item.number >= navigatedRange[0] && item.number <= navigatedRange[1])}
               onTafsir={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTafsirVerse({ surahNum: surahNumber, verseNum: item.number }); }}
               translation={translations[item.number - 1]}
               onShare={async () => {
@@ -1041,10 +1084,9 @@ export default function SurahScreen() {
       {bookmarkedIndices.length > 0 && (
         <>
           <Pressable
-            onPress={() => {
-              const prevIdx = bookmarkNavIdx <= 0 ? bookmarkedIndices.length - 1 : bookmarkNavIdx - 1;
-              navigateToBookmark(prevIdx);
-            }}
+            onPress={() => stepToPassage(-1)}
+            accessibilityRole="button"
+            accessibilityLabel="المقطع المحفوظ السابق"
             style={[
               styles.bookmarkNavBtn,
               {
@@ -1058,10 +1100,9 @@ export default function SurahScreen() {
             <Ionicons name="chevron-up-outline" size={18} color={colors.gold} />
           </Pressable>
           <Pressable
-            onPress={() => {
-              const nextIdx = bookmarkNavIdx >= bookmarkedIndices.length - 1 ? 0 : bookmarkNavIdx + 1;
-              navigateToBookmark(nextIdx);
-            }}
+            onPress={() => stepToPassage(1)}
+            accessibilityRole="button"
+            accessibilityLabel="المقطع المحفوظ التالي"
             style={[
               styles.bookmarkNavBtn,
               {
@@ -1088,24 +1129,22 @@ export default function SurahScreen() {
             },
           ]}
         >
-          {bookmarkedIndices.map(({ idx, verseNum }) => {
+          {passages.map((p, pIdx) => {
             const total = Math.max(surah.verses.length - 1, 1);
-            const pct = idx / total;
             return (
               <Pressable
-                key={verseNum}
-                onPress={() => {
-                  const bIdx = bookmarkedIndices.findIndex((b) => b.verseNum === verseNum);
-                  navigateToBookmark(bIdx >= 0 ? bIdx : 0);
-                }}
+                key={p.start}
+                onPress={() => goToPassage(pIdx)}
+                accessibilityRole="button"
+                accessibilityLabel={`المقطع ${pIdx + 1}`}
                 style={[
                   styles.bookmarkRailTick,
                   {
                     backgroundColor: colors.gold,
-                    top: `${pct * 100}%` as any,
+                    top: `${(p.start / total) * 100}%` as any,
                   },
                 ]}
-                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 4 }}
               />
             );
           })}
@@ -1361,7 +1400,7 @@ export default function SurahScreen() {
                 if (!surah || isNaN(num) || num < 1 || num > surah.versesCount) return;
                 const index = surah.verses.findIndex((v) => v.number === num);
                 if (index < 0) return;
-                flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+                scrollToVerseIndex(index, 0.3);
                 setNavigatedVerseNum(num);
                 setTimeout(() => setNavigatedVerseNum(null), 2000);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1388,7 +1427,7 @@ export default function SurahScreen() {
                 if (!surah || isNaN(num) || num < 1 || num > surah.versesCount) return;
                 const index = surah.verses.findIndex((v) => v.number === num);
                 if (index < 0) return;
-                flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+                scrollToVerseIndex(index, 0.3);
                 setNavigatedVerseNum(num);
                 setTimeout(() => setNavigatedVerseNum(null), 2000);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
