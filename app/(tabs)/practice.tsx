@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { HiddenWord } from "@/components/HiddenWord";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -155,28 +156,20 @@ function WordTestCard({
               </View>
               <View style={styles.wordRow}>
                 {words.map((word, idx) => {
-                  const isRev = revealed.has(idx);
+                  // A hidden word is a uniform empty box: no text, so no size or content hint.
+                  if (!revealed.has(idx)) {
+                    return <HiddenWord key={idx} onPress={() => revealWord(verse.number, idx)} />;
+                  }
                   return (
-                    <Pressable
-                      key={idx}
-                      onPress={() => !isRev && revealWord(verse.number, idx)}
-                      disabled={isRev}
-                      style={[
-                        styles.wordChip,
-                        {
-                          backgroundColor: isRev ? "transparent" : colors.bgSurface,
-                          borderColor: isRev ? "transparent" : colors.border,
-                        },
-                      ]}
-                    >
+                    <View key={idx} style={styles.wordChip}>
                       <Text style={[
                         styles.wordChipText,
-                        { color: isRev ? colors.textPrimary : colors.bgSurface },
+                        { color: colors.textPrimary },
                         arabicFont ? { fontFamily: arabicFont } : {},
                       ]}>
                         {word}
                       </Text>
-                    </Pressable>
+                    </View>
                   );
                 })}
               </View>
@@ -256,21 +249,12 @@ function ProgressiveMaskingCard({
       <Pressable onPress={hiddenCount === 0 ? startMasking : hideNext} style={styles.versesContainer}>
         <View style={styles.wordRow}>
           {words.map((word, idx) => {
-            const isHidden = idx < hiddenCount;
+            if (idx < hiddenCount) return <HiddenWord key={idx} />;
             return (
-              <View
-                key={idx}
-                style={[
-                  styles.wordChip,
-                  {
-                    backgroundColor: isHidden ? colors.bgSurface : "transparent",
-                    borderColor: isHidden ? colors.border : "transparent",
-                  },
-                ]}
-              >
+              <View key={idx} style={styles.wordChip}>
                 <Text style={[
                   styles.wordChipText,
-                  { color: isHidden ? colors.bgSurface : colors.textPrimary },
+                  { color: colors.textPrimary },
                   arabicFont ? { fontFamily: arabicFont } : {},
                 ]}>
                   {word}
@@ -797,8 +781,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   wordChip: {
-    borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4,
-    minWidth: 32, alignItems: "center",
+    paddingHorizontal: 8, paddingVertical: 4,
+    alignItems: "center", justifyContent: "center",
   },
   wordChipText: { fontSize: 20, lineHeight: 34 },
   startMaskingBtn: {
