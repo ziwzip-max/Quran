@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   },
   jumpBtnText: { fontSize: 13, fontWeight: "600" as const },
   searchRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     borderRadius: 10,
     borderWidth: 1,

@@ -138,7 +138,7 @@ export function JumpModal({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   tabText: { fontSize: 14, fontWeight: "600" as const, textAlign: "right" as const },
   surahRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,

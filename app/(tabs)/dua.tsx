@@ -198,7 +198,7 @@ function AddDuaModal({
 
           <View>
             <Text style={[styles.inputLabel, { color: colors.textMuted, marginBottom: 10 }]}>الفئة</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: "row-reverse", gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: "row", gap: 8 }}>
               {DUA_CATEGORIES.map((cat) => (
                 <Pressable
                   key={cat}
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   categoryPickerRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-end",
     paddingHorizontal: 16,
@@ -555,17 +555,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardHeader: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "flex-start",
     justifyContent: "space-between",
   },
   cardHeaderRight: {
     flex: 1,
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     gap: 6,
   },
   cardHeaderLeft: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
     flexShrink: 1,

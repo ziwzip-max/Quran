@@ -1,4 +1,4 @@
-// Runs after `expo export --platform web`: marks the page as Arabic and wires
+// Runs after `expo export --platform web`: marks the page as Arabic, right to left, and wires
 // up the web app manifest and offline service worker from public/.
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +7,8 @@ const outDir = process.argv[2] || "dist";
 const file = path.join(outDir, "index.html");
 let html = fs.readFileSync(file, "utf8");
 
-html = html.replace(/<html lang="[^"]*"/, '<html lang="ar"');
+// The whole app is Arabic: lang + dir make every row, scroller and text run right to left.
+html = html.replace(/<html lang="[^"]*"[^>]*>/, '<html lang="ar" dir="rtl">');
 
 const head = [
   '<meta name="theme-color" content="#F5F0E8" />',

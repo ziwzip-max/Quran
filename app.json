@@ -47,7 +47,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "./plugins/with-rtl.cjs"
     ],
     "experiments": {
       "typedRoutes": true,

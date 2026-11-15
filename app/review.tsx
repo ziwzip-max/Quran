@@ -9,6 +9,7 @@ import { useMastery } from "@/contexts/MasteryContext";
 import { averageLevel, dueBlocks, levelAfterReview, reviewTimeAfter, type ReviewRating } from "@/utils/srs";
 import { loadReviews, saveReviews } from "@/utils/reviews";
 import { SURAH_NAME_FONT } from "@/constants/themes";
+import { HeaderBack } from "@/components/HeaderBack";
 
 const RATINGS: { key: ReviewRating; label: string; hint: string }[] = [
   { key: "forgot", label: "نسيت", hint: "تعود غدًا" },
@@ -34,22 +35,11 @@ export default function ReviewScreen() {
   const [tally, setTally] = useState<Record<ReviewRating, number>>({ forgot: 0, hard: 0, good: 0 });
 
   useEffect(() => {
-    // Right to left, like the surah page: back arrow and title on the right.
     navigation.setOptions({
-      headerBackVisible: false,
-      headerLeft: () => null,
-      headerTitle: () => null,
-      headerRight: () => (
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/bookmarks"))}
-          accessibilityRole="button"
-          accessibilityLabel="رجوع"
-          style={styles.headerBack}
-        >
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>المراجعة اليومية</Text>
-          <Ionicons name="arrow-forward" size={22} color={colors.textPrimary} />
-        </Pressable>
-      ),
+      title: "المراجعة اليومية",
+      headerTitleStyle: { fontFamily: "Tajawal_400Regular", fontSize: 18, color: colors.textPrimary },
+      headerTitleAlign: "left",
+      headerLeft: () => <HeaderBack />,
     });
   }, [navigation, colors]);
 
@@ -172,8 +162,6 @@ export default function ReviewScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingBottom: 16 },
-  headerBack: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 8 },
-  headerTitle: { fontFamily: "Tajawal_400Regular", fontSize: 18 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
   progressTrack: { height: 3, width: "100%" },
   progressFill: { height: 3 },
@@ -185,9 +173,9 @@ const styles = StyleSheet.create({
   verses: { fontSize: 24, lineHeight: 48, textAlign: "right", marginTop: 6 },
   hidden: { alignItems: "center", gap: 14, paddingVertical: 28 },
   hiddenText: { fontFamily: "Tajawal_400Regular", fontSize: 16, textAlign: "center", lineHeight: 26 },
-  primary: { flexDirection: "row-reverse", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 24, borderRadius: 24 },
+  primary: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 24, borderRadius: 24 },
   primaryText: { fontFamily: "Tajawal_400Regular", fontSize: 17 },
-  ratings: { flexDirection: "row-reverse", gap: 10, paddingHorizontal: 16, maxWidth: 720, width: "100%", alignSelf: "center" },
+  ratings: { flexDirection: "row", gap: 10, paddingHorizontal: 16, maxWidth: 720, width: "100%", alignSelf: "center" },
   rating: { flex: 1, minHeight: 64, borderWidth: 1, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 2 },
   ratingLabel: { fontFamily: "Tajawal_400Regular", fontSize: 18 },
   ratingHint: { fontFamily: "Tajawal_400Regular", fontSize: 12 },

@@ -42,6 +42,6 @@ export function SideNav({ state, descriptors, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   nav: { width: 220, borderLeftWidth: 1, paddingTop: 24, paddingHorizontal: 12, gap: 4 },
   brand: { fontFamily: "Amiri_400Regular", fontSize: 30, textAlign: "right", paddingHorizontal: 12, marginBottom: 16 },
-  item: { flexDirection: "row-reverse", alignItems: "center", gap: 12, minHeight: 48, paddingHorizontal: 12, borderRadius: 12 },
+  item: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, paddingHorizontal: 12, borderRadius: 12 },
   label: { fontFamily: "Tajawal_400Regular", fontSize: 16, textAlign: "right" },
 });

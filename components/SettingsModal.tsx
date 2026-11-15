@@ -486,7 +486,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
               <Text style={s.sectionTitle}>التخزين</Text>
               <View style={[s.toggleGroup, { padding: 16 }]}>
-                <View style={{ flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <View>
                     <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "right" }}>المساحة المستخدمة</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "right" }}>{cacheSize}</Text>
@@ -618,7 +618,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 onPress={() => { setReciterId(r.id); setReciterPickerVisible(false); }}
                 style={[s.reciterItem, { borderColor: colors.border }, reciterId === r.id && { backgroundColor: colors.gold + "12", borderColor: colors.gold + "40" }]}
               >
-                <View style={{ flexDirection: "column", alignItems: "flex-end", flex: 1, gap: 2 }}>
+                <View style={{ flexDirection: "column", alignItems: "flex-start", flex: 1, gap: 2 }}>
                   <Text style={[s.reciterItemLabel, { color: reciterId === r.id ? colors.gold : colors.textPrimary }]}>
                     {r.labelAr}
                   </Text>
@@ -690,7 +690,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       textTransform: "uppercase", letterSpacing: 0.5,
     },
     themeGrid: {
-      flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20, justifyContent: "flex-end",
+      flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20, justifyContent: "flex-start",
     },
     themeBtn: {
       flexDirection: "row", alignItems: "center", gap: 8,
@@ -700,7 +700,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       minWidth: "46%",
     },
     themeBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    optionRow: { flexDirection: "row", gap: 8, marginBottom: 20, justifyContent: "flex-end" },
+    optionRow: { flexDirection: "row", gap: 8, marginBottom: 20, justifyContent: "flex-start" },
     optionBtn: {
       flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
       paddingHorizontal: 14, paddingVertical: 11,
@@ -710,7 +710,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     optionBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
     optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "right" },
     optionLabelActive: { color: colors.bgDark, fontFamily: "Inter_700Bold" },
-    accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-end" },
+    accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-start" },
     accentCircleWrap: { alignItems: "center", justifyContent: "center" },
     accentCircle: {
       width: 36, height: 36, borderRadius: 18,
@@ -727,7 +727,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     fontSample: { fontSize: 20, color: colors.textPrimary },
     fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "Inter_400Regular" },
     fontSizeRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
       marginBottom: 20,
@@ -739,7 +739,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
     fontSizeBtnText: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 26 },
     fontSizeDisplay: {
       flex: 1, height: 46, borderRadius: 12, borderWidth: 1,
-      flexDirection: "row-reverse", alignItems: "center",
+      flexDirection: "row", alignItems: "center",
       justifyContent: "space-between", paddingHorizontal: 14,
     },
     fontSizeValue: { fontSize: 20 },
@@ -755,7 +755,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
       borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: "hidden",
     },
     toggleRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: 16,
@@ -799,7 +799,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
 }
 
 const dataActionBtn: import("react-native").ViewStyle = {
-  flexDirection: "row-reverse",
+  flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
   gap: 10,
@@ -809,7 +809,7 @@ const dataActionBtn: import("react-native").ViewStyle = {
 };
 
 const dataStatusBox: import("react-native").ViewStyle = {
-  flexDirection: "row-reverse",
+  flexDirection: "row",
   alignItems: "center",
   gap: 8,
   padding: 12,
