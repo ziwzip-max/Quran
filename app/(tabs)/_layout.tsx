@@ -1,7 +1,6 @@
 import { Tabs } from "expo-router";
 import { BottomTabBar, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { BlurView } from "expo-blur";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -32,7 +31,6 @@ const TABS: { name: string; title: string; icon: (p: IconProps) => React.ReactNo
 ];
 
 export default function TabLayout() {
-  const isIOS = Platform.OS === "ios";
   const isWide = useIsWide();
   const { colors } = useSettings();
 
@@ -40,10 +38,9 @@ export default function TabLayout() {
 
   const renderTabBar = (props: BottomTabBarProps) => {
     if (isWide) return <SideNav {...props} />;
-    // Mini player sits directly above the tab bar. On iOS both float over the
-    // content with a blur; elsewhere they take their own space so nothing is hidden.
+    // Mini player sits directly above the tab bar; both take their own space so nothing is hidden.
     return (
-      <View style={isIOS ? styles.iosOverlay : undefined}>
+      <View>
         <MiniPlayer />
         <BottomTabBar {...props} />
       </View>
@@ -63,14 +60,12 @@ export default function TabLayout() {
           tabBarShowLabel: true,
           tabBarLabelStyle: { fontFamily: "Tajawal_400Regular", fontSize: 11, marginTop: -2 },
           tabBarStyle: {
-            backgroundColor: isIOS ? "transparent" : colors.bgCard,
+            backgroundColor: colors.bgCard,
             borderTopWidth: Platform.OS === "web" ? 1 : 0,
             borderTopColor: colors.border,
             elevation: 0,
             ...(Platform.OS === "web" ? { height: 64, paddingBottom: 6 } : {}),
           },
-          tabBarBackground: () =>
-            isIOS && !isWide ? <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} /> : null,
         }}
       >
         {tabs.map((t) => (
@@ -81,7 +76,3 @@ export default function TabLayout() {
     </SettingsSheetProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  iosOverlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
-});

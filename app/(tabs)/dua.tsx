@@ -134,7 +134,6 @@ function AddDuaModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={[styles.modalContainer, { backgroundColor: colors.bgDark }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingTop: insets.top + 16 }]}>
           <Pressable onPress={() => { reset(); onClose(); }} hitSlop={10}>
