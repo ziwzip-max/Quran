@@ -2,12 +2,17 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 
 /** Right-hand side menu used instead of the bottom tab bar on wide screens. */
 export function SideNav({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useSettings();
+  const glass = useGlass();
   return (
-    <View style={[styles.nav, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+    <View style={[styles.nav, glass.surface("soft", { blur: true }), { borderWidth: 0, borderLeftWidth: 1, borderLeftColor: glass.enabled ? glass.tokens.edge : colors.border }]}>
+      <ScreenBackground />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: glass.enabled ? glass.tokens.soft : colors.bgCard }]} />
       <Text style={[styles.brand, { color: colors.textPrimary }]}>الحفظ</Text>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];

@@ -15,6 +15,8 @@ import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { dueBlocks } from "@/utils/srs";
 import { loadReviews } from "@/utils/reviews";
@@ -70,8 +72,9 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
 
 
 function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: ReturnType<typeof useSettings>["colors"] }) {
+  const glass = useGlass();
   return (
-    <View style={[styles.continueCard, { backgroundColor: colors.bgCard, borderColor: colors.gold + "40" }]}>
+    <View style={[styles.continueCard, glass.surface("soft")]}>
       <View style={styles.continueHeader}>
         <View style={[styles.continueBadge, { backgroundColor: colors.gold + "20" }]}>
           <Text style={[styles.continueBadgeText, { color: colors.gold }]}>تابِع من حيث توقفت</Text>
@@ -98,10 +101,11 @@ function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: Re
 }
 
 function DailyDuaWidget({ dua, colors, onOpen }: { dua: Dua; colors: ReturnType<typeof useSettings>["colors"]; onOpen: () => void }) {
+  const glass = useGlass();
   return (
     <Pressable
       onPress={onOpen}
-      style={[styles.duaWidget, { backgroundColor: colors.bgCard, borderColor: colors.teal + "30" }]}
+      style={[styles.duaWidget, glass.surface("soft")]}
     >
       <View style={styles.duaHeader}>
         <View style={[styles.duaBadge, { backgroundColor: colors.teal + "15" }]}>
@@ -127,6 +131,7 @@ function VerseOfDayWidget({
   colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
   onDismiss: () => void;
 }) {
+  const glass = useGlass();
   const surah = SURAHS.find((s) => s.number === surahNumber);
   const verse = surah?.verses.find((v) => v.number === verseNumber);
   const { isBookmarked, toggleBookmark } = useBookmarks();
@@ -134,7 +139,7 @@ function VerseOfDayWidget({
   const bookmarked = isBookmarked(surahNumber, verseNumber);
 
   return (
-    <View style={[styles.vodWidget, { backgroundColor: colors.bgCard, borderColor: colors.gold + "40" }]}>
+    <View style={[styles.vodWidget, glass.surface("soft")]}>
       <View style={styles.vodTop}>
         <View style={[styles.vodBadge, { backgroundColor: colors.gold + "20" }]}>
           <Text style={[styles.vodBadgeText, { color: colors.gold }]}>آية اليوم</Text>
@@ -174,12 +179,13 @@ function HistoryChip({ surahNumber, colors, onPress }: {
   colors: ReturnType<typeof useSettings>["colors"];
   onPress: () => void;
 }) {
+  const glass = useGlass();
   const surah = SURAHS.find((s) => s.number === surahNumber);
   if (!surah) return null;
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.historyChip, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+      style={[styles.historyChip, glass.surface("soft")]}
     >
       <Text style={[styles.historyChipArabic, { color: colors.textPrimary }]}>{surah.nameArabic}</Text>
       <Text style={[styles.historyChipNum, { color: colors.textMuted }]}>{surah.number}</Text>
@@ -212,6 +218,7 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
   isPinned: boolean;
   colors: ReturnType<typeof useSettings>["colors"];
 }) {
+  const glass = useGlass();
   const revType = SURAH_TYPE[surah.number];
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -230,10 +237,8 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
       delayLongPress={400}
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: isPinned ? colors.gold + "10" : colors.bgCard,
-          borderColor: isPinned ? colors.gold + "50" : colors.border,
-        },
+        glass.surface("soft"),
+        isPinned && { backgroundColor: colors.gold + "24", borderColor: colors.gold + "70" },
         pressed && { opacity: 0.75 }
       ]}
     >
@@ -291,6 +296,7 @@ function VerseResultCard({ result, colors, arabicFont, query }: { result: VerseR
 }
 
 export default function QuranScreen() {
+  const glass = useGlass();
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
   const { blocks } = useBookmarks();
@@ -476,6 +482,7 @@ export default function QuranScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+      <ScreenBackground />
       <View style={[styles.innerContainer, { paddingTop: topPadding }]}>
 
       <FlatList
@@ -491,7 +498,7 @@ export default function QuranScreen() {
                   onPress={openRandomSurah}
                   accessibilityRole="button"
                   accessibilityLabel="سورة عشوائية"
-                  style={[styles.headerBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                  style={[styles.headerBtn, glass.surface("soft")]}
                 >
                   <Ionicons name="shuffle" size={20} color={colors.textSecondary} />
                 </Pressable>
@@ -499,7 +506,7 @@ export default function QuranScreen() {
                   onPress={openSettings}
                   accessibilityRole="button"
                   accessibilityLabel="الإعدادات"
-                  style={[styles.headerBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                  style={[styles.headerBtn, glass.surface("soft")]}
                 >
                   <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
                 </Pressable>
@@ -546,7 +553,7 @@ export default function QuranScreen() {
               </View>
             )}
 
-            <View style={[styles.searchContainer, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={[styles.searchContainer, glass.surface("soft")]}>
               {search.length > 0 && (
                 <Pressable onPress={() => setSearch("")}>
                   <Ionicons name="close-circle" size={16} color={colors.textMuted} />
@@ -581,7 +588,7 @@ export default function QuranScreen() {
                       onPress={() => setRevelationFilter(key)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
-                      style={[styles.filterChip, { borderColor: active ? colors.gold : colors.border, backgroundColor: active ? colors.gold + "1F" : colors.bgCard }]}
+                      style={[styles.filterChip, glass.surface("soft"), active && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
                     >
                       <Text style={[styles.filterChipText, { color: active ? colors.gold : colors.textSecondary }]}>{label}</Text>
                     </Pressable>
@@ -591,7 +598,7 @@ export default function QuranScreen() {
                   onPress={() => (juzFilter ? setJuzFilter(null) : setJuzPickerOpen(true))}
                   accessibilityRole="button"
                   accessibilityLabel={juzFilter ? `إلغاء تصفية الجزء ${juzFilter}` : "اختيار جزء"}
-                  style={[styles.filterChip, { borderColor: juzFilter ? colors.gold : colors.border, backgroundColor: juzFilter ? colors.gold + "1F" : colors.bgCard }]}
+                  style={[styles.filterChip, glass.surface("soft"), !!juzFilter && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
                 >
                   <Text style={[styles.filterChipText, { color: juzFilter ? colors.gold : colors.textSecondary }]}>
                     {juzFilter ? `الجزء ${juzFilter}` : "الجزء"}
@@ -603,7 +610,7 @@ export default function QuranScreen() {
 
             <Modal visible={juzPickerOpen} transparent animationType="fade" onRequestClose={() => setJuzPickerOpen(false)}>
               <Pressable style={styles.juzOverlay} onPress={() => setJuzPickerOpen(false)}>
-                <Pressable style={[styles.juzSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]} onPress={() => {}}>
+                <Pressable style={[styles.juzSheet, glass.surface("strong", { blur: true })]} onPress={() => {}}>
                   <Text style={[styles.juzTitle, { color: colors.textPrimary }]}>اختر الجزء</Text>
                   <View style={styles.juzGrid}>
                     {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
@@ -627,7 +634,7 @@ export default function QuranScreen() {
                 <Text style={[styles.searchHistoryLabel, { color: colors.textMuted }]}>عمليات بحث سابقة</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.searchHistoryScroll}>
                   {searchHistory.map((q) => (
-                    <View key={q} style={[styles.searchHistoryChip, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                    <View key={q} style={[styles.searchHistoryChip, glass.surface("soft")]}>
                       <Pressable onPress={() => { setSearch(q); addSearchHistory(q); }}>
                         <Text style={[styles.searchHistoryChipText, { color: colors.textPrimary }]}>{q}</Text>
                       </Pressable>
@@ -719,7 +726,7 @@ export default function QuranScreen() {
 
       <Modal visible={!!selectedDua} animationType="fade" transparent>
         <Pressable style={styles.modalOverlay} onPress={() => setSelectedDua(null)}>
-          <View style={[styles.duaModalContent, { backgroundColor: colors.bgCard }]}>
+          <View style={[styles.duaModalContent, glass.surface("strong", { blur: true })]}>
             <View style={styles.duaModalHeader}>
               <Text style={[styles.duaModalTitle, { color: colors.textPrimary }]}>{selectedDua?.title}</Text>
               <Pressable onPress={() => setSelectedDua(null)}>

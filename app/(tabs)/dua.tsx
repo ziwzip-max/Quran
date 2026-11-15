@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
 import { BUILT_IN_DUAS, DUA_CATEGORIES, Dua, DuaCategory } from "@/constants/duaaData";
@@ -235,6 +237,7 @@ export default function DuaScreen() {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const topPadding = useTopPadding();
+  const glass = useGlass();
 
   useFocusEffect(useCallback(() => {
     AsyncStorage.getItem(CUSTOM_DUAS_KEY).then((stored) => {
@@ -288,6 +291,7 @@ export default function DuaScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
+      <ScreenBackground />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           onPress={() => setAddModalVisible(true)}
@@ -331,7 +335,7 @@ export default function DuaScreen() {
 
       <Pressable
         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCategoryModalVisible(true); }}
-        style={[styles.categoryDropdown, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+        style={[styles.categoryDropdown, glass.surface("soft")]}
       >
         <View style={styles.categoryDropdownLeft}>
           <View style={[styles.categoryDot, { backgroundColor: colors.gold }]} />
@@ -348,7 +352,7 @@ export default function DuaScreen() {
         onRequestClose={() => setCategoryModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setCategoryModalVisible(false)}>
-          <View style={[styles.categoryPickerSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          <View style={[styles.categoryPickerSheet, glass.surface("strong", { blur: true })]}>
             <View style={[styles.categoryPickerHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.categoryPickerTitle, { color: colors.textPrimary }]}>اختر الفئة</Text>
               <Pressable onPress={() => setCategoryModalVisible(false)} hitSlop={10}>

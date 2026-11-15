@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useNavigation } from "expo-router";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { HeaderGlass } from "@/components/HeaderGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, type VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -24,6 +27,7 @@ const RATINGS: { key: ReviewRating; label: string; hint: string }[] = [
  */
 export default function ReviewScreen() {
   const navigation = useNavigation();
+  const headerHeight = useHeaderHeight();
   const { colors, arabicFontFamily } = useSettings();
   const { blocks, isLoaded } = useBookmarks();
   const { getMastery, setMastery, recordDailyReview, masteryMap } = useMastery();
@@ -40,6 +44,8 @@ export default function ReviewScreen() {
       headerTitleStyle: { fontFamily: "Tajawal_400Regular", fontSize: 18, color: colors.textPrimary },
       headerTitleAlign: "left",
       headerLeft: () => <HeaderBack />,
+      headerTransparent: true,
+      headerBackground: () => <HeaderGlass />,
     });
   }, [navigation, colors]);
 
@@ -74,13 +80,14 @@ export default function ReviewScreen() {
   };
 
   if (!queue) {
-    return <View style={[styles.center, { backgroundColor: colors.bgDark }]} />;
+    return <View style={[styles.center, { backgroundColor: colors.bgDark }]}><ScreenBackground /></View>;
   }
 
   if (queue.length === 0 || index >= queue.length) {
     const done = queue.length > 0;
     return (
-      <View style={[styles.center, { backgroundColor: colors.bgDark }]}>
+      <View style={[styles.center, { backgroundColor: colors.bgDark, paddingTop: headerHeight }]}>
+        <ScreenBackground />
         <Ionicons name={done ? "checkmark-circle" : "sunny-outline"} size={56} color={colors.gold} />
         <Text style={[styles.doneTitle, { color: colors.textPrimary }]}>
           {done ? "أحسنت، انتهت مراجعة اليوم" : "لا توجد مقاطع مستحقة للمراجعة اليوم"}
@@ -105,7 +112,8 @@ export default function ReviewScreen() {
   const range = block.startVerse === block.endVerse ? `الآية ${block.startVerse}` : `الآيات ${block.startVerse}–${block.endVerse}`;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: headerHeight }]}>
+      <ScreenBackground />
       <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
         <View style={[styles.progressFill, { width: `${(index / queue.length) * 100}%`, backgroundColor: colors.gold }]} />
       </View>

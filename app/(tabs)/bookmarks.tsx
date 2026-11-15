@@ -12,6 +12,8 @@ import { useFocusEffect, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGlass } from "@/utils/useGlass";
+import { ScreenBackground } from "@/components/ScreenBackground";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
 import { dueBlocks, isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
@@ -332,6 +334,7 @@ export default function BookmarksScreen() {
   const [jumpVisible, setJumpVisible] = useState(false);
 
   const topPadding = useTopPadding();
+  const glass = useGlass();
   const savedSurahNumbers = useMemo(() => surahGroups.map(g => g.surahNumber), [surahGroups]);
 
   const loadStats = useCallback(async () => {
@@ -390,6 +393,7 @@ export default function BookmarksScreen() {
   if (!isLoaded) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding, justifyContent: "center" }]}>
+        <ScreenBackground />
         <Text style={[{ color: colors.textSecondary, textAlign: "center", fontFamily: "Inter_400Regular" }]}>جاري التحميل...</Text>
       </View>
     );
@@ -397,11 +401,12 @@ export default function BookmarksScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
+      <ScreenBackground />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
             onPress={() => setJumpVisible(true)}
-            style={[styles.jumpBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+            style={[styles.jumpBtn, glass.surface("soft")]}
             hitSlop={8}
           >
             <Ionicons name="navigate-outline" size={18} color={colors.gold} />

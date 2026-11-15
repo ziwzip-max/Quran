@@ -5,6 +5,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  type ViewStyle,
   ScrollView,
   Platform,
   Switch,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useGlass } from "@/utils/useGlass";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -42,6 +44,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
     setNotifEnabled, setNotifHour, setNotifMinute,
     autoNightMode, setAutoNightMode,
+    glass: glassOn, setGlass,
     colors, arabicFontFamily,
     reloadFromStorage: reloadSettings,
   } = useSettings();
@@ -52,7 +55,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const MAX_FONT_SIZE = 48;
   const FONT_STEP = 2;
   const insets = useSafeAreaInsets();
-  const s = makeStyles(colors);
+  const glass = useGlass();
+  const s = makeStyles(colors, glass.surface("strong", { blur: true }));
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("المظهر");
   const [reciterPickerVisible, setReciterPickerVisible] = useState(false);
@@ -226,6 +230,19 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     thumbColor={autoNightMode ? colors.gold : colors.textMuted}
                   />
                   <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>تبديل تلقائي حسب النظام</Text>
+                </View>
+              </View>
+
+              <View style={s.toggleGroup}>
+                <View style={s.toggleRow}>
+                  <Switch
+                    value={glassOn}
+                    onValueChange={setGlass}
+                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
+                    thumbColor={glassOn ? colors.gold : colors.textMuted}
+                    accessibilityLabel="الأسطح الزجاجية"
+                  />
+                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>الأسطح الزجاجية الشفافة</Text>
                 </View>
               </View>
 
@@ -639,29 +656,29 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   );
 }
 
-function makeStyles(colors: ReturnType<typeof useSettings>["colors"]) {
+function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurface: ViewStyle) {
   return StyleSheet.create({
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
     sheet: {
-      backgroundColor: colors.bgCard,
+      ...sheetSurface,
+      borderWidth: 0,
+      borderTopWidth: 1,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingTop: 12,
       paddingHorizontal: 20,
       maxHeight: "92%",
-      borderTopWidth: 1,
-      borderColor: colors.border,
       flex: 1,
     },
     subSheet: {
-      backgroundColor: colors.bgCard,
+      ...sheetSurface,
+      borderWidth: 0,
+      borderTopWidth: 1,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       paddingTop: 12,
       paddingHorizontal: 20,
       maxHeight: "70%",
-      borderTopWidth: 1,
-      borderColor: colors.border,
     },
     handle: {
       width: 40, height: 4, borderRadius: 2,

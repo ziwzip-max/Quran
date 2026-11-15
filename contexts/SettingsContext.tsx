@@ -26,6 +26,10 @@ interface SettingsContextValue {
   continuousPlay: boolean;
   qiraa: "hafs" | "qaloon";
   translationLang: TranslationLang;
+  /** Frosted-glass surfaces on (true) or plain solid surfaces (false). */
+  glass: boolean;
+  /** The theme actually shown (auto night mode may differ from `theme`). */
+  effectiveTheme: ThemeName;
   notifEnabled: boolean;
   notifHour: number;
   notifMinute: number;
@@ -44,6 +48,7 @@ interface SettingsContextValue {
   setContinuousPlay: (v: boolean) => void;
   setQiraa: (q: "hafs" | "qaloon") => void;
   setTranslationLang: (l: TranslationLang) => void;
+  setGlass: (on: boolean) => void;
   setNotifEnabled: (v: boolean) => void;
   setNotifHour: (h: number) => void;
   setNotifMinute: (m: number) => void;
@@ -92,6 +97,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [continuousPlay, setContinuousPlayState] = useState(false);
   const [qiraa, setQiraaState] = useState<"hafs" | "qaloon">("hafs");
   const [translationLang, setTranslationLangState] = useState<TranslationLang>("none");
+  const [glass, setGlassState] = useState(true);
   const [notifEnabled, setNotifEnabledState] = useState(false);
   const [notifHour, setNotifHourState] = useState(8);
   const [notifMinute, setNotifMinuteState] = useState(0);
@@ -120,6 +126,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
     if (p.qiraa) setQiraaState(p.qiraa);
     if (p.translationLang) setTranslationLangState(p.translationLang);
+    if (p.glass !== undefined) setGlassState(!!p.glass);
     if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
     if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
     if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
@@ -150,6 +157,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setContinuousPlay = (v: boolean) => { setContinuousPlayState(v); saveSettings({ continuousPlay: v }); };
   const setQiraa = (q: "hafs" | "qaloon") => { setQiraaState(q); saveSettings({ qiraa: q }); };
   const setTranslationLang = (l: TranslationLang) => { setTranslationLangState(l); saveSettings({ translationLang: l }); };
+  const setGlass = (on: boolean) => { setGlassState(on); saveSettings({ glass: on }); };
   const setNotifEnabled = (v: boolean) => { setNotifEnabledState(v); saveSettings({ notifEnabled: v }); };
   const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
   const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
@@ -176,12 +184,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, glass, effectiveTheme,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize, setArabicFontSize,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
-      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
+      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang, setGlass,
       setNotifEnabled, setNotifHour, setNotifMinute, setAutoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
       reloadFromStorage,
@@ -189,7 +197,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, glass, effectiveTheme,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize,
       colors, arabicFontFamily, lineSpacingValue,
