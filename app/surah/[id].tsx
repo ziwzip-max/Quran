@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useGlass } from "@/utils/useGlass";
 import { ScreenBackground } from "@/components/ScreenBackground";
-import { glassHeaderOptions, useHeaderInset } from "@/components/HeaderGlass";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
 import { useBookmarks } from "@/contexts/BookmarksContext";
@@ -36,7 +36,6 @@ import { EDITIONS, fetchEditionSurah, TRANSLATION_CREDITS } from "@/utils/quranT
 import { shareText, verseShareText } from "@/utils/share";
 import { groupPassages, stepPassage } from "@/utils/passages";
 import { RangeRepeatSheet } from "@/components/RangeRepeatSheet";
-import { HeaderBack } from "@/components/HeaderBack";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -379,7 +378,6 @@ export default function SurahScreen() {
   const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
   const [jumpToVerseInput, setJumpToVerseInput] = useState("");
   const flatListRef = useRef<FlatList<Verse>>(null);
-  const headerHeight = useHeaderInset();
   const glass = useGlass();
 
   // Verses have different heights, so a far-away verse has not been measured yet and
@@ -468,57 +466,11 @@ export default function SurahScreen() {
     downloadSurah(surahNumber);
   }, [surah, surahNumber, downloadSurah]);
 
+  // The screen draws its own header (ScreenHeader), so the native one is off.
   useEffect(() => {
-    if (!surah) return;
-    navigation.setOptions({
-      headerShown: !isImmersive,
-      title: surah.nameArabic,
-      // The header is frosted glass over the page background; the screen adds the header's height as padding.
-      ...glassHeaderOptions(colors.bgDark),
-      headerTintColor: colors.textPrimary,
-      headerTitleStyle: { fontFamily: SURAH_NAME_FONT, fontSize: 21, color: colors.textPrimary },
-      headerTitleAlign: "left", // start of the line: next to the back arrow, on the right
-      // An explicit title view: the native header otherwise cuts the name short ("سورة ا…").
-      headerTitle: () => (
-        <Text style={{ fontFamily: SURAH_NAME_FONT, fontSize: 21, color: colors.textPrimary }}>{surah.nameArabic}</Text>
-      ),
-      headerLeft: () => <HeaderBack />,
-      // The header follows the page direction: back arrow and title at the start (right),
-      // the action buttons at the end (left).
-      headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginHorizontal: 12 }}>
-          {Platform.OS !== "web" && (
-            <Pressable
-              onPress={handleDownload}
-              hitSlop={10}
-              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-            >
-              <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
-          <Pressable
-            onPress={() => setRangeOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="تكرار مقطع"
-            hitSlop={10}
-            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-          >
-            <Ionicons name="repeat" size={16} color={rangeRepeat ? colors.gold : colors.textSecondary} />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              setShowTajweed(!showTajweed);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            hitSlop={10}
-            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
-          >
-            <Ionicons name="color-palette-outline" size={16} color={showTajweed ? colors.gold : colors.textSecondary} />
-          </Pressable>
-        </View>
-      ),
-    });
-  }, [surah, navigation, colors, arabicFontFamily, isImmersive, showTajweed, setShowTajweed, handleDownload, rangeRepeat]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
 
   useFocusEffect(useCallback(() => {
     hasScrolled.current = false;
@@ -910,10 +862,50 @@ export default function SurahScreen() {
 
   return (
     <View
-      style={{ flex: 1, backgroundColor: colors.bgDark, paddingTop: isImmersive ? 0 : headerHeight }}
+      style={{ flex: 1, backgroundColor: colors.bgDark }}
       {...(panResponder ? panResponder.panHandlers : {})}
     >
       <ScreenBackground />
+      {!isImmersive && (
+        <ScreenHeader
+          title={surah.nameArabic}
+          titleFont={SURAH_NAME_FONT}
+          titleSize={21}
+          right={
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginHorizontal: 12 }}>
+          {Platform.OS !== "web" && (
+            <Pressable
+              onPress={handleDownload}
+              hitSlop={10}
+              style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+            >
+              <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => setRangeOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="تكرار مقطع"
+            hitSlop={10}
+            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+          >
+            <Ionicons name="repeat" size={16} color={rangeRepeat ? colors.gold : colors.textSecondary} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowTajweed(!showTajweed);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            hitSlop={10}
+            style={[fontBtnStyle, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}
+          >
+            <Ionicons name="color-palette-outline" size={16} color={showTajweed ? colors.gold : colors.textSecondary} />
+          </Pressable>
+        </View>
+          }
+        />
+      )}
       <Animated.View style={[
         styles.progressBar,
         {

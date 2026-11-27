@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { glassHeaderOptions, useHeaderInset } from "@/components/HeaderGlass";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, type VerseBlock } from "@/contexts/BookmarksContext";
@@ -11,7 +11,6 @@ import { useMastery } from "@/contexts/MasteryContext";
 import { averageLevel, dueBlocks, levelAfterReview, reviewTimeAfter, type ReviewRating } from "@/utils/srs";
 import { loadReviews, saveReviews } from "@/utils/reviews";
 import { SURAH_NAME_FONT } from "@/constants/themes";
-import { HeaderBack } from "@/components/HeaderBack";
 
 const RATINGS: { key: ReviewRating; label: string; hint: string }[] = [
   { key: "forgot", label: "نسيت", hint: "تعود غدًا" },
@@ -26,7 +25,6 @@ const RATINGS: { key: ReviewRating; label: string; hint: string }[] = [
  */
 export default function ReviewScreen() {
   const navigation = useNavigation();
-  const headerHeight = useHeaderInset();
   const { colors, arabicFontFamily } = useSettings();
   const { blocks, isLoaded } = useBookmarks();
   const { getMastery, setMastery, recordDailyReview, masteryMap } = useMastery();
@@ -38,14 +36,8 @@ export default function ReviewScreen() {
   const [tally, setTally] = useState<Record<ReviewRating, number>>({ forgot: 0, hard: 0, good: 0 });
 
   useEffect(() => {
-    navigation.setOptions({
-      title: "المراجعة اليومية",
-      headerTitleStyle: { fontFamily: "Tajawal_400Regular", fontSize: 18, color: colors.textPrimary },
-      headerTitleAlign: "left",
-      headerLeft: () => <HeaderBack />,
-      ...glassHeaderOptions(colors.bgDark),
-    });
-  }, [navigation, colors]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   useEffect(() => {
     loadReviews().then(setReviews);
@@ -78,14 +70,16 @@ export default function ReviewScreen() {
   };
 
   if (!queue) {
-    return <View style={[styles.center, { backgroundColor: colors.bgDark }]}><ScreenBackground /></View>;
+    return <View style={[styles.fill, { backgroundColor: colors.bgDark }]}><ScreenBackground /><ScreenHeader title="المراجعة اليومية" titleFont="Tajawal_400Regular" titleSize={18} /></View>;
   }
 
   if (queue.length === 0 || index >= queue.length) {
     const done = queue.length > 0;
     return (
-      <View style={[styles.center, { backgroundColor: colors.bgDark, paddingTop: headerHeight }]}>
+      <View style={[styles.fill, { backgroundColor: colors.bgDark }]}>
         <ScreenBackground />
+        <ScreenHeader title="المراجعة اليومية" titleFont="Tajawal_400Regular" titleSize={18} />
+        <View style={styles.center}>
         <Ionicons name={done ? "checkmark-circle" : "sunny-outline"} size={56} color={colors.gold} />
         <Text style={[styles.doneTitle, { color: colors.textPrimary }]}>
           {done ? "أحسنت، انتهت مراجعة اليوم" : "لا توجد مقاطع مستحقة للمراجعة اليوم"}
@@ -102,6 +96,7 @@ export default function ReviewScreen() {
         >
           <Text style={[styles.primaryText, { color: colors.bgCard }]}>رجوع</Text>
         </Pressable>
+        </View>
       </View>
     );
   }
@@ -110,7 +105,7 @@ export default function ReviewScreen() {
   const range = block.startVerse === block.endVerse ? `الآية ${block.startVerse}` : `الآيات ${block.startVerse}–${block.endVerse}`;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: headerHeight }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgDark}]}>
       <ScreenBackground />
       <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
         <View style={[styles.progressFill, { width: `${(index / queue.length) * 100}%`, backgroundColor: colors.gold }]} />
@@ -168,6 +163,7 @@ export default function ReviewScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingBottom: 16 },
+  fill: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
   progressTrack: { height: 3, width: "100%" },
   progressFill: { height: 3 },
