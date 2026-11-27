@@ -505,8 +505,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <View style={[s.toggleGroup, { padding: 16 }]}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <View>
-                    <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "right" }}>المساحة المستخدمة</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "right" }}>{cacheSize}</Text>
+                    <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "auto" }}>المساحة المستخدمة</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "auto" }}>{cacheSize}</Text>
                   </View>
                   <Pressable
                     onPress={clearCache}
@@ -528,7 +528,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             <>
               <Text style={s.sectionTitle}>النسخ الاحتياطي</Text>
               <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "right", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
                   يمكنك تصدير جميع بياناتك (الآيات المحفوظة، مستوى الحفظ، الإعدادات) كملف JSON لنقلها أو حفظها.
                 </Text>
 
@@ -554,7 +554,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
               <Text style={s.sectionTitle}>استيراد البيانات</Text>
               <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "right", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
                   استيراد نسخة احتياطية سابقة. سيتم استبدال البيانات الحالية بالكامل.
                 </Text>
 
@@ -599,7 +599,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                       fontFamily: "Inter_500Medium",
                       fontSize: 13,
                       flex: 1,
-                      textAlign: "right",
+                      textAlign: "auto",
                     }}>
                       {dataStatus.msg}
                     </Text>
@@ -640,7 +640,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     {r.labelAr}
                   </Text>
                   {r.surahUrl && (
-                    <Text style={{ fontSize: 10, color: colors.textMuted, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+                    <Text style={{ fontSize: 10, color: colors.textMuted, fontFamily: "Inter_400Regular", textAlign: "auto" }}>
                       ◉ تلاوة سورة كاملة
                     </Text>
                   )}
@@ -700,10 +700,10 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       flex: 1, alignItems: "center", paddingVertical: 10,
       borderBottomColor: "transparent", borderBottomWidth: 2,
     },
-    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "right" },
+    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "auto" },
     sectionTitle: {
       fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
-      textAlign: "right", marginBottom: 10, marginTop: 4,
+      textAlign: "auto", marginBottom: 10, marginTop: 4,
       textTransform: "uppercase", letterSpacing: 0.5,
     },
     themeGrid: {
@@ -725,7 +725,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       borderColor: colors.border, backgroundColor: colors.bgSurface,
     },
     optionBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "right" },
+    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "auto" },
     optionLabelActive: { color: colors.bgDark, fontFamily: "Inter_700Bold" },
     accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-start" },
     accentCircleWrap: { alignItems: "center", justifyContent: "center" },
@@ -766,7 +766,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
       borderWidth: 1, marginBottom: 20,
     },
-    reciterPickerLabel: { fontSize: 16, fontFamily: "Inter_500Medium", textAlign: "right" },
+    reciterPickerLabel: { fontSize: 16, fontFamily: "Inter_500Medium", textAlign: "auto" },
     toggleGroup: {
       backgroundColor: colors.bgSurface, borderRadius: 14,
       borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: "hidden",
@@ -778,7 +778,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       paddingHorizontal: 16,
       paddingVertical: 14,
     },
-    toggleLabel: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "right", flex: 1 },
+    toggleLabel: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "auto", flex: 1 },
     timeStepper: {
       alignItems: "center", gap: 2,
     },

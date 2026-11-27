@@ -406,7 +406,7 @@ const vrStyles = StyleSheet.create({
     borderRadius: 3,
   },
   verseText: {
-    textAlign: "right",
+    textAlign: "auto",
     writingDirection: "rtl",
   },
 });
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    textAlign: "right",
+    textAlign: "auto",
     paddingVertical: 0,
   },
   matchNav: {

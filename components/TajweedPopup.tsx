@@ -210,14 +210,14 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   section: { marginBottom: 16 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 12, textAlign: "right" },
-  sectionBody: { fontSize: 15, textAlign: "right", lineHeight: 26, fontFamily: "Inter_400Regular" },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 12, textAlign: "auto" },
+  sectionBody: { fontSize: 15, textAlign: "auto", lineHeight: 26, fontFamily: "Inter_400Regular" },
   exampleBox: {
     borderRadius: 12, padding: 14, borderWidth: 1,
     marginBottom: 20, gap: 6,
   },
-  exampleLabel: { fontFamily: "Inter_500Medium", fontSize: 11, textAlign: "right" },
-  exampleText: { fontSize: 20, textAlign: "right", lineHeight: 36 },
+  exampleLabel: { fontFamily: "Inter_500Medium", fontSize: 11, textAlign: "auto" },
+  exampleText: { fontSize: 20, textAlign: "auto", lineHeight: 36 },
 });
 
 const legendStyles = StyleSheet.create({
@@ -225,7 +225,7 @@ const legendStyles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, padding: 10,
     marginTop: 10, gap: 8,
   },
-  header: { fontFamily: "Inter_500Medium", fontSize: 10, textAlign: "right" },
+  header: { fontFamily: "Inter_500Medium", fontSize: 10, textAlign: "auto" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "flex-start" },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 4,

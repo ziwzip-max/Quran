@@ -562,8 +562,8 @@ export default function PracticeScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: colors.textPrimary, textAlign: "right" }]}>آيات الصلاة</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "right" }]}>آياتك الجاهزة للتلاوة في الصلاة</Text>
+            <Text style={[styles.title, { color: colors.textPrimary, textAlign: "auto" }]}>آيات الصلاة</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: "auto" }]}>آياتك الجاهزة للتلاوة في الصلاة</Text>
           </View>
           {!noBookmarks && !filterEmpty && (
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
@@ -745,12 +745,12 @@ const styles = StyleSheet.create({
     flexDirection: "row", borderRadius: 12, padding: 12,
     gap: 8, borderWidth: 1, marginBottom: 16, alignItems: "flex-start",
   },
-  infoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, textAlign: "right" },
+  infoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, textAlign: "auto" },
   promptArea: { alignItems: "center", paddingVertical: 48, gap: 16 },
   promptArabic: { fontSize: 22, textAlign: "center", lineHeight: 36 },
   promptHint: { fontFamily: "Inter_400Regular", fontSize: 14 },
   cardsContainer: { gap: 14 },
-  sectionLabel: { fontFamily: "Inter_500Medium", fontSize: 12, textAlign: "right", marginBottom: 4 },
+  sectionLabel: { fontFamily: "Inter_500Medium", fontSize: 12, textAlign: "auto", marginBottom: 4 },
   blockCard: { borderRadius: 18, padding: 16, borderWidth: 1 },
   blockCardHeader: {
     flexDirection: "row", alignItems: "center", gap: 10,
@@ -760,14 +760,14 @@ const styles = StyleSheet.create({
   indexText: { fontFamily: "Inter_700Bold", fontSize: 13 },
   refInfo: { flex: 1 },
   refSurahRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-start" },
-  refSurahArabic: { fontSize: 16, textAlign: "right" },
+  refSurahArabic: { fontSize: 16, textAlign: "auto" },
   refSurahNumber: { fontFamily: "Inter_500Medium", fontSize: 13 },
-  refRange: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "right", marginTop: 2 },
+  refRange: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "auto", marginTop: 2 },
   revealHeaderRight: { alignItems: "flex-end", gap: 4 },
   wordCounter: { fontFamily: "Inter_500Medium", fontSize: 11 },
   versesContainer: { gap: 12 },
   verseRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  verseArabic: { flex: 1, fontSize: 22, textAlign: "right", lineHeight: 42 },
+  verseArabic: { flex: 1, fontSize: 22, textAlign: "auto", lineHeight: 42 },
   verseNumDot: {
     width: 22, height: 22, borderRadius: 11, alignItems: "center",
     justifyContent: "center", marginTop: 6, flexShrink: 0,
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: "dashed",
   },
-  answerText: { fontSize: 18, textAlign: "right", lineHeight: 30 },
+  answerText: { fontSize: 18, textAlign: "auto", lineHeight: 30 },
   showAnswerBtn: {
     marginTop: 12,
     paddingVertical: 10,

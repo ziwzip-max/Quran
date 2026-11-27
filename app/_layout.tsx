@@ -27,6 +27,7 @@ import { scheduleSmartNotification, countDueVerses } from "@/utils/notifications
 
 SplashScreen.preventAutoHideAsync();
 
+// Text alignment: never "right" or "left" for Arabic. On Android in a right-to-left layout "right" means the end (the left); "auto" starts the line on the right on both web and Android.
 // The whole app is Arabic, so the whole layout runs right to left: rows start on the right,
 // horizontal scrollers start from the right, text defaults to right-aligned.
 if (Platform.OS === "web") {

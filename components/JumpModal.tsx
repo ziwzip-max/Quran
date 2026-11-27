@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 18, fontWeight: "700" as const, textAlign: "right" as const },
+  title: { fontSize: 18, fontWeight: "700" as const, textAlign: "auto" as const },
   tabs: {
     flexDirection: "row",
     margin: 12,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     borderRadius: 10,
   },
-  tabText: { fontSize: 14, fontWeight: "600" as const, textAlign: "right" as const },
+  tabText: { fontSize: 14, fontWeight: "600" as const, textAlign: "auto" as const },
   surahRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  surahNameAr: { fontFamily: SURAH_NAME_FONT, fontSize: 17, textAlign: "right" },
-  surahMeta: { fontSize: 11, textAlign: "right", marginTop: 2 },
+  surahNameAr: { fontFamily: SURAH_NAME_FONT, fontSize: 17, textAlign: "auto" },
+  surahMeta: { fontSize: 11, textAlign: "auto", marginTop: 2 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
