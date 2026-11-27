@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useNavigation } from "expo-router";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { HeaderGlass } from "@/components/HeaderGlass";
+import { glassHeaderOptions, useHeaderInset } from "@/components/HeaderGlass";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, type VerseBlock } from "@/contexts/BookmarksContext";
@@ -27,7 +26,7 @@ const RATINGS: { key: ReviewRating; label: string; hint: string }[] = [
  */
 export default function ReviewScreen() {
   const navigation = useNavigation();
-  const headerHeight = useHeaderHeight();
+  const headerHeight = useHeaderInset();
   const { colors, arabicFontFamily } = useSettings();
   const { blocks, isLoaded } = useBookmarks();
   const { getMastery, setMastery, recordDailyReview, masteryMap } = useMastery();
@@ -44,8 +43,7 @@ export default function ReviewScreen() {
       headerTitleStyle: { fontFamily: "Tajawal_400Regular", fontSize: 18, color: colors.textPrimary },
       headerTitleAlign: "left",
       headerLeft: () => <HeaderBack />,
-      headerTransparent: true,
-      headerBackground: () => <HeaderGlass />,
+      ...glassHeaderOptions(colors.bgDark),
     });
   }, [navigation, colors]);
 
