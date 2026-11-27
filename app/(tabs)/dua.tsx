@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 15,
     flex: 1,
-    textAlign: "right",
+    textAlign: "auto",
   },
   categoryPickerCount: {
     fontFamily: "Inter_400Regular",
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
-    textAlign: "right",
+    textAlign: "auto",
   },
   customBadge: {
     paddingHorizontal: 8,
@@ -603,12 +603,12 @@ const styles = StyleSheet.create({
   cardArabic: {
     fontSize: 20,
     lineHeight: 38,
-    textAlign: "right",
+    textAlign: "auto",
   },
   expandHint: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    textAlign: "right",
+    textAlign: "auto",
   },
   cardFooter: {
     flexDirection: "row",
@@ -674,12 +674,12 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 12,
-    textAlign: "right",
+    textAlign: "auto",
   },
   textInput: {
     fontFamily: "Inter_400Regular",
     fontSize: 16,
-    textAlign: "right",
+    textAlign: "auto",
     minHeight: 36,
   },
   textInputMulti: {

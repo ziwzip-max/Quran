@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 18, padding: 18, gap: 10 },
   surahName: { fontFamily: SURAH_NAME_FONT, fontSize: 26, textAlign: "center" },
   range: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "center" },
-  verses: { fontSize: 24, lineHeight: 48, textAlign: "right", marginTop: 6 },
+  verses: { fontSize: 24, lineHeight: 48, textAlign: "auto", marginTop: 6 },
   hidden: { alignItems: "center", gap: 14, paddingVertical: 28 },
   hiddenText: { fontFamily: "Tajawal_400Regular", fontSize: 16, textAlign: "center", lineHeight: 26 },
   primary: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 24, borderRadius: 24 },

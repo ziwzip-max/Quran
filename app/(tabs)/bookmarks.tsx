@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   masteryDot: { width: 8, height: 8, borderRadius: 4 },
   verseNumBadge: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 4, flexShrink: 0 },
   verseNumText: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  verseText: { flex: 1, fontSize: 20, textAlign: "right", lineHeight: 38 },
+  verseText: { flex: 1, fontSize: 20, textAlign: "auto", lineHeight: 38 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
   emptyDesc: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },

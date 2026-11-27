@@ -126,7 +126,7 @@ function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
-      <Text style={{ fontSize: 22, textAlign: "right", lineHeight: 40, color: colors.textPrimary, fontFamily: arabicFont }}>
+      <Text style={{ fontSize: 22, textAlign: "auto", lineHeight: 40, color: colors.textPrimary, fontFamily: arabicFont }}>
         {verseText}
       </Text>
       <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
@@ -134,7 +134,7 @@ function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
         ? <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
         : error
           ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير. يحتاج أول عرض لتفسير السورة إلى اتصال بالإنترنت، ثم يعمل دون اتصال.</Text>
-          : <Text style={{ fontSize: 16, textAlign: "right", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
+          : <Text style={{ fontSize: 16, textAlign: "auto", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
               {tafsir}
             </Text>
       }
@@ -217,7 +217,7 @@ function VerseItem({
   const textStyle = {
     fontSize,
     lineHeight: fontSize * lineSpacingValue * 1.6,
-    textAlign: "right" as const,
+    textAlign: "auto" as const,
   };
 
   const masteryDotColor = masteryLevel === 1 ? "#E67E22" : masteryLevel === 2 ? "#C9A227" : masteryLevel === 3 ? "#27AE60" : null;
@@ -1607,12 +1607,12 @@ const styles = StyleSheet.create({
   infoThemeCardLabel: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
-    textAlign: "right",
+    textAlign: "auto",
     letterSpacing: 0.3,
   },
   infoThemeCardText: {
     fontSize: 16,
-    textAlign: "right",
+    textAlign: "auto",
     lineHeight: 28,
     fontFamily: "Inter_500Medium",
   },
@@ -1629,13 +1629,13 @@ const styles = StyleSheet.create({
   infoVirtueLabel: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
-    textAlign: "right",
+    textAlign: "auto",
     marginBottom: 3,
   },
   infoVirtueText: {
     flex: 1,
     fontSize: 13,
-    textAlign: "right",
+    textAlign: "auto",
     lineHeight: 22,
     fontFamily: "Inter_400Regular",
   },
@@ -1710,7 +1710,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  rangeBannerText: { flex: 1, fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "right" },
+  rangeBannerText: { flex: 1, fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "auto" },
   rangeStop: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
   toast: {
     position: "absolute",
@@ -1732,10 +1732,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tajweedTextBlock: {
-    textAlign: "right",
+    textAlign: "auto",
   },
   verseText: {
-    textAlign: "right",
+    textAlign: "auto",
   },
   verseSeparator: {
     height: 6,
@@ -1846,12 +1846,12 @@ const styles = StyleSheet.create({
   audioBarRef: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
-    textAlign: "right",
+    textAlign: "auto",
   },
   audioBarRepeat: {
     fontFamily: "Inter_500Medium",
     fontSize: 11,
-    textAlign: "right",
+    textAlign: "auto",
   },
   audioChipsScroll: {
     borderTopWidth: 1,
@@ -1920,7 +1920,7 @@ const styles = StyleSheet.create({
   bookmarkCountText: {
     fontFamily: "Inter_500Medium",
     fontSize: 12,
-    textAlign: "right",
+    textAlign: "auto",
     flex: 1,
   },
   upcomingChip: {
@@ -1999,12 +1999,12 @@ const styles = StyleSheet.create({
   guideRuleFullLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
-    textAlign: "right",
+    textAlign: "auto",
     flex: 1,
   },
   guideRuleDesc: {
     fontSize: 13,
-    textAlign: "right",
+    textAlign: "auto",
     lineHeight: 22,
     fontFamily: "Inter_400Regular",
   },
@@ -2023,17 +2023,17 @@ const styles = StyleSheet.create({
   guideBoxLabel: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 10,
-    textAlign: "right",
+    textAlign: "auto",
   },
   guideBoxText: {
     fontSize: 13,
-    textAlign: "right",
+    textAlign: "auto",
     lineHeight: 22,
     fontFamily: "Inter_400Regular",
   },
   guideExText: {
     fontSize: 18,
-    textAlign: "right",
+    textAlign: "auto",
     lineHeight: 32,
   },
   tafsirOverlay: {

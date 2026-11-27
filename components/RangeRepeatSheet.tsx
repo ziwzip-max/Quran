@@ -111,9 +111,9 @@ export function RangeRepeatSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", padding: 16 },
   sheet: { width: "100%", maxWidth: 440, borderRadius: 20, borderWidth: 1, padding: 18, gap: 10 },
-  title: { fontFamily: "Tajawal_400Regular", fontSize: 19, textAlign: "right" },
-  note: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "right", lineHeight: 24 },
-  label: { fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "right" },
+  title: { fontFamily: "Tajawal_400Regular", fontSize: 19, textAlign: "auto" },
+  note: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "auto", lineHeight: 24 },
+  label: { fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "auto" },
   steppers: { flexDirection: "row", gap: 12 },
   stepper: { flex: 1, gap: 6 },
   stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
