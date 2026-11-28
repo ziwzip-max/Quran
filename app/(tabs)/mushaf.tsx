@@ -23,6 +23,7 @@ import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { HIZB_START, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
 import { JumpModal } from "@/components/JumpModal";
+import { TafsirSheet } from "@/components/TafsirSheet";
 import { countAyat } from "@/utils/arabicPlural";
 
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
@@ -267,7 +268,7 @@ const hmStyles = StyleSheet.create({
 
 function VerseRunItem({
   item, colors, arabicFont, arabicFontKey, arabicFontSize, lineSpacingValue, masteryMap, searchQuery,
-  onLongPress,
+  onLongPress, onVersePress,
 }: {
   item: Extract<MushafItem, { type: "verse_run" }>;
   colors: ReturnType<typeof useSettings>["colors"];
@@ -278,6 +279,7 @@ function VerseRunItem({
   masteryMap: Record<string, number>;
   searchQuery: string;
   onLongPress: (verseNumber: number) => void;
+  onVersePress: (verseNumber: number) => void;
 }) {
   const effectiveSize = arabicFontSize * getFontSizeMultiplier(arabicFontKey);
   const lineH = effectiveSize * lineSpacingValue * 1.6;
@@ -362,7 +364,7 @@ function VerseRunItem({
             }
 
             return (
-              <React.Fragment key={v.verseNumber}>
+              <Text key={v.verseNumber} onPress={() => onVersePress(v.verseNumber)}>
                 {segments.map((seg, si) =>
                   seg.highlight ? (
                     <Text
@@ -375,16 +377,16 @@ function VerseRunItem({
                     <Text key={`${v.verseNumber}_p_${si}`}>{seg.text}</Text>
                   )
                 )}
-                <Text style={{ color: colors.gold, fontSize: markerSize }}>{marker}</Text>
-              </React.Fragment>
+                <Text style={{ color: colors.rubric, fontSize: markerSize }}>{marker}</Text>
+              </Text>
             );
           }
 
           return (
-            <React.Fragment key={v.verseNumber}>
+            <Text key={v.verseNumber} onPress={() => onVersePress(v.verseNumber)}>
               {verseText}
-              <Text style={{ color: colors.gold, fontSize: markerSize }}>{marker}</Text>
-            </React.Fragment>
+              <Text style={{ color: colors.rubric, fontSize: markerSize }}>{marker}</Text>
+            </Text>
           );
         })}
       </Text>
@@ -406,7 +408,8 @@ const vrStyles = StyleSheet.create({
     borderRadius: 3,
   },
   verseText: {
-    textAlign: "auto",
+    // Justified like a printed mushaf page; the last line starts on the right.
+    textAlign: "justify",
     writingDirection: "rtl",
   },
 });
@@ -418,6 +421,7 @@ export default function MushafScreen() {
   const listRef = useRef<FlatList>(null);
   const topPadding = useTopPadding();
   const paper = useSurface();
+  const [tafsirVerse, setTafsirVerse] = useState<{ surahNum: number; verseNum: number } | null>(null);
   const bottomPadding = Platform.OS === "web" ? Math.max(insets.bottom, 34) : insets.bottom;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -593,6 +597,7 @@ export default function MushafScreen() {
           masteryMap={masteryMap}
           searchQuery={searchQuery}
           onLongPress={(verseNumber) => handleVerseAction(item.surahNumber, verseNumber)}
+          onVersePress={(verseNumber) => setTafsirVerse({ surahNum: item.surahNumber, verseNum: verseNumber })}
         />
       );
     }
@@ -705,6 +710,7 @@ export default function MushafScreen() {
         </Animated.View>
       )}
 
+      <TafsirSheet verse={tafsirVerse} onClose={() => setTafsirVerse(null)} />
       <JumpModal
         visible={jumpVisible}
         onClose={() => setJumpVisible(false)}

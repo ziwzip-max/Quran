@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseTajweed, type TajweedRule } from "@/utils/tajweed";
+import { parseTajweed, withJoiners, type TajweedRule } from "@/utils/tajweed";
 import { SURAHS } from "@/constants/quranData";
 
 function rules(text: string): [string, TajweedRule][] {
@@ -113,4 +113,23 @@ test("Hafs exceptions stay clear: Nun in 68:1 and the sakt in 75:27", () => {
 
 test("pause signs between words do not block the rule (2:74 قَسْوَةًۭ ۚ وَإِنَّ)", () => {
   assert.equal(ruleAt(2, 74, 10, "ة"), "idgham_ghunna");
+});
+
+
+test("withJoiners joins the cut inside a word but not at a word boundary or after a non-joining letter", () => {
+  const J = "‍";
+  // ب | ك : both join
+  let r = withJoiners([{ text: "بَ", rule: null }, { text: "كَ", rule: "qalqala" }]);
+  assert.equal(r[0].display, "بَ" + J);
+  assert.equal(r[1].display, J + "كَ");
+  // ا | ن : alef does not join forward
+  r = withJoiners([{ text: "ا", rule: "madd_normal" }, { text: "نَ", rule: null }]);
+  assert.equal(r[0].display, "ا");
+  assert.equal(r[1].display, "نَ");
+  // space between: untouched
+  r = withJoiners([{ text: "بَ ", rule: null }, { text: "كَ", rule: null }]);
+  assert.equal(r[0].display, "بَ ");
+  assert.equal(r[1].display, "كَ");
+  // original text is kept for taps
+  assert.equal(withJoiners([{ text: "بَ", rule: null }, { text: "كَ", rule: null }])[1].text, "كَ");
 });
