@@ -289,3 +289,39 @@ export function getActiveTajweedRules(segments: TajweedSegment[]): TajweedRule[]
   }
   return Array.from(seen);
 }
+
+const ZWJ = "‍";
+// Arabic letters that never join to the letter after them.
+const NO_FORWARD_JOIN = new Set("ءاآأإٱٲٳدذرزوؤة".split(""));
+
+/** The last letter of `s` when `s` ends with a letter and its marks (no space after it). */
+function lastLetter(s: string): string | null {
+  const m = s.match(/(\p{L})\p{M}*$/u);
+  return m ? m[1] : null;
+}
+
+export interface DisplaySegment extends TajweedSegment {
+  /** The text to draw: `text` with joiners where a word is split between two colours. */
+  display: string;
+}
+
+/**
+ * A word split into differently coloured pieces is drawn as separate text runs, and on Android
+ * each run is shaped on its own, so the letters at the cut stop joining. A zero-width joiner on
+ * both sides of the cut makes each run use its joined form again. Only added where the two letters
+ * really join (not after ا د ذ ر ز و ة, and not before ء).
+ */
+export function withJoiners(segments: TajweedSegment[]): DisplaySegment[] {
+  const out: DisplaySegment[] = segments.map((s) => ({ ...s, display: s.text }));
+  for (let i = 0; i + 1 < out.length; i++) {
+    const a = out[i];
+    const b = out[i + 1];
+    const prev = lastLetter(a.text);
+    const next = b.text.match(/^\p{L}/u)?.[0];
+    if (!prev || !next) continue;
+    if (NO_FORWARD_JOIN.has(prev) || next === "ء") continue;
+    a.display = a.display + ZWJ;
+    b.display = ZWJ + b.display;
+  }
+  return out;
+}

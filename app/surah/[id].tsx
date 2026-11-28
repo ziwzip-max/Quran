@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useSurface } from "@/utils/useSurface";
+import { TafsirSheet } from "@/components/TafsirSheet";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
@@ -28,7 +29,7 @@ import { useAudio } from "@/contexts/AudioContext";
 import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
 import { RECITERS_LIST, getFontSizeMultiplier, SURAH_NAME_FONT, SURAH_DISPLAY_FONT } from "@/constants/themes";
-import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
+import { parseTajweed, withJoiners, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
 import { EDITIONS, fetchEditionSurah, TRANSLATION_CREDITS } from "@/utils/quranTexts";
@@ -67,7 +68,7 @@ function TajweedText({
   colors: ReturnType<typeof useSettings>["colors"];
   onRuleTap: (rule: TajweedRule, word: string) => void;
 }) {
-  const segments = useMemo(() => parseTajweed(text), [text]);
+  const segments = useMemo(() => withJoiners(parseTajweed(text)), [text]);
 
   return (
     <View style={styles.tajweedWrap}>
@@ -76,7 +77,7 @@ function TajweedText({
           if (!seg.rule) {
             return (
               <Text key={i} style={{ color: colors.textPrimary }}>
-                {seg.text}
+                {seg.display}
               </Text>
             );
           }
@@ -87,60 +88,23 @@ function TajweedText({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onRuleTap(seg.rule!, seg.text);
               }}
-              style={{
-                color: TAJWEED_COLORS[seg.rule],
-                textDecorationLine: "underline",
-                textDecorationColor: TAJWEED_COLORS[seg.rule] + "80",
-                textDecorationStyle: "dotted",
-              }}
+              style={
+                Platform.OS === "web"
+                  ? {
+                      color: TAJWEED_COLORS[seg.rule],
+                      textDecorationLine: "underline",
+                      textDecorationColor: TAJWEED_COLORS[seg.rule] + "80",
+                      textDecorationStyle: "dotted",
+                    }
+                  : { color: TAJWEED_COLORS[seg.rule] } // Android draws a solid underline per letter: colour is enough
+              }
             >
-              {seg.text}
+              {seg.display}
             </Text>
           );
         })}
       </Text>
     </View>
-  );
-}
-
-function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
-  surahNum: number; verseNum: number;
-  colors: ReturnType<typeof useSettings>["colors"];
-  arabicFont: string | undefined;
-}) {
-  const [tafsir, setTafsir] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const verseText = SURAHS.find(s => s.number === surahNum)?.verses.find(v => v.number === verseNum)?.text ?? "";
-
-  useEffect(() => {
-    setLoading(true);
-    setError(false);
-    setTafsir(null);
-    // Whole surah at once, saved on the device: later verses open instantly and offline.
-    fetchEditionSurah(EDITIONS.tafsir, surahNum)
-      .then(v => { setTafsir(v[verseNum - 1] ?? null); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
-  }, [surahNum, verseNum]);
-
-  return (
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
-      <Text style={{ fontSize: 22, textAlign: "auto", lineHeight: 40, color: colors.textPrimary, fontFamily: arabicFont }}>
-        {verseText}
-      </Text>
-      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
-      {loading
-        ? <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
-        : error
-          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير. يحتاج أول عرض لتفسير السورة إلى اتصال بالإنترنت، ثم يعمل دون اتصال.</Text>
-          : <Text style={{ fontSize: 16, textAlign: "auto", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
-              {tafsir}
-            </Text>
-      }
-      <Text style={{ fontSize: 11, textAlign: "center", color: colors.textMuted, fontFamily: "IBMPlexSansArabic_400Regular" }}>
-        التفسير الميسر — موقع الكويت
-      </Text>
-    </ScrollView>
   );
 }
 
@@ -283,23 +247,26 @@ function VerseItem({
         </View>
       </View>
 
-      {showTajweed ? (
-        <TajweedText
-          text={displayText}
-          style={textStyle}
-          arabicFont={arabicFont}
-          colors={colors}
-          onRuleTap={onRuleTap}
-        />
-      ) : (
-        <Text style={[
-          styles.verseText,
-          { fontSize, lineHeight: fontSize * lineSpacingValue * 1.6, color: colors.textPrimary },
-          arabicFont ? { fontFamily: arabicFont } : {},
-        ]}>
-          {displayText}
-        </Text>
-      )}
+      {/* Tap the verse to read its tafsir (coloured Tajweed letters still open their own rule). */}
+      <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onTafsir(); }} accessibilityRole="button" accessibilityLabel="التفسير">
+        {showTajweed ? (
+          <TajweedText
+            text={displayText}
+            style={textStyle}
+            arabicFont={arabicFont}
+            colors={colors}
+            onRuleTap={onRuleTap}
+          />
+        ) : (
+          <Text style={[
+            styles.verseText,
+            { fontSize, lineHeight: fontSize * lineSpacingValue * 1.6, color: colors.textPrimary },
+            arabicFont ? { fontFamily: arabicFont } : {},
+          ]}>
+            {displayText}
+          </Text>
+        )}
+      </Pressable>
       {translation ? (
         <Text style={[styles.translationText, { color: colors.textSecondary }]}>{translation}</Text>
       ) : null}
@@ -1295,32 +1262,7 @@ export default function SurahScreen() {
         onClose={() => setTajweedPopup(null)}
       />
 
-      <Modal
-        visible={tafsirVerse !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setTafsirVerse(null)}
-      >
-        <Pressable style={styles.tafsirOverlay} onPress={() => setTafsirVerse(null)}>
-          <View style={[styles.tafsirSheet, { ...paper.surface("strong"), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
-            <View style={[styles.tafsirHeader, { borderBottomColor: colors.border }]}>
-              <Pressable onPress={() => setTafsirVerse(null)} hitSlop={12}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
-              </Pressable>
-              <Text style={[styles.tafsirTitle, { color: colors.textPrimary }]}>التفسير الميسر</Text>
-              <View style={{ width: 22 }} />
-            </View>
-            {tafsirVerse !== null && (
-              <TafsirContent
-                surahNum={tafsirVerse.surahNum}
-                verseNum={tafsirVerse.verseNum}
-                colors={colors}
-                arabicFont={arabicFontFamily}
-              />
-            )}
-          </View>
-        </Pressable>
-      </Modal>
+      <TafsirSheet verse={tafsirVerse} onClose={() => setTafsirVerse(null)} />
 
       <Modal
         visible={jumpToVerseVisible}
@@ -1989,28 +1931,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "auto",
     lineHeight: 32,
-  },
-  tafsirOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  tafsirSheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    borderTopWidth: 1,
-    maxHeight: "75%",
-  },
-  tafsirHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tafsirTitle: {
-    fontFamily: "IBMPlexSansArabic_700Bold",
-    fontSize: 17,
-    textAlign: "center",
   },
 });
