@@ -38,6 +38,7 @@ import { groupPassages, stepPassage } from "@/utils/passages";
 import { RangeRepeatSheet } from "@/components/RangeRepeatSheet";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { countAyat } from "@/utils/arabicPlural";
 
 const HISTORY_KEY = "al_hifz_history";
 const MAX_HISTORY_ITEMS = 5;
@@ -791,7 +792,7 @@ export default function SurahScreen() {
           style={[styles.metaPill, { backgroundColor: colors.bgSurface, flexDirection: "row", alignItems: "center", gap: 4 }]}
         >
           <Ionicons name="locate-outline" size={12} color={colors.textMuted} />
-          <Text style={[styles.metaText, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>{countAyat(surah.versesCount)}</Text>
         </Pressable>
         <View style={[styles.metaPill, { backgroundColor: colors.bgSurface }]}>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>سورة {surah.number}</Text>
@@ -808,7 +809,7 @@ export default function SurahScreen() {
         >
           <Ionicons name="chevron-back-outline" size={13} color={colors.gold + "90"} />
           <Text style={[styles.bookmarkCountText, { color: colors.gold }]}>
-            {bookmarkedIndices.length} آية محفوظة في {passages.length} {passages.length === 1 ? "مقطع" : "مقاطع"} — اضغط للانتقال
+            {countAyat(bookmarkedIndices.length)} محفوظة في {passages.length} {passages.length === 1 ? "مقطع" : "مقاطع"} — اضغط للانتقال
           </Text>
           <Ionicons name="bookmark" size={14} color={colors.gold} />
         </Pressable>

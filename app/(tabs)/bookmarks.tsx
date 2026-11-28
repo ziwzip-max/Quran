@@ -23,6 +23,7 @@ import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContex
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { JumpModal } from "@/components/JumpModal";
+import { countAyat } from "@/utils/arabicPlural";
 
 const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 
@@ -191,16 +192,20 @@ function BlockItem({
             </View>
           )}
         </View>
-        <View style={styles.blockHeaderActions}>
+        <>
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push({ pathname: "/surah/[id]", params: { id: String(block.surahNumber), verse: String(block.startVerse) } });
             }}
-            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="فتح في السورة"
+            style={styles.actionBtn}
           >
-            <Ionicons name="book-outline" size={16} color={colors.tealLight} />
+            <Ionicons name="book-outline" size={18} color={colors.tealLight} />
           </Pressable>
+          {/* Delete is pushed to the opposite edge so it is not tapped by mistake. */}
+          <View style={{ flex: 1 }} />
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -208,11 +213,13 @@ function BlockItem({
                 onRemoveVerse(vn);
               }
             }}
-            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="حذف المقطع"
+            style={styles.actionBtn}
           >
-            <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
           </Pressable>
-        </View>
+        </>
       </View>
       {block.verses.map((verse) => {
         const mastery = getMastery(block.surahNumber, verse.number);
@@ -230,18 +237,18 @@ function BlockItem({
             >
               <View style={[styles.masteryDot, { backgroundColor: dotColor }]} />
             </Pressable>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push({ pathname: "/surah/[id]", params: { id: String(block.surahNumber), verse: String(verse.number) } });
-              }}
-              hitSlop={6}
-              style={[styles.verseNumBadge, { backgroundColor: colors.bgCard }]}
-            >
-              <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
-            </Pressable>
             <Text style={[styles.verseText, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
               {verse.text}
+              {/* The verse number follows the last word, which saves a column. */}
+              <Text
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({ pathname: "/surah/[id]", params: { id: String(block.surahNumber), verse: String(verse.number) } });
+                }}
+                style={{ color: colors.gold }}
+              >
+                {` ﴿${verse.number}﴾`}
+              </Text>
             </Text>
           </View>
         );
@@ -298,7 +305,7 @@ function SurahSection({
         </View>
         <View style={styles.surahHeaderRight}>
           <View style={[styles.countBadge, { backgroundColor: colors.gold + "20", borderColor: colors.gold + "30" }]}>
-            <Text style={[styles.countText, { color: colors.gold }]}>{group.totalVerses} آية</Text>
+            <Text style={[styles.countText, { color: colors.gold }]}>{countAyat(group.totalVerses)}</Text>
           </View>
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -432,7 +439,7 @@ export default function BookmarksScreen() {
       </View>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {totalVerses > 0
-          ? `${totalVerses} آية في ${surahGroups.length} سورة`
+          ? `${countAyat(totalVerses)} في ${surahGroups.length} سورة`
           : "لا توجد آيات محفوظة"}
       </Text>
 
@@ -524,9 +531,9 @@ const styles = StyleSheet.create({
   countText: { fontFamily: "Inter_500Medium", fontSize: 11 },
   blocksContainer: { borderTopWidth: 1, paddingVertical: 10, paddingHorizontal: 14, gap: 12 },
   blockItem: { borderRadius: 12, padding: 12, gap: 10 },
-  blockHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  blockHeaderActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  blockHeaderLeft: { flex: 1, gap: 4 },
+  blockHeader: { flexDirection: "row", alignItems: "center" },
+  actionBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  blockHeaderLeft: { gap: 4, marginEnd: 12 },
   blockRange: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
   reviewBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -541,8 +548,6 @@ const styles = StyleSheet.create({
     marginTop: 7, flexShrink: 0,
   },
   masteryDot: { width: 8, height: 8, borderRadius: 4 },
-  verseNumBadge: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 4, flexShrink: 0 },
-  verseNumText: { fontFamily: "Inter_500Medium", fontSize: 10 },
   verseText: { flex: 1, fontSize: 20, textAlign: "auto", lineHeight: 38 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
