@@ -19,8 +19,7 @@ import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "exp
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useGlass } from "@/utils/useGlass";
-import { ScreenBackground } from "@/components/ScreenBackground";
+import { useSurface } from "@/utils/useSurface";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS, Verse } from "@/constants/quranData";
@@ -28,7 +27,7 @@ import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { useMastery, MasteryLevel } from "@/contexts/MasteryContext";
 import { SURAH_INFO, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
-import { RECITERS_LIST, getFontSizeMultiplier, SURAH_NAME_FONT } from "@/constants/themes";
+import { RECITERS_LIST, getFontSizeMultiplier, SURAH_NAME_FONT, SURAH_DISPLAY_FONT } from "@/constants/themes";
 import { parseTajweed, TAJWEED_COLORS, TAJWEED_RULES, TajweedRule } from "@/utils/tajweed";
 import { TajweedPopup, TajweedLegend } from "@/components/TajweedPopup";
 import { fetchQaloonSurah } from "@/utils/quranApi";
@@ -133,12 +132,12 @@ function TafsirContent({ surahNum, verseNum, colors, arabicFont }: {
       {loading
         ? <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
         : error
-          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير. يحتاج أول عرض لتفسير السورة إلى اتصال بالإنترنت، ثم يعمل دون اتصال.</Text>
+          ? <Text style={{ textAlign: "center", color: colors.textMuted, fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14 }}>تعذّر تحميل التفسير. يحتاج أول عرض لتفسير السورة إلى اتصال بالإنترنت، ثم يعمل دون اتصال.</Text>
           : <Text style={{ fontSize: 16, textAlign: "auto", lineHeight: 28, color: colors.textSecondary, fontFamily: arabicFont }}>
               {tafsir}
             </Text>
       }
-      <Text style={{ fontSize: 11, textAlign: "center", color: colors.textMuted, fontFamily: "Inter_400Regular" }}>
+      <Text style={{ fontSize: 11, textAlign: "center", color: colors.textMuted, fontFamily: "IBMPlexSansArabic_400Regular" }}>
         التفسير الميسر — موقع الكويت
       </Text>
     </ScrollView>
@@ -220,58 +219,34 @@ function VerseItem({
     textAlign: "auto" as const,
   };
 
-  const masteryDotColor = masteryLevel === 1 ? "#E67E22" : masteryLevel === 2 ? "#C9A227" : masteryLevel === 3 ? "#27AE60" : null;
+  // Ink density: pencil grey while it is new, full accent ink once it is known.
+  const marginInk = !isBookmarked
+    ? "transparent"
+    : masteryLevel >= 3 ? colors.gold : masteryLevel === 2 ? colors.gold + "AA" : masteryLevel === 1 ? colors.gold + "66" : colors.textMuted + "66";
 
   return (
     <View style={[
       styles.verseContainer,
       isLandscape && styles.verseContainerLandscape,
       {
+        // Flat folio row. Only a hairline between verses; a verse being memorised carries a margin
+        // rule on the right whose strength shows how well it is known (ink density).
+        borderBottomColor: colors.border,
+        borderRightColor: marginInk,
+        borderRightWidth: marginInk === "transparent" ? 0 : 3,
         backgroundColor: isNavigatedTo
-          ? colors.gold + "30"
+          ? colors.gold + "26"
           : isKaraoke
-            ? colors.gold + "18"
+            ? colors.gold + "1A"
             : isActive
               ? colors.gold + "12"
-              : isBookmarked
-                ? colors.gold + "0D"
-                : colors.bgCard,
-        borderColor: isNavigatedTo
-          ? colors.gold
-          : isKaraoke
-            ? colors.gold + "70"
-            : isActive
-              ? colors.gold + "50"
-              : isBookmarked
-                ? colors.gold + "50"
-                : colors.border,
-        borderLeftWidth: isNavigatedTo ? 4 : isKaraoke ? 4 : isActive ? 3 : 1,
-        borderLeftColor: isNavigatedTo
-          ? colors.gold
-          : isKaraoke
-            ? colors.gold
-            : isActive
-              ? colors.gold
-              : isBookmarked ? colors.gold + "50" : colors.border,
+              : "transparent",
       }
     ]}>
       <View style={styles.verseHeader}>
         <View style={styles.verseHeaderLeft}>
           {!hideNumbers && (
-            <View style={[
-              styles.verseNumberBadge,
-              {
-                backgroundColor: isBookmarked ? colors.gold + "20" : colors.bgSurface,
-                borderColor: isBookmarked ? colors.gold + "60" : colors.border,
-              }
-            ]}>
-              <Text style={[styles.verseNumberText, { color: isBookmarked ? colors.gold : colors.textMuted }]}>
-                {verse.number}
-              </Text>
-            </View>
-          )}
-          {masteryDotColor !== null && (
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: masteryDotColor }} />
+            <Text style={[styles.verseMarker, { color: colors.rubric }]}>{`\u200F\uFD3F${verse.number}\uFD3E`}</Text>
           )}
         </View>
         <View style={styles.verseHeaderRight}>
@@ -379,7 +354,7 @@ export default function SurahScreen() {
   const [jumpToVerseVisible, setJumpToVerseVisible] = useState(false);
   const [jumpToVerseInput, setJumpToVerseInput] = useState("");
   const flatListRef = useRef<FlatList<Verse>>(null);
-  const glass = useGlass();
+  const paper = useSurface();
 
   // Verses have different heights, so a far-away verse has not been measured yet and
   // scrollToIndex cannot reach it directly. On failure we jump close to it (using the
@@ -712,13 +687,10 @@ export default function SurahScreen() {
   };
 
   const headerComponent = (
-    <View style={[styles.surahHeader, glass.surface("soft")]}>
+    <View style={[styles.surahHeader, { borderBottomColor: colors.border }]}>
       <View style={styles.surahHeaderTop}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
-          <Text style={[
-            styles.surahArabicName, { color: colors.gold },
-            arabicFontFamily ? { fontFamily: arabicFontFamily } : {},
-          ]}>
+          <Text style={[styles.surahArabicName, { color: colors.leaf, fontFamily: SURAH_DISPLAY_FONT }]}>
             {surah.nameArabic}
           </Text>
           {qiraa === "qaloon" && (
@@ -866,7 +838,6 @@ export default function SurahScreen() {
       style={{ flex: 1, backgroundColor: colors.bgDark }}
       {...(panResponder ? panResponder.panHandlers : {})}
     >
-      <ScreenBackground />
       {!isImmersive && (
         <ScreenHeader
           title={surah.nameArabic}
@@ -1149,7 +1120,7 @@ export default function SurahScreen() {
         <View style={[
           styles.audioBar,
           {
-            ...glass.surface("soft", { blur: true }),
+            ...paper.surface("soft"),
             bottom: Platform.OS === "web" ? 34 : insets.bottom,
           }
         ]}>
@@ -1331,7 +1302,7 @@ export default function SurahScreen() {
         onRequestClose={() => setTafsirVerse(null)}
       >
         <Pressable style={styles.tafsirOverlay} onPress={() => setTafsirVerse(null)}>
-          <View style={[styles.tafsirSheet, { ...glass.surface("strong", { blur: true }), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
+          <View style={[styles.tafsirSheet, { ...paper.surface("strong"), borderBottomWidth: 0, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 10 }]}>
             <View style={[styles.tafsirHeader, { borderBottomColor: colors.border }]}>
               <Pressable onPress={() => setTafsirVerse(null)} hitSlop={12}>
                 <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -1364,7 +1335,7 @@ export default function SurahScreen() {
           <Pressable
             onPress={() => {}}
             style={{
-              ...glass.surface("strong", { blur: true }),
+              ...paper.surface("strong"),
               borderRadius: 20,
               padding: 24,
               width: 260,
@@ -1450,7 +1421,7 @@ export default function SurahScreen() {
           <View style={[
             styles.guideSheet,
             {
-              ...glass.surface("strong", { blur: true }),
+              ...paper.surface("strong"),
               borderBottomWidth: 0,
               paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             },
@@ -1514,12 +1485,11 @@ const styles = StyleSheet.create({
   },
   surahHeader: {
     alignItems: "center",
-    paddingVertical: 24,
+    paddingVertical: 22,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 12,
-    marginBottom: 20,
-    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 8,
+    borderBottomWidth: 1,
   },
   surahHeaderTop: {
     flexDirection: "row",
@@ -1530,7 +1500,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   surahArabicName: {
-    fontSize: 36,
+    fontSize: 44,
     textAlign: "center",
     flex: 1,
   },
@@ -1561,7 +1531,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   metaText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 12,
   },
   infoPanel: {
@@ -1582,11 +1552,11 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
   },
   infoCellNum: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 18,
   },
   infoCellLabel: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 11,
   },
   infoThemeCard: {
@@ -1598,7 +1568,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   infoThemeCardLabel: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
     textAlign: "auto",
     letterSpacing: 0.3,
@@ -1607,7 +1577,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "auto",
     lineHeight: 28,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
   },
   infoVirtue: {
     flexDirection: "row",
@@ -1620,7 +1590,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   infoVirtueLabel: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
     textAlign: "auto",
     marginBottom: 3,
@@ -1630,14 +1600,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "auto",
     lineHeight: 22,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
   },
   verseContainer: {
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 10,
-    borderWidth: 1,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
     flex: 1,
   },
   verseContainerLandscape: {
@@ -1661,17 +1630,9 @@ const styles = StyleSheet.create({
     gap: 6,
     marginLeft: -6,
   },
-  verseNumberBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verseNumberText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
+  verseMarker: {
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
+    fontSize: 15,
   },
   // 34 px buttons with a 5 px hit slop: a 44 px touch target without making each verse taller.
   iconBtn: {
@@ -1687,7 +1648,7 @@ const styles = StyleSheet.create({
     // French / English: left to right, below the Arabic.
     writingDirection: "ltr",
     textAlign: "left",
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 15,
     lineHeight: 23,
     marginTop: 6,
@@ -1703,7 +1664,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  rangeBannerText: { flex: 1, fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "auto" },
+  rangeBannerText: { flex: 1, fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "auto" },
   rangeStop: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
   toast: {
     position: "absolute",
@@ -1714,9 +1675,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
   },
-  toastText: { fontFamily: "Tajawal_400Regular", fontSize: 15 },
+  toastText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15 },
   translationCredit: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 12,
     textAlign: "center",
     marginBottom: 8,
@@ -1747,7 +1708,7 @@ const styles = StyleSheet.create({
   },
   downloadText: {
     fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     textAlign: "center",
     zIndex: 1,
   },
@@ -1764,7 +1725,7 @@ const styles = StyleSheet.create({
   swipeIndicatorText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
   },
   notFound: {
     flex: 1,
@@ -1773,7 +1734,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   notFoundText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 16,
   },
   exitImmersiveBtn: {
@@ -1793,7 +1754,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   qiraaBadgeText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
   },
   audioBar: {
@@ -1837,12 +1798,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   audioBarRef: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 14,
     textAlign: "auto",
   },
   audioBarRepeat: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 11,
     textAlign: "auto",
   },
@@ -1863,7 +1824,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   audioChipText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
   },
   audioChipDivider: {
@@ -1911,7 +1872,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   bookmarkCountText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 12,
     textAlign: "auto",
     flex: 1,
@@ -1926,7 +1887,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   upcomingChipText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
   },
   guideOverlay: {
@@ -1959,7 +1920,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   guideTitleText: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 16,
     textAlign: "center",
     flex: 1,
@@ -1988,9 +1949,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   guideRuleDot: { width: 7, height: 7, borderRadius: 4 },
-  guideRuleLabel: { fontFamily: "Inter_700Bold", fontSize: 12 },
+  guideRuleLabel: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 12 },
   guideRuleFullLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 14,
     textAlign: "auto",
     flex: 1,
@@ -1999,7 +1960,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "auto",
     lineHeight: 22,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
   },
   guideHowToBox: {
     borderRadius: 10,
@@ -2014,7 +1975,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   guideBoxLabel: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 10,
     textAlign: "auto",
   },
@@ -2022,7 +1983,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "auto",
     lineHeight: 22,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
   },
   guideExText: {
     fontSize: 18,
@@ -2048,7 +2009,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tafsirTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 17,
     textAlign: "center",
   },

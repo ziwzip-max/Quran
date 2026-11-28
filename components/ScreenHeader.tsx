@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { HeaderBack } from "@/components/HeaderBack";
 
 /**
@@ -22,18 +22,18 @@ export function ScreenHeader({
   right?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const glass = useGlass();
+  const paper = useSurface();
   const { colors } = useSettings();
   return (
     <View
       style={[
         styles.bar,
-        glass.surface("soft", { blur: true }),
+        paper.surface("soft"),
         {
           paddingTop: insets.top,
           borderWidth: 0,
           borderBottomWidth: 1,
-          borderBottomColor: glass.enabled ? glass.tokens.edge : colors.border,
+          borderBottomColor: colors.border,
         },
       ]}
     >

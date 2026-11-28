@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SURAHS } from "@/constants/quranData";
@@ -39,7 +39,7 @@ export function JumpModal({
   const [tab, setTab] = useState<JumpTab>("surah");
   const insets = useSafeAreaInsets();
   const { colors } = useSettings();
-  const glass = useGlass();
+  const paper = useSurface();
 
   const surahList = filterSurahNumbers
     ? SURAHS.filter(s => filterSurahNumbers.includes(s.number))
@@ -55,7 +55,7 @@ export function JumpModal({
           </Pressable>
         </View>
 
-        <View style={[styles.tabs, glass.surface("soft")]}>
+        <View style={[styles.tabs, paper.surface("soft")]}>
           {(["surah", "juz", "hizb"] as JumpTab[]).map(t => (
             <Pressable
               key={t}

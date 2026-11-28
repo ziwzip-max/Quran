@@ -8,8 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { useGlass } from "@/utils/useGlass";
-import { ScreenBackground } from "@/components/ScreenBackground";
+import { useSurface } from "@/utils/useSurface";
 import { useTopPadding } from "@/utils/layout";
 import { useSettings } from "@/contexts/SettingsContext";
 import { BUILT_IN_DUAS, DUA_CATEGORIES, Dua, DuaCategory } from "@/constants/duaaData";
@@ -237,7 +236,7 @@ export default function DuaScreen() {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const topPadding = useTopPadding();
-  const glass = useGlass();
+  const paper = useSurface();
 
   useFocusEffect(useCallback(() => {
     AsyncStorage.getItem(CUSTOM_DUAS_KEY).then((stored) => {
@@ -291,7 +290,6 @@ export default function DuaScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
-      <ScreenBackground />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           onPress={() => setAddModalVisible(true)}
@@ -335,7 +333,7 @@ export default function DuaScreen() {
 
       <Pressable
         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCategoryModalVisible(true); }}
-        style={[styles.categoryDropdown, glass.surface("soft")]}
+        style={[styles.categoryDropdown, paper.surface("soft")]}
       >
         <View style={styles.categoryDropdownLeft}>
           <View style={[styles.categoryDot, { backgroundColor: colors.gold }]} />
@@ -352,7 +350,7 @@ export default function DuaScreen() {
         onRequestClose={() => setCategoryModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setCategoryModalVisible(false)}>
-          <View style={[styles.categoryPickerSheet, glass.surface("strong", { blur: true })]}>
+          <View style={[styles.categoryPickerSheet, paper.surface("strong")]}>
             <View style={[styles.categoryPickerHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.categoryPickerTitle, { color: colors.textPrimary }]}>اختر الفئة</Text>
               <Pressable onPress={() => setCategoryModalVisible(false)} hitSlop={10}>
@@ -432,7 +430,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 22,
     textAlign: "center",
   },
@@ -455,13 +453,13 @@ const styles = StyleSheet.create({
   favFilterChip: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   favFilterText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 13,
   },
   categoryDropdown: {
@@ -486,11 +484,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   categoryDropdownText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 14,
   },
   categoryDropdownCount: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 13,
   },
   modalOverlay: {
@@ -512,7 +510,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   categoryPickerTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 16,
   },
   categoryPickerList: {
@@ -528,13 +526,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   categoryPickerLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 15,
     flex: 1,
     textAlign: "auto",
   },
   categoryPickerCount: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 13,
     minWidth: 30,
     textAlign: "left",
@@ -546,14 +544,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   catChipText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 13,
   },
   listContent: {
     padding: 14,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 6,
     padding: 16,
     borderWidth: 1,
     gap: 12,
@@ -576,7 +574,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   cardTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 16,
     textAlign: "auto",
   },
@@ -587,7 +585,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   customBadgeText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 11,
   },
   sourceBadge: {
@@ -597,7 +595,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sourceText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 11,
   },
   cardArabic: {
@@ -606,7 +604,7 @@ const styles = StyleSheet.create({
     textAlign: "auto",
   },
   expandHint: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 12,
     textAlign: "auto",
   },
@@ -621,11 +619,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   categoryBadgeText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 12,
   },
   copyHint: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 11,
   },
   emptyState: {
@@ -634,7 +632,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 15,
     textAlign: "center",
   },
@@ -650,7 +648,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   modalTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 18,
   },
   saveBtn: {
@@ -659,7 +657,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   saveBtnText: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "IBMPlexSansArabic_700Bold",
     fontSize: 14,
   },
   modalScroll: {
@@ -672,12 +670,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   inputLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "IBMPlexSansArabic_500Medium",
     fontSize: 12,
     textAlign: "auto",
   },
   textInput: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "IBMPlexSansArabic_400Regular",
     fontSize: 16,
     textAlign: "auto",
     minHeight: 36,

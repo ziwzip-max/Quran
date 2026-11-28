@@ -26,8 +26,6 @@ interface SettingsContextValue {
   continuousPlay: boolean;
   qiraa: "hafs" | "qaloon";
   translationLang: TranslationLang;
-  /** Frosted-glass surfaces on (true) or plain solid surfaces (false). */
-  glass: boolean;
   /** The theme actually shown (auto night mode may differ from `theme`). */
   effectiveTheme: ThemeName;
   notifEnabled: boolean;
@@ -48,7 +46,6 @@ interface SettingsContextValue {
   setContinuousPlay: (v: boolean) => void;
   setQiraa: (q: "hafs" | "qaloon") => void;
   setTranslationLang: (l: TranslationLang) => void;
-  setGlass: (on: boolean) => void;
   setNotifEnabled: (v: boolean) => void;
   setNotifHour: (h: number) => void;
   setNotifMinute: (m: number) => void;
@@ -85,7 +82,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>("light");
   // Default to a bundled font: device fonts often lack Quranic marks (ۛ ۭ ۢ) and show boxes.
   const [arabicFont, setArabicFontState] = useState<ArabicFontName>(DEFAULT_ARABIC_FONT);
-  const [accentColor, setAccentColorState] = useState<AccentColorName>("or");
+  const [accentColor, setAccentColorState] = useState<AccentColorName>("vert");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacingName>("normal");
   const [hideVerseNumbers, setHideVerseNumbersState] = useState(false);
   const [showVerseOfDay, setShowVerseOfDayState] = useState(true);
@@ -97,7 +94,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [continuousPlay, setContinuousPlayState] = useState(false);
   const [qiraa, setQiraaState] = useState<"hafs" | "qaloon">("hafs");
   const [translationLang, setTranslationLangState] = useState<TranslationLang>("none");
-  const [glass, setGlassState] = useState(true);
   const [notifEnabled, setNotifEnabledState] = useState(false);
   const [notifHour, setNotifHourState] = useState(8);
   const [notifMinute, setNotifMinuteState] = useState(0);
@@ -113,7 +109,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const font = (INVALID_FONTS.includes(p.arabicFont) || REMOVED_FONTS.includes(p.arabicFont)) ? DEFAULT_ARABIC_FONT : p.arabicFont;
       setArabicFontState(font as ArabicFontName);
     }
-    if (p.accentColor) setAccentColorState(p.accentColor);
+    // Accents from before the redesign (gold, emerald) fall back to the default.
+    if (p.accentColor) setAccentColorState(p.accentColor in ACCENT_COLORS ? p.accentColor : "vert");
     if (p.lineSpacing) setLineSpacingState(p.lineSpacing);
     if (p.hideVerseNumbers !== undefined) setHideVerseNumbersState(p.hideVerseNumbers);
     if (p.showVerseOfDay !== undefined) setShowVerseOfDayState(p.showVerseOfDay);
@@ -126,7 +123,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (p.continuousPlay !== undefined) setContinuousPlayState(p.continuousPlay);
     if (p.qiraa) setQiraaState(p.qiraa);
     if (p.translationLang) setTranslationLangState(p.translationLang);
-    if (p.glass !== undefined) setGlassState(!!p.glass);
     if (p.notifEnabled !== undefined) setNotifEnabledState(p.notifEnabled);
     if (p.notifHour !== undefined) setNotifHourState(p.notifHour);
     if (p.notifMinute !== undefined) setNotifMinuteState(p.notifMinute);
@@ -157,7 +153,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setContinuousPlay = (v: boolean) => { setContinuousPlayState(v); saveSettings({ continuousPlay: v }); };
   const setQiraa = (q: "hafs" | "qaloon") => { setQiraaState(q); saveSettings({ qiraa: q }); };
   const setTranslationLang = (l: TranslationLang) => { setTranslationLangState(l); saveSettings({ translationLang: l }); };
-  const setGlass = (on: boolean) => { setGlassState(on); saveSettings({ glass: on }); };
   const setNotifEnabled = (v: boolean) => { setNotifEnabledState(v); saveSettings({ notifEnabled: v }); };
   const setNotifHour = (h: number) => { setNotifHourState(h); saveSettings({ notifHour: h }); };
   const setNotifMinute = (m: number) => { setNotifMinuteState(m); saveSettings({ notifMinute: m }); };
@@ -174,7 +169,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const colors = useMemo<ThemeColors>(() => {
     const base = THEMES[effectiveTheme] ?? THEMES.dark;
     const accent = ACCENT_COLORS[accentColor];
-    return { ...base, gold: accent.primary, goldLight: accent.light };
+    const onDark = effectiveTheme === "dark";
+    return { ...base, gold: onDark ? accent.light : accent.primary, goldLight: onDark ? accent.primary : accent.light, teal: onDark ? accent.light : accent.primary, tealLight: onDark ? accent.light : accent.primary };
   }, [effectiveTheme, accentColor]);
 
   const arabicFontFamily = ARABIC_FONTS[arabicFont];
@@ -184,12 +180,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, glass, effectiveTheme,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, effectiveTheme,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize, setArabicFontSize,
       setTheme, setArabicFont, setAccentColor, setLineSpacing,
       setHideVerseNumbers, setShowVerseOfDay, setHighlightActiveVerse,
-      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang, setGlass,
+      setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
       setNotifEnabled, setNotifHour, setNotifMinute, setAutoNightMode,
       colors, arabicFontFamily, lineSpacingValue,
       reloadFromStorage,
@@ -197,7 +193,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [
       theme, arabicFont, accentColor, lineSpacing,
       hideVerseNumbers, showVerseOfDay, highlightActiveVerse,
-      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, glass, effectiveTheme,
+      reciterId, playbackRate, repeatMode, showTajweed, continuousPlay, qiraa, translationLang, effectiveTheme,
       notifEnabled, notifHour, notifMinute, autoNightMode,
       arabicFontSize,
       colors, arabicFontFamily, lineSpacingValue,

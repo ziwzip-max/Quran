@@ -4,7 +4,6 @@ import { router, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { ScreenBackground } from "@/components/ScreenBackground";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks, type VerseBlock } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -70,15 +69,14 @@ export default function ReviewScreen() {
   };
 
   if (!queue) {
-    return <View style={[styles.fill, { backgroundColor: colors.bgDark }]}><ScreenBackground /><ScreenHeader title="المراجعة اليومية" titleFont="Tajawal_400Regular" titleSize={18} /></View>;
+    return <View style={[styles.fill, { backgroundColor: colors.bgDark }]}><ScreenHeader title="المراجعة اليومية" titleFont="IBMPlexSansArabic_400Regular" titleSize={18} /></View>;
   }
 
   if (queue.length === 0 || index >= queue.length) {
     const done = queue.length > 0;
     return (
       <View style={[styles.fill, { backgroundColor: colors.bgDark }]}>
-        <ScreenBackground />
-        <ScreenHeader title="المراجعة اليومية" titleFont="Tajawal_400Regular" titleSize={18} />
+        <ScreenHeader title="المراجعة اليومية" titleFont="IBMPlexSansArabic_400Regular" titleSize={18} />
         <View style={styles.center}>
         <Ionicons name={done ? "checkmark-circle" : "sunny-outline"} size={56} color={colors.gold} />
         <Text style={[styles.doneTitle, { color: colors.textPrimary }]}>
@@ -106,7 +104,6 @@ export default function ReviewScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark}]}>
-      <ScreenBackground />
       <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
         <View style={[styles.progressFill, { width: `${(index / queue.length) * 100}%`, backgroundColor: colors.gold }]} />
       </View>
@@ -167,20 +164,20 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
   progressTrack: { height: 3, width: "100%" },
   progressFill: { height: 3 },
-  counter: { fontFamily: "Inter_500Medium", fontSize: 13, textAlign: "center", marginTop: 10 },
+  counter: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 13, textAlign: "center", marginTop: 10 },
   body: { padding: 16, flexGrow: 1, maxWidth: 720, width: "100%", alignSelf: "center" },
   card: { borderWidth: 1, borderRadius: 18, padding: 18, gap: 10 },
   surahName: { fontFamily: SURAH_NAME_FONT, fontSize: 26, textAlign: "center" },
-  range: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "center" },
+  range: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15, textAlign: "center" },
   verses: { fontSize: 24, lineHeight: 48, textAlign: "auto", marginTop: 6 },
   hidden: { alignItems: "center", gap: 14, paddingVertical: 28 },
-  hiddenText: { fontFamily: "Tajawal_400Regular", fontSize: 16, textAlign: "center", lineHeight: 26 },
+  hiddenText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 16, textAlign: "center", lineHeight: 26 },
   primary: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 24, borderRadius: 24 },
-  primaryText: { fontFamily: "Tajawal_400Regular", fontSize: 17 },
+  primaryText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 17 },
   ratings: { flexDirection: "row", gap: 10, paddingHorizontal: 16, maxWidth: 720, width: "100%", alignSelf: "center" },
   rating: { flex: 1, minHeight: 64, borderWidth: 1, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 2 },
-  ratingLabel: { fontFamily: "Tajawal_400Regular", fontSize: 18 },
-  ratingHint: { fontFamily: "Tajawal_400Regular", fontSize: 12 },
-  doneTitle: { fontFamily: "Tajawal_400Regular", fontSize: 20, textAlign: "center" },
-  doneSummary: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "center" },
+  ratingLabel: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 18 },
+  ratingHint: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 12 },
+  doneTitle: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 20, textAlign: "center" },
+  doneSummary: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15, textAlign: "center" },
 });

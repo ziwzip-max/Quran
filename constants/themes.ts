@@ -1,8 +1,13 @@
 export interface ThemeColors {
+  /** Accent colour: buttons, active states, links. */
   gold: string;
   goldLight: string;
   teal: string;
   tealLight: string;
+  /** Madder red, as in the red ink of manuscripts: verse-end markers and "due for review". */
+  rubric: string;
+  /** Gold leaf, used only for surah names. */
+  leaf: string;
   bgDark: string;
   bgCard: string;
   bgSurface: string;
@@ -14,73 +19,82 @@ export interface ThemeColors {
   success: string;
 }
 
+// "Folio": washed paper, green-black ink, madder red for the markers.
 export const darkTheme: ThemeColors = {
-  gold: "#C9A227",
-  goldLight: "#E8C547",
-  teal: "#1D9D89",
-  tealLight: "#26B399",
-  bgDark: "#0A0E1A",
-  bgCard: "#131929",
-  bgSurface: "#1C2438",
-  textPrimary: "#F0EAD6",
-  textSecondary: "#8B9DC3",
-  textMuted: "#7C8BB4",
-  border: "#1E2C4A",
-  error: "#E05555",
-  success: "#2DB87F",
+  gold: "#4FB3AC",
+  goldLight: "#7CCBC5",
+  teal: "#4FB3AC",
+  tealLight: "#7CCBC5",
+  rubric: "#E58A92",
+  leaf: "#D8B65A",
+  bgDark: "#0F1729",
+  bgCard: "#16203A",
+  bgSurface: "#1F2B4A",
+  textPrimary: "#E8ECF2",
+  textSecondary: "#A9B6CF",
+  textMuted: "#93A1BE",
+  border: "#2B3858",
+  error: "#E8828A",
+  success: "#4CC38A",
 };
 
 export const lightTheme: ThemeColors = {
-  gold: "#856108",
-  goldLight: "#7E6618",
-  teal: "#167667",
-  tealLight: "#197665",
-  bgDark: "#F5F0E8",
-  bgCard: "#FFFFFF",
-  bgSurface: "#EDE8DF",
-  textPrimary: "#1A1208",
-  textSecondary: "#5C4A2A",
-  textMuted: "#7A654A",
-  border: "#D4C9B0",
-  error: "#CC2222",
+  gold: "#1A625E",
+  goldLight: "#237A75",
+  teal: "#1A625E",
+  tealLight: "#237A75",
+  rubric: "#9E2B3A",
+  leaf: "#7A5C14",
+  bgDark: "#E9EDEA",
+  bgCard: "#F4F6F3",
+  bgSurface: "#DDE4E0",
+  textPrimary: "#14201F",
+  textSecondary: "#3A4B48",
+  textMuted: "#546461",
+  border: "#C3CCC7",
+  error: "#A3262A",
   success: "#1A7A50",
 };
 
 export const sepiaTheme: ThemeColors = {
-  gold: "#825C22",
-  goldLight: "#7A6025",
-  teal: "#516B4F",
-  tealLight: "#4E6B4D",
-  bgDark: "#F5EDD8",
-  bgCard: "#FDF6E3",
-  bgSurface: "#EDE0C4",
-  textPrimary: "#2C1A08",
-  textSecondary: "#6B4C28",
-  textMuted: "#7A5F3E",
-  border: "#D4B896",
-  error: "#B03030",
-  success: "#4A7A45",
+  gold: "#1A625E",
+  goldLight: "#237A75",
+  teal: "#1A625E",
+  tealLight: "#237A75",
+  rubric: "#9E2B3A",
+  leaf: "#725512",
+  bgDark: "#EEE8D5",
+  bgCard: "#F7F2E2",
+  bgSurface: "#E2DAC2",
+  textPrimary: "#2A2417",
+  textSecondary: "#54482F",
+  textMuted: "#6B5E41",
+  border: "#CFC5A8",
+  error: "#A3262A",
+  success: "#3F7A45",
 };
 
 export const violetTheme: ThemeColors = {
-  gold: "#886308",
-  goldLight: "#806719",
-  teal: "#167667",
-  tealLight: "#197665",
+  gold: "#1A625E",
+  goldLight: "#237A75",
+  teal: "#1A625E",
+  tealLight: "#237A75",
+  rubric: "#9E2B3A",
+  leaf: "#7A5C14",
   bgDark: "#FFFFFF",
-  bgCard: "#F5F5F5",
-  bgSurface: "#EBEBEB",
-  textPrimary: "#111111",
-  textSecondary: "#444444",
-  textMuted: "#696969",
-  border: "#DDDDDD",
-  error: "#CC2222",
+  bgCard: "#F6F7F6",
+  bgSurface: "#ECEEED",
+  textPrimary: "#0E0E0E",
+  textSecondary: "#3D3D3D",
+  textMuted: "#5E5E5E",
+  border: "#D6D9D7",
+  error: "#A3262A",
   success: "#1A7A50",
 };
 
 export type ThemeName = "dark" | "light" | "sepia" | "violet";
 export type ArabicFontName = "system" | "naskh" | "amiriquran" | "scheherazade" | "lateef";
-export type AccentColorName = "or" | "emeraude" | "bleu" | "bordeaux" | "lilas";
+export type AccentColorName = "vert" | "bleu" | "bordeaux" | "lilas";
 export type LineSpacingName = "serré" | "normal" | "aéré";
 export type PlaybackRate = 0.75 | 1.0 | 1.25;
 export type RepeatMode = 0 | 1 | 3 | 5 | 10;
@@ -129,12 +143,12 @@ export const RECITERS_LIST: ReciterEntry[] = [
 
 export const DEFAULT_RECITER_ID = "alafasy";
 
+/** `primary` on the light themes, `light` on the dark one. */
 export const ACCENT_COLORS: Record<AccentColorName, { primary: string; light: string }> = {
-  or:       { primary: "#C9A227", light: "#E8C547" },
-  emeraude: { primary: "#27AE60", light: "#2ECC71" },
-  bleu:     { primary: "#2980B9", light: "#3498DB" },
-  bordeaux: { primary: "#C0392B", light: "#E74C3C" },
-  lilas:    { primary: "#8E44AD", light: "#9B59B6" },
+  vert:     { primary: "#1A625E", light: "#4FB3AC" },
+  bleu:     { primary: "#254F8A", light: "#7AA7E0" },
+  bordeaux: { primary: "#8F2433", light: "#E58A92" },
+  lilas:    { primary: "#5E4189", light: "#B79BE0" },
 };
 
 export const LINE_SPACING: Record<LineSpacingName, number> = {
@@ -144,4 +158,6 @@ export const LINE_SPACING: Record<LineSpacingName, number> = {
 };
 
 /** Font for surah names in lists and headers, so every name renders the same way. */
-export const SURAH_NAME_FONT = "Amiri_400Regular";
+export const SURAH_NAME_FONT = "IBMPlexSansArabic_600SemiBold";
+/** Calligraphic ruq'ah, for large surah headings only: too ornate for list sizes. */
+export const SURAH_DISPLAY_FONT = "ArefRuqaa_700Bold";

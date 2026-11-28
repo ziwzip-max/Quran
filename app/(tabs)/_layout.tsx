@@ -6,8 +6,7 @@ import React from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { SettingsSheetProvider } from "@/contexts/SettingsSheetContext";
 import { MiniPlayer } from "@/components/MiniPlayer";
-import { ScreenBackground } from "@/components/ScreenBackground";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { SideNav } from "@/components/SideNav";
 import { useIsWide } from "@/utils/layout";
 
@@ -32,14 +31,14 @@ const TABS: { name: string; title: string; icon: (p: IconProps) => React.ReactNo
 
 /** Frosted strip behind the tab bar buttons. */
 function TabBarGlass() {
-  const glass = useGlass();
+  const paper = useSurface();
   const { colors } = useSettings();
   return (
     <View
       style={[
         StyleSheet.absoluteFill,
-        glass.surface("soft", { blur: true }),
-        { borderWidth: 0, borderTopWidth: 1, borderTopColor: glass.enabled ? glass.tokens.edge : colors.border },
+        paper.surface("soft"),
+        { borderWidth: 0, borderTopWidth: 1, borderTopColor: colors.border },
       ]}
     />
   );
@@ -54,8 +53,6 @@ export default function TabLayout() {
     // Mini player sits directly above the tab bar; both take their own space so nothing is hidden.
     return (
       <View>
-        {/* One backdrop for the mini player and the bar, so the glass has the glow to sit on. */}
-        <ScreenBackground />
         <MiniPlayer />
         <BottomTabBar {...props} />
       </View>
@@ -74,7 +71,7 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.gold,
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarShowLabel: true,
-          tabBarLabelStyle: { fontFamily: "Tajawal_400Regular", fontSize: 11, marginTop: -2 },
+          tabBarLabelStyle: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 11, marginTop: -2 },
           tabBarBackground: () => <TabBarGlass />,
           tabBarStyle: {
             backgroundColor: "transparent",

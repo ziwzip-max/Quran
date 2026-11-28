@@ -15,8 +15,7 @@ import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useGlass } from "@/utils/useGlass";
-import { ScreenBackground } from "@/components/ScreenBackground";
+import { useSurface } from "@/utils/useSurface";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { dueBlocks } from "@/utils/srs";
 import { loadReviews } from "@/utils/reviews";
@@ -73,9 +72,9 @@ function getVerseOfDay(): { surahNumber: number; verseNumber: number } {
 
 
 function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: ReturnType<typeof useSettings>["colors"] }) {
-  const glass = useGlass();
+  const paper = useSurface();
   return (
-    <View style={[styles.continueCard, glass.surface("soft")]}>
+    <View style={[styles.continueCard, paper.rule()]}>
       <View style={styles.continueHeader}>
         <View style={[styles.continueBadge, { backgroundColor: colors.gold + "20" }]}>
           <Text style={[styles.continueBadgeText, { color: colors.gold }]}>تابِع من حيث توقفت</Text>
@@ -102,11 +101,11 @@ function ContinueReadingCard({ data, colors }: { data: LastSurahData; colors: Re
 }
 
 function DailyDuaWidget({ dua, colors, onOpen }: { dua: Dua; colors: ReturnType<typeof useSettings>["colors"]; onOpen: () => void }) {
-  const glass = useGlass();
+  const paper = useSurface();
   return (
     <Pressable
       onPress={onOpen}
-      style={[styles.duaWidget, glass.surface("soft")]}
+      style={[styles.duaWidget, paper.rule()]}
     >
       <View style={styles.duaHeader}>
         <View style={[styles.duaBadge, { backgroundColor: colors.teal + "15" }]}>
@@ -132,7 +131,7 @@ function VerseOfDayWidget({
   colors: ReturnType<typeof useSettings>["colors"]; arabicFont: string | undefined;
   onDismiss: () => void;
 }) {
-  const glass = useGlass();
+  const paper = useSurface();
   const surah = SURAHS.find((s) => s.number === surahNumber);
   const verse = surah?.verses.find((v) => v.number === verseNumber);
   const { isBookmarked, toggleBookmark } = useBookmarks();
@@ -140,7 +139,7 @@ function VerseOfDayWidget({
   const bookmarked = isBookmarked(surahNumber, verseNumber);
 
   return (
-    <View style={[styles.vodWidget, glass.surface("soft")]}>
+    <View style={[styles.vodWidget, paper.rule()]}>
       <View style={styles.vodTop}>
         <View style={[styles.vodBadge, { backgroundColor: colors.gold + "20" }]}>
           <Text style={[styles.vodBadgeText, { color: colors.gold }]}>آية اليوم</Text>
@@ -180,13 +179,13 @@ function HistoryChip({ surahNumber, colors, onPress }: {
   colors: ReturnType<typeof useSettings>["colors"];
   onPress: () => void;
 }) {
-  const glass = useGlass();
+  const paper = useSurface();
   const surah = SURAHS.find((s) => s.number === surahNumber);
   if (!surah) return null;
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.historyChip, glass.surface("soft")]}
+      style={[styles.historyChip, paper.surface("soft")]}
     >
       <Text style={[styles.historyChipArabic, { color: colors.textPrimary }]}>{surah.nameArabic}</Text>
       <Text style={[styles.historyChipNum, { color: colors.textMuted }]}>{surah.number}</Text>
@@ -219,7 +218,6 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
   isPinned: boolean;
   colors: ReturnType<typeof useSettings>["colors"];
 }) {
-  const glass = useGlass();
   const revType = SURAH_TYPE[surah.number];
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -238,27 +236,17 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
       delayLongPress={400}
       style={({ pressed }) => [
         styles.card,
-        glass.surface("soft"),
-        isPinned && { backgroundColor: colors.gold + "24", borderColor: colors.gold + "70" },
-        pressed && { opacity: 0.75 }
+        { borderBottomColor: colors.border },
+        isPinned && { backgroundColor: colors.gold + "14", borderRightColor: colors.gold, borderRightWidth: 3 },
+        pressed && { backgroundColor: colors.bgSurface },
       ]}
     >
       <Animated.View style={[styles.cardInner, { transform: [{ scale }] }]}>
-        <View style={styles.cardLeft}>
-          <Text style={[styles.verseCount, { color: colors.textMuted }]}>{countAyat(surah.versesCount)}</Text>
-          <View style={[styles.revTypePill, { backgroundColor: revType === "mecquoise" ? colors.teal + "20" : colors.gold + "15" }]}>
-            <Text style={[styles.revTypeText, { color: revType === "mecquoise" ? colors.tealLight : colors.gold }]}>
-              {revType === "mecquoise" ? "مكية" : "مدنية"}
-            </Text>
-          </View>
-        </View>
+        <Text style={[styles.numberText, { color: colors.rubric }]}>{surah.number}</Text>
         <Text style={[styles.arabicName, { color: colors.textPrimary }]}>{surah.nameArabic}</Text>
-        <View style={[styles.numberBadge, {
-          backgroundColor: isPinned ? colors.gold + "20" : colors.bgSurface,
-          borderColor: isPinned ? colors.gold + "60" : colors.gold + "40",
-        }]}>
-          <Text style={[styles.numberText, { color: colors.gold }]}>{surah.number}</Text>
-        </View>
+        <Text style={[styles.verseCount, { color: colors.textMuted }]}>
+          {`${revType === "mecquoise" ? "مكية" : "مدنية"}، ${countAyat(surah.versesCount)}`}
+        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -297,7 +285,7 @@ function VerseResultCard({ result, colors, arabicFont, query }: { result: VerseR
 }
 
 export default function QuranScreen() {
-  const glass = useGlass();
+  const paper = useSurface();
   const { colors, arabicFontFamily, showVerseOfDay } = useSettings();
   const { masteryMap } = useMastery();
   const { blocks } = useBookmarks();
@@ -483,7 +471,6 @@ export default function QuranScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
-      <ScreenBackground />
       <View style={[styles.innerContainer, { paddingTop: topPadding }]}>
 
       <FlatList
@@ -499,7 +486,7 @@ export default function QuranScreen() {
                   onPress={openRandomSurah}
                   accessibilityRole="button"
                   accessibilityLabel="سورة عشوائية"
-                  style={[styles.headerBtn, glass.surface("soft")]}
+                  style={[styles.headerBtn, paper.surface("soft")]}
                 >
                   <Ionicons name="shuffle" size={20} color={colors.textSecondary} />
                 </Pressable>
@@ -507,7 +494,7 @@ export default function QuranScreen() {
                   onPress={openSettings}
                   accessibilityRole="button"
                   accessibilityLabel="الإعدادات"
-                  style={[styles.headerBtn, glass.surface("soft")]}
+                  style={[styles.headerBtn, paper.surface("soft")]}
                 >
                   <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
                 </Pressable>
@@ -554,7 +541,7 @@ export default function QuranScreen() {
               </View>
             )}
 
-            <View style={[styles.searchContainer, glass.surface("soft")]}>
+            <View style={[styles.searchContainer, paper.surface("soft")]}>
               {search.length > 0 && (
                 <Pressable onPress={() => setSearch("")}>
                   <Ionicons name="close-circle" size={16} color={colors.textMuted} />
@@ -589,7 +576,7 @@ export default function QuranScreen() {
                       onPress={() => setRevelationFilter(key)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
-                      style={[styles.filterChip, glass.surface("soft"), active && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
+                      style={[styles.filterChip, paper.surface("soft"), active && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
                     >
                       <Text style={[styles.filterChipText, { color: active ? colors.gold : colors.textSecondary }]}>{label}</Text>
                     </Pressable>
@@ -599,7 +586,7 @@ export default function QuranScreen() {
                   onPress={() => (juzFilter ? setJuzFilter(null) : setJuzPickerOpen(true))}
                   accessibilityRole="button"
                   accessibilityLabel={juzFilter ? `إلغاء تصفية الجزء ${juzFilter}` : "اختيار جزء"}
-                  style={[styles.filterChip, glass.surface("soft"), !!juzFilter && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
+                  style={[styles.filterChip, paper.surface("soft"), !!juzFilter && { borderColor: colors.gold, backgroundColor: colors.gold + "26" }]}
                 >
                   <Text style={[styles.filterChipText, { color: juzFilter ? colors.gold : colors.textSecondary }]}>
                     {juzFilter ? `الجزء ${juzFilter}` : "الجزء"}
@@ -611,7 +598,7 @@ export default function QuranScreen() {
 
             <Modal visible={juzPickerOpen} transparent animationType="fade" onRequestClose={() => setJuzPickerOpen(false)}>
               <Pressable style={styles.juzOverlay} onPress={() => setJuzPickerOpen(false)}>
-                <Pressable style={[styles.juzSheet, glass.surface("strong", { blur: true })]} onPress={() => {}}>
+                <Pressable style={[styles.juzSheet, paper.surface("strong")]} onPress={() => {}}>
                   <Text style={[styles.juzTitle, { color: colors.textPrimary }]}>اختر الجزء</Text>
                   <View style={styles.juzGrid}>
                     {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
@@ -635,7 +622,7 @@ export default function QuranScreen() {
                 <Text style={[styles.searchHistoryLabel, { color: colors.textMuted }]}>عمليات بحث سابقة</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.searchHistoryScroll}>
                   {searchHistory.map((q) => (
-                    <View key={q} style={[styles.searchHistoryChip, glass.surface("soft")]}>
+                    <View key={q} style={[styles.searchHistoryChip, paper.surface("soft")]}>
                       <Pressable onPress={() => { setSearch(q); addSearchHistory(q); }}>
                         <Text style={[styles.searchHistoryChipText, { color: colors.textPrimary }]}>{q}</Text>
                       </Pressable>
@@ -727,7 +714,7 @@ export default function QuranScreen() {
 
       <Modal visible={!!selectedDua} animationType="fade" transparent>
         <Pressable style={styles.modalOverlay} onPress={() => setSelectedDua(null)}>
-          <View style={[styles.duaModalContent, glass.surface("strong", { blur: true })]}>
+          <View style={[styles.duaModalContent, paper.surface("strong")]}>
             <View style={styles.duaModalHeader}>
               <Text style={[styles.duaModalTitle, { color: colors.textPrimary }]}>{selectedDua?.title}</Text>
               <Pressable onPress={() => setSelectedDua(null)}>
@@ -771,112 +758,108 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   reviewBannerContent: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
-  reviewBannerText: { fontFamily: "Inter_600SemiBold", fontSize: 13, textAlign: "auto", flex: 1 },
+  reviewBannerText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 13, textAlign: "auto", flex: 1 },
   vodContainer: { paddingHorizontal: 16, marginBottom: 10 },
-  vodWidget: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
-  vodTapHint: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "auto", marginTop: 4 },
+  vodWidget: { paddingVertical: 16, paddingHorizontal: 4, gap: 10 },
+  vodTapHint: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 11, textAlign: "auto", marginTop: 4 },
   vodTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   vodBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  vodBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
+  vodBadgeText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 11 },
   vodRef: { flexDirection: "row", alignItems: "center", gap: 8 },
-  vodRefText: { fontFamily: "Inter_400Regular", fontSize: 12 },
+  vodRefText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 12 },
   vodText: { fontSize: 20, textAlign: "auto", lineHeight: 38 },
   duaFooter: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 4, marginTop: 4 },
-  duaTapHint: { fontFamily: "Inter_500Medium", fontSize: 11 },
+  duaTapHint: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11 },
   continueContainer: { paddingHorizontal: 16, marginBottom: 12 },
-  continueCard: { borderRadius: 16, padding: 16, borderWidth: 1 },
+  continueCard: { paddingVertical: 16, paddingHorizontal: 4 },
   continueHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   continueBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  continueBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
-  continueSurahName: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  continueBadgeText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 11 },
+  continueSurahName: { fontSize: 18, fontFamily: "IBMPlexSansArabic_700Bold" },
   continueBody: { gap: 12 },
   progressContainer: { flexDirection: "row", alignItems: "center", gap: 10 },
   progressBar: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 3 },
-  progressText: { fontFamily: "Inter_600SemiBold", fontSize: 12, minWidth: 35 },
+  progressText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12, minWidth: 35 },
   continueBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 10, borderRadius: 12, gap: 8,
   },
-  continueBtnText: { fontFamily: "Inter_700Bold", fontSize: 14 },
-  sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", marginHorizontal: 18, marginBottom: 8, textAlign: "auto" },
+  continueBtnText: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 14 },
+  sectionTitle: { fontSize: 12, fontFamily: "IBMPlexSansArabic_600SemiBold", marginHorizontal: 18, marginBottom: 8, textAlign: "auto" },
   verseResultsSection: { paddingHorizontal: 16, marginBottom: 12 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 20 },
   duaModalContent: { width: "100%", maxHeight: "80%", borderRadius: 24, padding: 24, gap: 16 },
   duaModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  duaModalTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  duaModalTitle: { fontSize: 20, fontFamily: "IBMPlexSansArabic_700Bold" },
   duaModalBody: { gap: 16 },
   duaModalText: { fontSize: 22, textAlign: "auto", lineHeight: 40 },
   duaModalSource: { fontSize: 13, color: "#888", textAlign: "auto", marginTop: 8 },
   duaContainer: { paddingHorizontal: 16, marginBottom: 12 },
-  duaWidget: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 8 },
+  duaWidget: { paddingVertical: 16, paddingHorizontal: 4, gap: 8 },
   duaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   duaBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  duaBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
-  duaTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
-  duaText: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "auto", lineHeight: 24 },
+  duaBadgeText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 11 },
+  duaTitle: { fontSize: 16, fontFamily: "IBMPlexSansArabic_700Bold" },
+  duaText: { fontSize: 15, fontFamily: "IBMPlexSansArabic_400Regular", textAlign: "auto", lineHeight: 24 },
   searchContainer: {
-    flexDirection: "row", alignItems: "center", borderRadius: 12,
+    flexDirection: "row", alignItems: "center", borderRadius: 6,
     marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, gap: 8,
   },
-  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 15, padding: 0 },
+  searchInput: { flex: 1, fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15, padding: 0 },
   searchHistorySection: { marginHorizontal: 16, marginTop: -2, marginBottom: 6 },
-  searchHistoryLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginBottom: 6, textAlign: "auto" },
+  searchHistoryLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11, marginBottom: 6, textAlign: "auto" },
   searchHistoryScroll: { gap: 8, flexDirection: "row" },
   searchHistoryChip: {
     borderRadius: 20, borderWidth: 1, paddingLeft: 6, paddingRight: 10, paddingVertical: 5,
     flexDirection: "row", alignItems: "center", gap: 5,
   },
-  searchHistoryChipText: { fontFamily: "Inter_400Regular", fontSize: 13 },
+  searchHistoryChipText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 13 },
   historySection: { marginBottom: 4 },
   historyScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
-  historySectionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginRight: 4 },
+  historySectionLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11, marginRight: 4 },
   historyChip: {
-    borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 6, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
     flexDirection: "row", alignItems: "center", gap: 6,
   },
   historyChipArabic: { fontFamily: SURAH_NAME_FONT, fontSize: 15 },
-  historyChipNum: { fontFamily: "Inter_500Medium", fontSize: 10 },
+  historyChipNum: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 10 },
   pinsSection: { marginBottom: 4 },
   pinsScroll: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
-  pinsSectionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, marginRight: 4 },
+  pinsSectionLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11, marginRight: 4 },
   pinChip: {
-    borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 6, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
     flexDirection: "row", alignItems: "center", gap: 6,
   },
   pinChipText: { fontFamily: SURAH_NAME_FONT, fontSize: 15 },
   listContent: { paddingHorizontal: 16 },
-  card: { borderRadius: 14, borderWidth: 1 },
-  cardInner: { flexDirection: "row-reverse", alignItems: "center", paddingVertical: 13, paddingHorizontal: 14, gap: 14 },
-  cardLeft: { flex: 1, alignItems: "flex-end", gap: 5 },
-  verseCount: { fontFamily: "Inter_400Regular", fontSize: 11 },
-  revTypePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  revTypeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  arabicName: { fontFamily: SURAH_NAME_FONT, fontSize: 21, textAlign: "auto" },
-  numberBadge: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  numberText: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
+  card: { borderBottomWidth: 1 },
+  cardInner: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 8, gap: 12 },
+  verseCount: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 12 },
+  arabicName: { flex: 1, fontFamily: SURAH_NAME_FONT, fontSize: 20, textAlign: "auto" },
+  numberText: { width: 34, fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14, textAlign: "center" },
   verseResultContainer: { paddingHorizontal: 16, paddingBottom: 12 },
-  verseResultLabel: { fontFamily: "Inter_500Medium", fontSize: 12, textAlign: "auto", marginBottom: 8 },
-  verseCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 12 },
+  verseResultLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 12, textAlign: "auto", marginBottom: 8 },
+  verseCard: { borderRadius: 6, padding: 16, borderWidth: 1, gap: 12 },
   verseCardTop: { flexDirection: "row-reverse", alignItems: "center", gap: 10, justifyContent: "flex-end" },
   verseRefBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
-  verseRefText: { fontFamily: "Inter_700Bold", fontSize: 13 },
+  verseRefText: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 13 },
   verseCardName: { fontSize: 18, textAlign: "auto" },
   verseCardText: { fontSize: 22, textAlign: "auto", lineHeight: 42 },
   moreBtn: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 4 },
-  moreBtnText: { fontFamily: "Tajawal_400Regular", fontSize: 15 },
+  moreBtnText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15 },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
-  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 6 },
-  filterChipText: { fontFamily: "Tajawal_400Regular", fontSize: 14 },
+  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 6, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  filterChipText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14 },
   juzOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", padding: 16 },
   juzSheet: { width: "100%", maxWidth: 420, borderRadius: 20, borderWidth: 1, padding: 16 },
-  juzTitle: { fontFamily: "Tajawal_400Regular", fontSize: 18, textAlign: "auto", marginBottom: 12 },
+  juzTitle: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 18, textAlign: "auto", marginBottom: 12 },
   juzGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   juzCell: { width: 52, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  juzCellText: { fontFamily: "Inter_600SemiBold", fontSize: 15 },
-  verseCardMissing: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "auto" },
+  juzCellText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 15 },
+  verseCardMissing: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "auto" },
   verseCardNav: { flexDirection: "row-reverse", alignItems: "center", gap: 4, justifyContent: "flex-end", paddingTop: 2 },
-  verseCardNavText: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "auto" },
+  verseCardNavText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12, textAlign: "auto" },
   emptyState: { alignItems: "center", paddingTop: 60, gap: 12 },
-  emptyText: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
+  emptyText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 16 },
 });

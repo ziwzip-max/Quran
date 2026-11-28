@@ -12,8 +12,7 @@ import { useFocusEffect, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useGlass } from "@/utils/useGlass";
-import { ScreenBackground } from "@/components/ScreenBackground";
+import { useSurface } from "@/utils/useSurface";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
 import { dueBlocks, isDueForReview, REVIEW_THRESHOLD_L1 } from "@/utils/srs";
@@ -30,6 +29,7 @@ const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 export { isDueForReview, REVIEW_THRESHOLD_L1, REVIEW_THRESHOLD_L2, REVIEW_THRESHOLD_L3 } from "@/utils/srs";
 
 function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: number, colors: any }) {
+  const ink = [colors.textMuted + "88", colors.gold + "66", colors.gold + "AA", colors.gold];
   const labels = ["غير مبدوء", "قيد الحفظ", "متوسط", "متقن"];
   return (
     <View style={statsStyles.breakdownContainer}>
@@ -41,7 +41,7 @@ function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: 
               key={i} 
               style={[
                 statsStyles.breakdownSegment, 
-                { flex: count, backgroundColor: MASTERY_DOT_COLORS[i] },
+                { flex: count, backgroundColor: ink[i] },
                 i === 0 ? { borderTopLeftRadius: 6, borderBottomLeftRadius: 6 } : {},
                 i === 3 ? { borderTopRightRadius: 6, borderBottomRightRadius: 6 } : {}
               ]} 
@@ -53,7 +53,7 @@ function MasteryBreakdown({ counts, total, colors }: { counts: number[], total: 
       <View style={statsStyles.breakdownLabels}>
         {labels.map((label, i) => (
           <View key={i} style={statsStyles.labelItem}>
-            <View style={[statsStyles.labelDot, { backgroundColor: MASTERY_DOT_COLORS[i] }]} />
+            <View style={[statsStyles.labelDot, { backgroundColor: ink[i] }]} />
             <Text style={[statsStyles.labelText, { color: colors.textSecondary }]}>{label}</Text>
           </View>
         ))}
@@ -134,24 +134,23 @@ const statsStyles = StyleSheet.create({
   panel: { borderRadius: 16, padding: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 14, overflow: "hidden" },
   panelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  panelTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
+  panelTitle: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 16 },
   topRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   statBlock: { flex: 1, alignItems: "center", gap: 3 },
-  statNum: { fontFamily: "Inter_700Bold", fontSize: 20 },
-  statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "center" },
+  statNum: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 20 },
+  statLabel: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 11, textAlign: "center" },
   divider: { width: 1, height: 30, marginHorizontal: 4 },
   sectionDivider: { height: 1, marginVertical: 12, opacity: 0.5 },
-  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, marginBottom: 10 },
+  sectionTitle: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14, marginBottom: 10 },
   breakdownContainer: { gap: 10 },
   breakdownBar: { height: 12, flexDirection: "row", backgroundColor: "#f0f0f020", borderRadius: 6, overflow: "hidden" },
   breakdownSegment: { height: "100%" },
   breakdownLabels: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "center" },
   labelItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   labelDot: { width: 8, height: 8, borderRadius: 4 },
-  labelText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  labelText: { fontSize: 11, fontFamily: "IBMPlexSansArabic_400Regular" },
 });
 
-const MASTERY_DOT_COLORS = ["#4A5880", "#E67E22", "#C9A227", "#27AE60"] as const;
 
 function BlockItem({
   block, onRemoveVerse, colors, arabicFont, reviews, onReview,
@@ -223,7 +222,7 @@ function BlockItem({
       </View>
       {block.verses.map((verse) => {
         const mastery = getMastery(block.surahNumber, verse.number);
-        const dotColor = MASTERY_DOT_COLORS[mastery];
+        const dotColor = [colors.textMuted, colors.gold + "88", colors.gold + "CC", colors.gold][mastery];
         return (
           <View key={verse.number} style={styles.verseRow}>
             <Pressable
@@ -253,6 +252,40 @@ function BlockItem({
           </View>
         );
       })}
+    </View>
+  );
+}
+
+/**
+ * The surah as a strip of its verses, written in ink as they are learned: empty paper for verses not
+ * saved, pencil grey for new ones, then the accent colour getting denser with each mastery level.
+ */
+function InkStrip({ group, colors }: { group: SurahGroup; colors: ReturnType<typeof useSettings>["colors"] }) {
+  const { getMastery } = useMastery();
+  const total = SURAHS.find((x) => x.number === group.surahNumber)?.versesCount ?? 0;
+  const runs = useMemo(() => {
+    const level = new Map<number, number>();
+    group.blocks.forEach((b) => b.verses.forEach((v) => level.set(v.number, getMastery(group.surahNumber, v.number))));
+    const out: { color: string; n: number }[] = [];
+    for (let i = 1; i <= total; i++) {
+      const l = level.get(i);
+      const color =
+        l === undefined ? colors.border
+        : l >= 3 ? colors.gold
+        : l === 2 ? colors.gold + "AA"
+        : l === 1 ? colors.gold + "66"
+        : colors.textMuted + "66";
+      const last = out[out.length - 1];
+      if (last && last.color === color) last.n += 1;
+      else out.push({ color, n: 1 });
+    }
+    return out;
+  }, [group, total, getMastery, colors.border, colors.gold, colors.textMuted]);
+  return (
+    <View style={styles.inkStrip} accessibilityLabel={`${countAyat(group.totalVerses)} من ${total}`}>
+      {runs.map((r, i) => (
+        <View key={i} style={{ flexGrow: r.n, flexBasis: 0, backgroundColor: r.color }} />
+      ))}
     </View>
   );
 }
@@ -292,26 +325,23 @@ function SurahSection({
   const rotateInterpolate = rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "90deg"] });
 
   return (
-    <View style={[styles.surahSection, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+    <View style={[styles.surahSection, { borderBottomColor: colors.border }]}>
       <Pressable onPress={toggle} style={styles.surahHeader}>
         <View style={styles.surahHeaderLeft}>
-          <View style={[styles.surahNumBadge, { backgroundColor: colors.bgSurface, borderColor: colors.gold + "40" }]}>
-            <Text style={[styles.surahNumText, { color: colors.gold }]}>{group.surahNumber}</Text>
-          </View>
+          <Text style={[styles.surahNumText, { color: colors.rubric }]}>{group.surahNumber}</Text>
           <Text style={[styles.surahArabicName, { color: colors.textPrimary }]}>{group.surahNameArabic}</Text>
           {hasDueBlocks && !expanded && (
             <Ionicons name="time-outline" size={14} color={colors.gold} />
           )}
         </View>
         <View style={styles.surahHeaderRight}>
-          <View style={[styles.countBadge, { backgroundColor: colors.gold + "20", borderColor: colors.gold + "30" }]}>
-            <Text style={[styles.countText, { color: colors.gold }]}>{countAyat(group.totalVerses)}</Text>
-          </View>
+          <Text style={[styles.countText, { color: colors.textSecondary }]}>{countAyat(group.totalVerses)}</Text>
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Animated.View>
         </View>
       </Pressable>
+      <InkStrip group={group} colors={colors} />
 
       {expanded && (
         <View style={[styles.blocksContainer, { borderTopColor: colors.border }]}>
@@ -341,7 +371,7 @@ export default function BookmarksScreen() {
   const [jumpVisible, setJumpVisible] = useState(false);
 
   const topPadding = useTopPadding();
-  const glass = useGlass();
+  const paper = useSurface();
   const savedSurahNumbers = useMemo(() => surahGroups.map(g => g.surahNumber), [surahGroups]);
 
   const loadStats = useCallback(async () => {
@@ -400,20 +430,18 @@ export default function BookmarksScreen() {
   if (!isLoaded) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding, justifyContent: "center" }]}>
-        <ScreenBackground />
-        <Text style={[{ color: colors.textSecondary, textAlign: "center", fontFamily: "Inter_400Regular" }]}>جاري التحميل...</Text>
+        <Text style={[{ color: colors.textSecondary, textAlign: "center", fontFamily: "IBMPlexSansArabic_400Regular" }]}>جاري التحميل...</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
-      <ScreenBackground />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
             onPress={() => setJumpVisible(true)}
-            style={[styles.jumpBtn, glass.surface("soft")]}
+            style={[styles.jumpBtn, paper.surface("soft")]}
             hitSlop={8}
           >
             <Ionicons name="navigate-outline" size={18} color={colors.gold} />
@@ -507,8 +535,8 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1, alignItems: "flex-start" },
   headerCenter: { flex: 2, alignItems: "center" },
   headerRight: { flex: 1 },
-  title: { fontSize: 26, fontFamily: "Inter_700Bold", textAlign: "center" },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center" },
+  title: { fontSize: 26, fontFamily: "IBMPlexSansArabic_700Bold", textAlign: "center" },
+  subtitle: { fontSize: 13, fontFamily: "IBMPlexSansArabic_400Regular", marginTop: 4, textAlign: "center" },
   jumpBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -520,27 +548,26 @@ const styles = StyleSheet.create({
   },
   jumpBtnText: { fontSize: 13, fontWeight: "600" as const },
   listContent: { paddingHorizontal: 16 },
-  surahSection: { borderRadius: 16, overflow: "hidden", borderWidth: 1 },
-  surahHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 14 },
+  surahSection: { borderBottomWidth: 1, paddingBottom: 10 },
+  inkStrip: { flexDirection: "row", height: 6, marginHorizontal: 8, borderRadius: 3, overflow: "hidden" },
+  surahHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, paddingHorizontal: 8 },
   surahHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   surahHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  surahNumBadge: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  surahNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
-  surahArabicName: { fontSize: 17 },
-  countBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
-  countText: { fontFamily: "Inter_500Medium", fontSize: 11 },
+  surahNumText: { width: 34, fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14, textAlign: "center" },
+  surahArabicName: { fontSize: 19, fontFamily: "IBMPlexSansArabic_600SemiBold" },
+  countText: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11 },
   blocksContainer: { borderTopWidth: 1, paddingVertical: 10, paddingHorizontal: 14, gap: 12 },
-  blockItem: { borderRadius: 12, padding: 12, gap: 10 },
+  blockItem: { borderRadius: 4, padding: 12, gap: 10 },
   blockHeader: { flexDirection: "row", alignItems: "center" },
   actionBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   blockHeaderLeft: { gap: 4, marginEnd: 12 },
-  blockRange: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  blockRange: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12 },
   reviewBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
     borderWidth: 1, alignSelf: "flex-start",
   },
-  reviewBadgeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
+  reviewBadgeText: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 10 },
   verseRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   masteryDotBtn: {
     width: 20, height: 20, borderRadius: 10, borderWidth: 1.5,
@@ -550,6 +577,6 @@ const styles = StyleSheet.create({
   masteryDot: { width: 8, height: 8, borderRadius: 4 },
   verseText: { flex: 1, fontSize: 20, textAlign: "auto", lineHeight: 38 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
-  emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
-  emptyDesc: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
+  emptyTitle: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 17, textAlign: "center" },
+  emptyDesc: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
 });
