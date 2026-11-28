@@ -23,6 +23,7 @@ import { useBookmarks, SurahGroup, VerseBlock } from "@/contexts/BookmarksContex
 import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { JumpModal } from "@/components/JumpModal";
+import { countAyat } from "@/utils/arabicPlural";
 
 const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
 
@@ -304,7 +305,7 @@ function SurahSection({
         </View>
         <View style={styles.surahHeaderRight}>
           <View style={[styles.countBadge, { backgroundColor: colors.gold + "20", borderColor: colors.gold + "30" }]}>
-            <Text style={[styles.countText, { color: colors.gold }]}>{group.totalVerses} آية</Text>
+            <Text style={[styles.countText, { color: colors.gold }]}>{countAyat(group.totalVerses)}</Text>
           </View>
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -438,7 +439,7 @@ export default function BookmarksScreen() {
       </View>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {totalVerses > 0
-          ? `${totalVerses} آية في ${surahGroups.length} سورة`
+          ? `${countAyat(totalVerses)} في ${surahGroups.length} سورة`
           : "لا توجد آيات محفوظة"}
       </Text>
 

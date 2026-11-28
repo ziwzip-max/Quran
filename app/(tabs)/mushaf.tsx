@@ -24,6 +24,7 @@ import { useMastery } from "@/contexts/MasteryContext";
 import { SURAHS } from "@/constants/quranData";
 import { HIZB_START, SURAH_JUZ, SURAH_TYPE } from "@/constants/quranMeta";
 import { JumpModal } from "@/components/JumpModal";
+import { countAyat } from "@/utils/arabicPlural";
 
 const MUSHAF_POS_KEY = "al_hifz_mushaf_pos";
 const MUSHAF_JUMP_TARGET = "al_hifz_mushaf_jump_target";
@@ -158,7 +159,7 @@ function SurahHeaderItem({
       <View style={shStyles.content}>
         <Text style={[shStyles.nameAr, { color: colors.gold }]}>{surah.nameArabic}</Text>
         <Text style={[shStyles.meta, { color: colors.textSecondary }]}>
-          {typeLabel} • {surah.versesCount} آية • الجزء {LATIN_JUZ[juz - 1]}
+          {typeLabel} • {countAyat(surah.versesCount)} • الجزء {LATIN_JUZ[juz - 1]}
         </Text>
       </View>
       <View style={[shStyles.ornamentLine, { backgroundColor: colors.gold + "30" }]} />

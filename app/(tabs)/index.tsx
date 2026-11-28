@@ -32,6 +32,7 @@ import { SURAHS, Surah } from "@/constants/quranData";
 import { SURAH_TYPE } from "@/constants/quranMeta";
 import { VOD_LIST } from "@/constants/verseOfDayList";
 import { BUILT_IN_DUAS, Dua } from "@/constants/duaaData";
+import { countAyat } from "@/utils/arabicPlural";
 
 export const HISTORY_KEY = "al_hifz_history";
 const LAST_SURAH_KEY = "al_hifz_last_surah";
@@ -244,7 +245,7 @@ function SurahCard({ surah, onPress, onLongPress, isPinned, colors }: {
     >
       <Animated.View style={[styles.cardInner, { transform: [{ scale }] }]}>
         <View style={styles.cardLeft}>
-          <Text style={[styles.verseCount, { color: colors.textMuted }]}>{surah.versesCount} آية</Text>
+          <Text style={[styles.verseCount, { color: colors.textMuted }]}>{countAyat(surah.versesCount)}</Text>
           <View style={[styles.revTypePill, { backgroundColor: revType === "mecquoise" ? colors.teal + "20" : colors.gold + "15" }]}>
             <Text style={[styles.revTypeText, { color: revType === "mecquoise" ? colors.tealLight : colors.gold }]}>
               {revType === "mecquoise" ? "مكية" : "مدنية"}
