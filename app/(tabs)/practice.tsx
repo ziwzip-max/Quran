@@ -60,17 +60,16 @@ function DisplayBlockCard({
           <Text style={[styles.refRange, { color: colors.textMuted }]}>{rangeLabel}</Text>
         </View>
       </View>
+      {/* Only the beginning of the passage, to know where to start reciting from. */}
       <View style={styles.versesContainer}>
-        {block.verses.map((verse) => (
-          <View key={verse.number} style={styles.verseRow}>
-            <Text style={[styles.verseArabic, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
-              {verse.text}
-            </Text>
-            <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface }]}>
-              <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{verse.number}</Text>
-            </View>
+        <View style={styles.verseRow}>
+          <Text style={[styles.verseArabic, { color: colors.textPrimary }, arabicFont ? { fontFamily: arabicFont } : {}]}>
+            {`${block.verses[0].text.trim().split(/\s+/).slice(0, 4).join(" ")} …`}
+          </Text>
+          <View style={[styles.verseNumDot, { backgroundColor: colors.bgSurface }]}>
+            <Text style={[styles.verseNumText, { color: colors.textMuted }]}>{block.verses[0].number}</Text>
           </View>
-        ))}
+        </View>
       </View>
     </View>
   );
