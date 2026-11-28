@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useMastery } from "@/contexts/MasteryContext";
@@ -44,7 +44,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setReciterId, setPlaybackRate, setRepeatMode, setShowTajweed, setContinuousPlay, setQiraa, setTranslationLang,
     setNotifEnabled, setNotifHour, setNotifMinute,
     autoNightMode, setAutoNightMode,
-    glass: glassOn, setGlass,
     colors, arabicFontFamily,
     reloadFromStorage: reloadSettings,
   } = useSettings();
@@ -55,8 +54,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const MAX_FONT_SIZE = 48;
   const FONT_STEP = 2;
   const insets = useSafeAreaInsets();
-  const glass = useGlass();
-  const s = makeStyles(colors, glass.surface("strong", { blur: true }));
+  const paper = useSurface();
+  const s = makeStyles(colors, paper.surface("strong"));
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("المظهر");
   const [reciterPickerVisible, setReciterPickerVisible] = useState(false);
@@ -230,19 +229,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     thumbColor={autoNightMode ? colors.gold : colors.textMuted}
                   />
                   <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>تبديل تلقائي حسب النظام</Text>
-                </View>
-              </View>
-
-              <View style={s.toggleGroup}>
-                <View style={s.toggleRow}>
-                  <Switch
-                    value={glassOn}
-                    onValueChange={setGlass}
-                    trackColor={{ false: colors.bgDark, true: colors.gold + "80" }}
-                    thumbColor={glassOn ? colors.gold : colors.textMuted}
-                    accessibilityLabel="الأسطح الزجاجية"
-                  />
-                  <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>الأسطح الزجاجية الشفافة</Text>
                 </View>
               </View>
 
@@ -505,7 +491,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <View style={[s.toggleGroup, { padding: 16 }]}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <View>
-                    <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "auto" }}>المساحة المستخدمة</Text>
+                    <Text style={{ color: colors.textPrimary, fontFamily: "IBMPlexSansArabic_600SemiBold", textAlign: "auto" }}>المساحة المستخدمة</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "auto" }}>{cacheSize}</Text>
                   </View>
                   <Pressable
@@ -517,7 +503,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                       backgroundColor: colors.error + "15",
                     }}
                   >
-                    <Text style={{ color: colors.error, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>مسح الكاش</Text>
+                    <Text style={{ color: colors.error, fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12 }}>مسح الكاش</Text>
                   </Pressable>
                 </View>
               </View>
@@ -528,7 +514,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             <>
               <Text style={s.sectionTitle}>النسخ الاحتياطي</Text>
               <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "IBMPlexSansArabic_400Regular", lineHeight: 20 }}>
                   يمكنك تصدير جميع بياناتك (الآيات المحفوظة، مستوى الحفظ، الإعدادات) كملف JSON لنقلها أو حفظها.
                 </Text>
 
@@ -546,7 +532,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                   ) : (
                     <Ionicons name="cloud-download-outline" size={20} color={colors.gold} />
                   )}
-                  <Text style={{ color: colors.gold, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                  <Text style={{ color: colors.gold, fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 }}>
                     تصدير البيانات
                   </Text>
                 </Pressable>
@@ -554,7 +540,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
               <Text style={s.sectionTitle}>استيراد البيانات</Text>
               <View style={[s.toggleGroup, { padding: 16, gap: 12 }]}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "auto", fontFamily: "IBMPlexSansArabic_400Regular", lineHeight: 20 }}>
                   استيراد نسخة احتياطية سابقة. سيتم استبدال البيانات الحالية بالكامل.
                 </Text>
 
@@ -572,7 +558,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                   ) : (
                     <Ionicons name="cloud-upload-outline" size={20} color={colors.textPrimary} />
                   )}
-                  <Text style={{ color: colors.textPrimary, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                  <Text style={{ color: colors.textPrimary, fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 }}>
                     استيراد من ملف
                   </Text>
                 </Pressable>
@@ -596,7 +582,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     />
                     <Text style={{
                       color: dataStatus.type === "success" ? colors.gold : colors.error,
-                      fontFamily: "Inter_500Medium",
+                      fontFamily: "IBMPlexSansArabic_500Medium",
                       fontSize: 13,
                       flex: 1,
                       textAlign: "auto",
@@ -640,7 +626,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                     {r.labelAr}
                   </Text>
                   {r.surahUrl && (
-                    <Text style={{ fontSize: 10, color: colors.textMuted, fontFamily: "Inter_400Regular", textAlign: "auto" }}>
+                    <Text style={{ fontSize: 10, color: colors.textMuted, fontFamily: "IBMPlexSansArabic_400Regular", textAlign: "auto" }}>
                       ◉ تلاوة سورة كاملة
                     </Text>
                   )}
@@ -689,7 +675,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       flexDirection: "row", justifyContent: "space-between",
       alignItems: "center", marginBottom: 16,
     },
-    title: { fontSize: 20, color: colors.textPrimary, fontFamily: "Inter_700Bold" },
+    title: { fontSize: 20, color: colors.textPrimary, fontFamily: "IBMPlexSansArabic_700Bold" },
     tabBar: {
       flexDirection: "row",
       borderBottomWidth: 1,
@@ -700,9 +686,9 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       flex: 1, alignItems: "center", paddingVertical: 10,
       borderBottomColor: "transparent", borderBottomWidth: 2,
     },
-    tabLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "auto" },
+    tabLabel: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12, textAlign: "auto" },
     sectionTitle: {
-      fontSize: 11, color: colors.textMuted, fontFamily: "Inter_500Medium",
+      fontSize: 11, color: colors.textMuted, fontFamily: "IBMPlexSansArabic_500Medium",
       textAlign: "auto", marginBottom: 10, marginTop: 4,
       textTransform: "uppercase", letterSpacing: 0.5,
     },
@@ -725,8 +711,8 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       borderColor: colors.border, backgroundColor: colors.bgSurface,
     },
     optionBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    optionLabel: { color: colors.textSecondary, fontFamily: "Inter_500Medium", fontSize: 14, textAlign: "auto" },
-    optionLabelActive: { color: colors.bgDark, fontFamily: "Inter_700Bold" },
+    optionLabel: { color: colors.textSecondary, fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 14, textAlign: "auto" },
+    optionLabelActive: { color: colors.bgDark, fontFamily: "IBMPlexSansArabic_700Bold" },
     accentRow: { flexDirection: "row", gap: 14, marginBottom: 20, justifyContent: "flex-start" },
     accentCircleWrap: { alignItems: "center", justifyContent: "center" },
     accentCircle: {
@@ -742,7 +728,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
     fontBtnActive: { borderColor: colors.gold + "60", backgroundColor: colors.gold + "10" },
     fontBtnInner: { flexDirection: "row", alignItems: "center", gap: 14 },
     fontSample: { fontSize: 20, color: colors.textPrimary },
-    fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "Inter_400Regular" },
+    fontLabel: { fontSize: 13, color: colors.textSecondary, fontFamily: "IBMPlexSansArabic_400Regular" },
     fontSizeRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -753,20 +739,20 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       width: 46, height: 46, borderRadius: 12,
       borderWidth: 1, alignItems: "center", justifyContent: "center",
     },
-    fontSizeBtnText: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 26 },
+    fontSizeBtnText: { fontSize: 22, fontFamily: "IBMPlexSansArabic_700Bold", lineHeight: 26 },
     fontSizeDisplay: {
       flex: 1, height: 46, borderRadius: 12, borderWidth: 1,
       flexDirection: "row", alignItems: "center",
       justifyContent: "space-between", paddingHorizontal: 14,
     },
     fontSizeValue: { fontSize: 20 },
-    fontSizeNumber: { fontSize: 13, fontFamily: "Inter_500Medium" },
+    fontSizeNumber: { fontSize: 13, fontFamily: "IBMPlexSansArabic_500Medium" },
     reciterPickerRow: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
       borderWidth: 1, marginBottom: 20,
     },
-    reciterPickerLabel: { fontSize: 16, fontFamily: "Inter_500Medium", textAlign: "auto" },
+    reciterPickerLabel: { fontSize: 16, fontFamily: "IBMPlexSansArabic_500Medium", textAlign: "auto" },
     toggleGroup: {
       backgroundColor: colors.bgSurface, borderRadius: 14,
       borderWidth: 1, borderColor: colors.border, marginBottom: 20, overflow: "hidden",
@@ -778,7 +764,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       paddingHorizontal: 16,
       paddingVertical: 14,
     },
-    toggleLabel: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "auto", flex: 1 },
+    toggleLabel: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "auto", flex: 1 },
     timeStepper: {
       alignItems: "center", gap: 2,
     },
@@ -786,10 +772,10 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       width: 28, height: 22, alignItems: "center", justifyContent: "center",
     },
     stepperVal: {
-      fontFamily: "Inter_700Bold", fontSize: 18, minWidth: 28, textAlign: "center",
+      fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 18, minWidth: 28, textAlign: "center",
     },
     timeSep: {
-      fontFamily: "Inter_700Bold", fontSize: 22,
+      fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 22,
       marginHorizontal: 4,
     },
     preview: {
@@ -803,7 +789,7 @@ function makeStyles(colors: ReturnType<typeof useSettings>["colors"], sheetSurfa
       flexDirection: "row", justifyContent: "space-between",
       alignItems: "center", marginBottom: 16,
     },
-    subTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
+    subTitle: { fontSize: 18, fontFamily: "IBMPlexSansArabic_700Bold" },
     reciterItem: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       paddingHorizontal: 16, paddingVertical: 16,

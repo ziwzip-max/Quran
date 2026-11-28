@@ -21,5 +21,5 @@ export function EmptyAction({ label = "تصفّح السور" }: { label?: strin
 
 const styles = StyleSheet.create({
   btn: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 20, borderRadius: 22, marginTop: 8 },
-  label: { fontFamily: "Tajawal_400Regular", fontSize: 16 },
+  label: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 16 },
 });

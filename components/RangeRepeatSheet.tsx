@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAudio } from "@/contexts/AudioContext";
 
@@ -23,7 +23,7 @@ export function RangeRepeatSheet({
   initialFrom: number;
 }) {
   const { colors } = useSettings();
-  const glass = useGlass();
+  const paper = useSurface();
   const { playRange, isSurahMode } = useAudio();
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(Math.min(verseCount, initialFrom + 4));
@@ -76,7 +76,7 @@ export function RangeRepeatSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, glass.surface("strong", { blur: true })]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, paper.surface("strong")]} onPress={() => {}}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>تكرار مقطع للحفظ</Text>
           {isSurahMode ? (
             <Text style={[styles.note, { color: colors.textSecondary }]}>
@@ -111,17 +111,17 @@ export function RangeRepeatSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", padding: 16 },
   sheet: { width: "100%", maxWidth: 440, borderRadius: 20, borderWidth: 1, padding: 18, gap: 10 },
-  title: { fontFamily: "Tajawal_400Regular", fontSize: 19, textAlign: "auto" },
-  note: { fontFamily: "Tajawal_400Regular", fontSize: 15, textAlign: "auto", lineHeight: 24 },
-  label: { fontFamily: "Tajawal_400Regular", fontSize: 14, textAlign: "auto" },
+  title: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 19, textAlign: "auto" },
+  note: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15, textAlign: "auto", lineHeight: 24 },
+  label: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "auto" },
   steppers: { flexDirection: "row", gap: 12 },
   stepper: { flex: 1, gap: 6 },
   stepperRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  stepValue: { fontFamily: "Inter_600SemiBold", fontSize: 20, minWidth: 40, textAlign: "center" },
+  stepValue: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 20, minWidth: 40, textAlign: "center" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { minWidth: 56, minHeight: 40, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  chipText: { fontFamily: "Tajawal_400Regular", fontSize: 15 },
+  chipText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 15 },
   start: { marginTop: 6, minHeight: 48, borderRadius: 24, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  startText: { fontFamily: "Tajawal_400Regular", fontSize: 17 },
+  startText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 17 },
 });

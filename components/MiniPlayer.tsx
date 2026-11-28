@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { SURAH_NAME_FONT } from "@/constants/themes";
 import { useAudio } from "@/contexts/AudioContext";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { SURAHS } from "@/constants/quranData";
 
 /**
@@ -16,7 +16,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
   const { currentSurahNum, currentVerseNum, isPlaying, isLoading, isSurahMode, playbackPosition, playbackDuration, pause, resume, stop, rangeRepeat } =
     useAudio();
   const { colors } = useSettings();
-  const glass = useGlass();
+  const paper = useSurface();
 
   if (currentSurahNum == null) return null;
   const surah = SURAHS[currentSurahNum - 1];
@@ -32,7 +32,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
     <View
       style={[
         styles.bar,
-        glass.surface("soft", { blur: true }),
+        paper.surface("soft"),
         floating && styles.floating,
       ]}
     >
@@ -73,7 +73,7 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { overflow: "hidden", borderRadius: 18, marginHorizontal: 10, marginTop: 8 },
+  bar: { overflow: "hidden", borderRadius: 6, marginHorizontal: 10, marginTop: 8 },
   floating: {
     position: "absolute",
     bottom: 16,
@@ -89,6 +89,6 @@ const styles = StyleSheet.create({
   info: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
   texts: { flex: 1, alignItems: "flex-start" },
   title: { fontFamily: SURAH_NAME_FONT, fontSize: 17, textAlign: "auto" },
-  subtitle: { fontFamily: "Tajawal_400Regular", fontSize: 12, textAlign: "auto" },
+  subtitle: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 12, textAlign: "auto" },
   btn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
 });

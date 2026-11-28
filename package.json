@@ -2,7 +2,7 @@
   "name": "expo-app",
   "type": "module",
   "main": "expo-router/entry",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "scripts": {
     "postinstall": "patch-package",
     "start": "expo start --web",
@@ -19,6 +19,8 @@
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.4.1",
     "@expo-google-fonts/amiri-quran": "^0.4.1",
+    "@expo-google-fonts/aref-ruqaa": "^0.4.1",
+    "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo-google-fonts/lateef": "^0.4.2",
     "@expo-google-fonts/noto-naskh-arabic": "^0.4.5",

@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { ScreenBackground } from "@/components/ScreenBackground";
 import { HiddenWord } from "@/components/HiddenWord";
 import { EmptyAction } from "@/components/EmptyAction";
 import { useTopPadding } from "@/utils/layout";
@@ -557,7 +556,6 @@ export default function PracticeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark, paddingTop: topPadding }]}>
-      <ScreenBackground />
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
@@ -701,8 +699,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  title: { fontSize: 24, fontFamily: "Inter_700Bold" },
-  subtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 3 },
+  title: { fontSize: 24, fontFamily: "IBMPlexSansArabic_700Bold" },
+  subtitle: { fontSize: 12, fontFamily: "IBMPlexSansArabic_400Regular", marginTop: 3 },
   filterBarContainer: {
     paddingHorizontal: 20,
     marginBottom: 8,
@@ -714,11 +712,11 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
   },
   filterChipText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "IBMPlexSansArabic_600SemiBold",
     fontSize: 13,
   },
   modeBarContainer: {
@@ -738,32 +736,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  modeBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  modeBtnText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 8 },
   infoBox: {
     flexDirection: "row", borderRadius: 12, padding: 12,
     gap: 8, borderWidth: 1, marginBottom: 16, alignItems: "flex-start",
   },
-  infoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, textAlign: "auto" },
+  infoText: { flex: 1, fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 13, lineHeight: 20, textAlign: "auto" },
   promptArea: { alignItems: "center", paddingVertical: 48, gap: 16 },
   promptArabic: { fontSize: 22, textAlign: "center", lineHeight: 36 },
-  promptHint: { fontFamily: "Inter_400Regular", fontSize: 14 },
+  promptHint: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14 },
   cardsContainer: { gap: 14 },
-  sectionLabel: { fontFamily: "Inter_500Medium", fontSize: 12, textAlign: "auto", marginBottom: 4 },
-  blockCard: { borderRadius: 18, padding: 16, borderWidth: 1 },
+  sectionLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 12, textAlign: "auto", marginBottom: 4 },
+  blockCard: { borderRadius: 6, padding: 16, borderWidth: 1 },
   blockCardHeader: {
     flexDirection: "row", alignItems: "center", gap: 10,
     marginBottom: 16, paddingBottom: 14, borderBottomWidth: 1,
   },
   indexBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  indexText: { fontFamily: "Inter_700Bold", fontSize: 13 },
+  indexText: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 13 },
   refInfo: { flex: 1 },
   refSurahRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-start" },
   refSurahArabic: { fontSize: 16, textAlign: "auto" },
-  refSurahNumber: { fontFamily: "Inter_500Medium", fontSize: 13 },
-  refRange: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "auto", marginTop: 2 },
+  refSurahNumber: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 13 },
+  refRange: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 11, textAlign: "auto", marginTop: 2 },
   revealHeaderRight: { alignItems: "flex-end", gap: 4 },
-  wordCounter: { fontFamily: "Inter_500Medium", fontSize: 11 },
+  wordCounter: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11 },
   versesContainer: { gap: 12 },
   verseRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   verseArabic: { flex: 1, fontSize: 22, textAlign: "auto", lineHeight: 42 },
@@ -771,9 +769,9 @@ const styles = StyleSheet.create({
     width: 22, height: 22, borderRadius: 11, alignItems: "center",
     justifyContent: "center", marginTop: 6, flexShrink: 0,
   },
-  verseNumText: { fontFamily: "Inter_500Medium", fontSize: 9 },
+  verseNumText: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 9 },
   revealAllBtn: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  revealAllText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  revealAllText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 12 },
   wordVerseBlock: { gap: 8 },
   wordRow: {
     flexDirection: "row",
@@ -792,7 +790,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
   },
-  startMaskingText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  startMaskingText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 },
   dictationInput: {
     borderRadius: 12,
     borderWidth: 1,
@@ -824,20 +822,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-  showAnswerText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  showAnswerText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 },
   flashContainer: { flex: 1, paddingHorizontal: 16 },
   flashProgress: { alignItems: "center", paddingBottom: 12 },
-  flashProgressText: { fontFamily: "Inter_400Regular", fontSize: 12 },
+  flashProgressText: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 12 },
   flashCardWrap: { flex: 1, justifyContent: "center" },
   flashCardPressable: { flex: 1, maxHeight: 380 },
   flashCard: {
-    flex: 1, borderRadius: 24, borderWidth: 1, padding: 24,
+    flex: 1, borderRadius: 6, borderWidth: 1, padding: 24,
     alignItems: "center", justifyContent: "center",
     shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
   },
   flashFaceContent: { alignItems: "center", gap: 16, padding: 8 },
   flashReference: { fontSize: 22, textAlign: "center", lineHeight: 36 },
-  flashHint: { fontFamily: "Inter_400Regular", fontSize: 13 },
+  flashHint: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 13 },
   flashVerseText: { fontSize: 22, textAlign: "center", lineHeight: 40 },
   flashActions: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-around",
@@ -845,18 +843,18 @@ const styles = StyleSheet.create({
   },
   flashActionBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    borderRadius: 16, borderWidth: 1, paddingVertical: 14, gap: 8,
+    borderRadius: 6, borderWidth: 1, paddingVertical: 14, gap: 8,
   },
   flashFlipBtn: {
     width: 50, height: 50, borderRadius: 25, borderWidth: 1,
     alignItems: "center", justifyContent: "center",
   },
-  flashActionText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  flashSwipeHint: { textAlign: "center", fontFamily: "Inter_400Regular", fontSize: 11, paddingBottom: 8 },
+  flashActionText: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 14 },
+  flashSwipeHint: { textAlign: "center", fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 11, paddingBottom: 8 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12 },
-  emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
-  emptyDesc: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
+  emptyTitle: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 17, textAlign: "center" },
+  emptyDesc: { fontFamily: "IBMPlexSansArabic_400Regular", fontSize: 14, textAlign: "center", lineHeight: 24 },
 
   drawButton: { flexDirection: "row", alignItems: "center", borderRadius: 50, paddingVertical: 16, paddingHorizontal: 36, gap: 10 },
-  drawButtonText: { fontFamily: "Inter_700Bold", fontSize: 16 },
+  drawButtonText: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 16 },
 });

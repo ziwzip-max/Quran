@@ -1,15 +1,14 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+  IBMPlexSansArabic_400Regular,
+  IBMPlexSansArabic_500Medium,
+  IBMPlexSansArabic_600SemiBold,
+  IBMPlexSansArabic_700Bold,
+} from "@expo-google-fonts/ibm-plex-sans-arabic";
+import { ArefRuqaa_400Regular, ArefRuqaa_700Bold } from "@expo-google-fonts/aref-ruqaa";
+import { useFonts } from "expo-font";
 import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic";
-import { Amiri_400Regular } from "@expo-google-fonts/amiri";
 import { ScheherazadeNew_400Regular } from "@expo-google-fonts/scheherazade-new";
 import { Lateef_400Regular } from "@expo-google-fonts/lateef";
-import { Tajawal_400Regular } from "@expo-google-fonts/tajawal";
 import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
 import { Stack } from "expo-router";
 import { LocaleDirContext } from "@react-navigation/native";
@@ -81,15 +80,15 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    IBMPlexSansArabic_400Regular,
+    IBMPlexSansArabic_500Medium,
+    IBMPlexSansArabic_600SemiBold,
+    IBMPlexSansArabic_700Bold,
     NotoNaskhArabic_400Regular,
-    Amiri_400Regular,
     ScheherazadeNew_400Regular,
     Lateef_400Regular,
-    Tajawal_400Regular,
+    ArefRuqaa_400Regular,
+    ArefRuqaa_700Bold,
     AmiriQuran_400Regular,
   });
 

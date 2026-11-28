@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useGlass } from "@/utils/useGlass";
+import { useSurface } from "@/utils/useSurface";
 import { TajweedRule, TajweedRuleInfo, TAJWEED_RULES, getActiveTajweedRules, TajweedSegment } from "@/utils/tajweed";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -24,7 +24,7 @@ interface TajweedPopupProps {
 
 export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps) {
   const { colors } = useSettings();
-  const glass = useGlass();
+  const paper = useSurface();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -63,7 +63,7 @@ export function TajweedPopup({ rule, word, visible, onClose }: TajweedPopupProps
         style={[
           styles.sheet,
           {
-            ...glass.surface("strong", { blur: true }),
+            ...paper.surface("strong"),
             borderBottomWidth: 0,
             paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
             transform: [{ translateY: slideAnim }],
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, gap: 6,
   },
   ruleDot: { width: 8, height: 8, borderRadius: 4 },
-  ruleLabel: { fontFamily: "Inter_700Bold", fontSize: 14 },
+  ruleLabel: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 14 },
   wordDisplay: {
     fontSize: 36,
     textAlign: "center",
@@ -210,13 +210,13 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   section: { marginBottom: 16 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 12, textAlign: "auto" },
-  sectionBody: { fontSize: 15, textAlign: "auto", lineHeight: 26, fontFamily: "Inter_400Regular" },
+  sectionTitle: { fontFamily: "IBMPlexSansArabic_700Bold", fontSize: 12, textAlign: "auto" },
+  sectionBody: { fontSize: 15, textAlign: "auto", lineHeight: 26, fontFamily: "IBMPlexSansArabic_400Regular" },
   exampleBox: {
     borderRadius: 12, padding: 14, borderWidth: 1,
     marginBottom: 20, gap: 6,
   },
-  exampleLabel: { fontFamily: "Inter_500Medium", fontSize: 11, textAlign: "auto" },
+  exampleLabel: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 11, textAlign: "auto" },
   exampleText: { fontSize: 20, textAlign: "auto", lineHeight: 36 },
 });
 
@@ -225,7 +225,7 @@ const legendStyles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, padding: 10,
     marginTop: 10, gap: 8,
   },
-  header: { fontFamily: "Inter_500Medium", fontSize: 10, textAlign: "auto" },
+  header: { fontFamily: "IBMPlexSansArabic_500Medium", fontSize: 10, textAlign: "auto" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "flex-start" },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -233,5 +233,5 @@ const legendStyles = StyleSheet.create({
     borderWidth: 1,
   },
   chipDot: { width: 6, height: 6, borderRadius: 3 },
-  chipLabel: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
+  chipLabel: { fontFamily: "IBMPlexSansArabic_600SemiBold", fontSize: 11 },
 });
